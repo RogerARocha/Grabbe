@@ -1,0 +1,12 @@
+[Bb]in/
+[Oo]bj/
+.idea
+.env
+.env.*
+*.env
+
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
