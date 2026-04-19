@@ -52,7 +52,34 @@ public class JikanClient : IMediaProviderClient
 
     public async Task<GrabbeMediaDTO?> GetDetailsAsync(string externalId, string type)
     {
-        // TODO: A lógica aqui será muito parecida, usando a rota anime/{id} do Jikan
-        return null;
+        try
+        {
+            // O endpoint de detalhes do Jikan é simplesmente /anime/{id} ou /manga/{id}
+            var endpoint = type == "MANGA" ? $"manga/{externalId}" : $"anime/{externalId}";
+            
+            var response = await _httpClient.GetFromJsonAsync<JikanDetailResponse>(endpoint);
+
+            if (response?.Data == null) return null;
+
+            var anime = response.Data;
+
+            return new GrabbeMediaDTO
+            {
+                ExternalId = anime.MalId.ToString(),
+                SourceApi = ProviderName,
+                Type = type == "MANGA" ? "MANGA" : "ANIME",
+                Title = anime.Title,
+                Description = anime.Synopsis,
+                CoverImageUrl = anime.Images?.Jpg?.ImageUrl,
+                ReleaseDate = anime.Aired?.From?.ToString("yyyy-MM-dd"),
+                Genres = anime.Genres.Select(g => g.Name).ToList(),
+                TotalProgress = anime.Episodes
+            };
+        }
+        catch (HttpRequestException ex)
+        {
+            Console.WriteLine($"Erro ao buscar detalhes no Jikan: {ex.Message}");
+            return null;
+        }
     }
 }

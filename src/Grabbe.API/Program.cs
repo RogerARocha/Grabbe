@@ -1,6 +1,6 @@
 using DotNetEnv;
 using Grabbe.API.Infrastructure.Configuration;
-
+using Grabbe.API.Infrastructure.ExternalClients;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +21,29 @@ builder.Services.Configure<ExternalApiOptions>(options =>
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddScoped<Grabbe.API.Features.MediaSearch.SearchAggregationService>();
+builder.Services.AddScoped<Grabbe.API.Features.MediaDetails.DetailsService>();
+
+// Registra os HttpClients diretamente
+builder.Services.AddHttpClient<TmdbClient>(client => 
+{
+    client.BaseAddress = new Uri("https://api.themoviedb.org/3/");
+});
+
+builder.Services.AddHttpClient<JikanClient>(client => 
+{
+    client.BaseAddress = new Uri("https://api.jikan.moe/v4/");
+});
+
+builder.Services.AddHttpClient<GoogleBooksClient>(client => 
+{
+    client.BaseAddress = new Uri("https://www.googleapis.com/books/v1/");
+});
+
+//a Interface enxerga as classes
+builder.Services.AddTransient<IMediaProviderClient>(sp => sp.GetRequiredService<TmdbClient>());
+builder.Services.AddTransient<IMediaProviderClient>(sp => sp.GetRequiredService<JikanClient>());
+builder.Services.AddTransient<IMediaProviderClient>(sp => sp.GetRequiredService<GoogleBooksClient>());
 
 var app = builder.Build();
 

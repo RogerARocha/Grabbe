@@ -55,3 +55,9 @@ public class JikanGenre
     [JsonPropertyName("name")]
     public string Name { get; set; } = string.Empty;
 }
+
+public class JikanDetailResponse
+{
+    [JsonPropertyName("data")]
+    public JikanAnimeData? Data { get; set; }
+}

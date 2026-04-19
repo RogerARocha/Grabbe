@@ -60,6 +60,38 @@ public class GoogleBooksClient : IMediaProviderClient
 
     public async Task<GrabbeMediaDTO?> GetDetailsAsync(string externalId, string type)
     {
-        return null;
+        try
+        {
+            // A API do Google Books para um único volume busca direto na raiz /volumes/{id}
+            var endpoint = $"volumes/{Uri.EscapeDataString(externalId)}?key={_apiKey}";
+            
+            // Podemos reaproveitar o GoogleBooksItem diretamente!
+            var item = await _httpClient.GetFromJsonAsync<GoogleBooksItem>(endpoint);
+
+            if (item?.VolumeInfo == null) return null;
+
+            return new GrabbeMediaDTO
+            {
+                ExternalId = item.Id,
+                SourceApi = ProviderName,
+                Type = "BOOK",
+                Title = item.VolumeInfo.Title ?? "Título Desconhecido",
+                Description = item.VolumeInfo.Description,
+                
+                // Mantemos a vacina do HTTPS
+                CoverImageUrl = item.VolumeInfo.ImageLinks?.Thumbnail?.Replace("http://", "https://"),
+                
+                ReleaseDate = item.VolumeInfo.PublishedDate,
+                Genres = item.VolumeInfo.Categories ?? new List<string>(),
+                
+                // O número de páginas é o nosso totalProgress para livros
+                TotalProgress = item.VolumeInfo.PageCount
+            };
+        }
+        catch (HttpRequestException ex)
+        {
+            Console.WriteLine($"Erro ao buscar detalhes no Google Books: {ex.Message}");
+            return null;
+        }
     }
 }
