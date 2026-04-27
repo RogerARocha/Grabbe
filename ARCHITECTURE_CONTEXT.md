@@ -806,6 +806,7 @@ Se houver falha na API externa ou o rate limit for estourado, o front-end recebe
 
 ### **Fase 2: Identidade, Engajamento e Estatísticas**
 * [ ] Cartão de Perfil Unificado com Banner exportável.
+* [ ] Personalizacao de tema.
 * [ ] Grabbe Recap (Story Export).
 * [ ] Dashboard Analítico.
 * [ ] Timeline de Consumo.
