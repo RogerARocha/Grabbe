@@ -1,4 +1,4 @@
-# Grabbe 🎬🎮📚
+ # Grabbe 🎬🎮📚
 
 **The Collector's App** — Local-First desktop application designed to be the ultimate ecosystem for tracking and organizing all your entertainment media (Movies, Series, Anime, Manga, Games, and Books).
 
@@ -46,7 +46,9 @@ For an in-depth look at how Grabbe works, check out the core documentation files
 - [Architecture & Context (`ARCHITECTURE_CONTEXT.md`)](./ARCHITECTURE_CONTEXT.md): Full PRD, tech stack details, database schemas, and endpoints.
 - [Design System (`DESIGN.md`)](./DESIGN.md): The aesthetic guidelines, typography, and core CSS effects.
 - [BFF Setup (`grabbe-bff/README.md`)](./grabbe-bff/README.md): Specific instructions for the C# backend.
+
 ---
+
 ## ⚖️ Licença e Termos (License & Terms)
 
 Este projeto está sob a licença [MIT](./LICENSE).
@@ -70,5 +72,6 @@ Metadados e Imagens: Todos os pôsteres de filmes, capas de livros e miniaturas 
 Uso das APIs: Esta aplicação utiliza os serviços de API, mas não é endossada ou certificada por nenhum dos provedores mencionados acima.
 
 Uso Justo (Fair Use): O uso desses ativos destina-se à visualização de metadados e organização pessoal, sob os princípios de uso justo para desenvolvimento educacional.
+
 ---
 Developed by Roger Rocha.
