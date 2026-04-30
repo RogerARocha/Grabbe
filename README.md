@@ -46,6 +46,29 @@ For an in-depth look at how Grabbe works, check out the core documentation files
 - [Architecture & Context (`ARCHITECTURE_CONTEXT.md`)](./ARCHITECTURE_CONTEXT.md): Full PRD, tech stack details, database schemas, and endpoints.
 - [Design System (`DESIGN.md`)](./DESIGN.md): The aesthetic guidelines, typography, and core CSS effects.
 - [BFF Setup (`grabbe-bff/README.md`)](./grabbe-bff/README.md): Specific instructions for the C# backend.
+---
+## ⚖️ Licença e Termos (License & Terms)
 
+Este projeto está sob a licença [MIT](./LICENSE).
+
+### English
+⚠️ Legal Disclaimer
+Grabbe is a media aggregator developed for educational and personal purposes.
+
+Metadata & Images: All movie posters, book covers, and anime thumbnails displayed in the application are provided by third-party APIs (TMDB, Google Books, and Jikan). These assets are the intellectual property of their respective owners (studios, publishers, and creators). This project does not claim any ownership over these media assets.
+
+API Usage: This application uses the API services but is not endorsed or certified by any of the providers mentioned above.
+
+Fair Use: The use of these assets is intended for metadata visualization and personal organization under fair use principles for educational development.
+
+### Português
+⚠️ Aviso Legal / Disclaimer
+O Grabbe é um agregador de mídias desenvolvido para fins educacionais e de uso pessoal.
+
+Metadados e Imagens: Todos os pôsteres de filmes, capas de livros e miniaturas de animes exibidos na aplicação são fornecidos por APIs de terceiros (TMDB, Google Books e Jikan). Esses ativos são propriedade intelectual de seus respectivos detentores (estúdios, editoras e criadores). Este projeto não reivindica qualquer propriedade sobre esses ativos de mídia.
+
+Uso das APIs: Esta aplicação utiliza os serviços de API, mas não é endossada ou certificada por nenhum dos provedores mencionados acima.
+
+Uso Justo (Fair Use): O uso desses ativos destina-se à visualização de metadados e organização pessoal, sob os princípios de uso justo para desenvolvimento educacional.
 ---
 Developed by Roger Rocha.
