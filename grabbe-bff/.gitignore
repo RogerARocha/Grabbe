@@ -4,6 +4,10 @@
 .env
 .env.*
 *.env
+secrets.json
+appsettings.*.local.json
+
+Properties/launchSettings.json
 
 *.rsuser
 *.suo
