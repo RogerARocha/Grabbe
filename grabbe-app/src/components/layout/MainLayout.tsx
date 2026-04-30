@@ -8,10 +8,10 @@ interface MainLayoutProps {
 
 export const MainLayout = ({ children }: MainLayoutProps) => {
   return (
-    <div className="min-h-screen bg-[#002b36] text-[#eee8d5] font-sans">
+    <div className="min-h-screen bg-background text-text-base font-sans">
       <Sidebar />
       <TopBar />
-      <main className="ml-[260px] p-10 min-h-[calc(100vh-80px)]">
+      <main className="ml-[260px] pt-24 px-12 pb-12 min-h-screen overflow-x-hidden">
         {children}
       </main>
     </div>

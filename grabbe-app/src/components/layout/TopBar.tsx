@@ -1,26 +1,32 @@
 export const TopBar = () => {
   return (
-    <header className="sticky top-0 ml-[260px] h-20 bg-[#002b36]/80 backdrop-blur-xl z-10 flex items-center justify-between px-10 border-b border-white/5">
-      {/* Search Input */}
-      <div className="relative w-96">
-        <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[#93a1a1] pointer-events-none">
-          search
-        </span>
+    <header className="fixed top-0 right-0 w-[calc(100%-260px)] h-16 bg-background/60 backdrop-blur-md flex justify-between items-center px-12 z-40">
+      <div className="flex items-center bg-surface rounded-lg px-4 py-1.5 w-96">
+        <span className="material-symbols-outlined text-text-muted text-[20px]">search</span>
         <input 
-          type="text" 
-          placeholder="Search for movies, games, books..." 
-          className="w-full bg-[#00212b] text-white placeholder-[#93a1a1] rounded-lg py-3 pl-12 pr-6 border-none focus:ring-2 focus:ring-[#00A3F5] outline-none transition-shadow"
+          className="bg-transparent border-none focus:ring-0 text-sm text-text-high placeholder:text-text-muted w-full outline-none ml-2" 
+          placeholder="Search evaluations..." 
+          type="text"
         />
       </div>
 
-      {/* Right Actions */}
-      <div className="flex items-center gap-4">
-        <button className="w-10 h-10 rounded-lg flex items-center justify-center text-[#93a1a1] hover:text-white hover:bg-white/10 transition-colors">
-          <span className="material-symbols-outlined">notifications</span>
-        </button>
-        <button className="w-10 h-10 rounded-lg flex items-center justify-center bg-[#073642] text-[#00A3F5] hover:scale-110 active:scale-95 transition-transform border border-[#00A3F5]/20 bloom-shadow">
-          <span className="material-symbols-outlined">person</span>
-        </button>
+      <div className="flex items-center gap-6">
+        <div className="flex gap-4">
+          <button className="text-text-muted hover:text-tertiary transition-colors">
+            <span className="material-symbols-outlined">notifications</span>
+          </button>
+        </div>
+        <div className="flex items-center gap-3 pl-6 border-l border-outline-variant/20">
+          <div className="text-right">
+            <p className="text-[11px] font-bold text-text-high">Alex Rivera</p>
+            <p className="text-[9px] text-text-muted uppercase tracking-wider">Premium Member</p>
+          </div>
+          <img 
+            className="w-8 h-8 rounded-full border border-primary/20" 
+            alt="User avatar" 
+            src="https://api.dicebear.com/7.x/avataaars/svg?seed=Alex"
+          />
+        </div>
       </div>
     </header>
   );

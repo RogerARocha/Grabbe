@@ -7,6 +7,7 @@
   --color-surface-container: #00212b;
   
   --color-primary: #00A3F5;
+  --color-on-primary: #00314e;
   --color-secondary: #53EAAA;
   --color-tertiary: #F848A1;
   --color-warning: #FEA800;
@@ -15,6 +16,13 @@
   --color-text-high: #ffffff;
   --color-text-base: #eee8d5;
   --color-text-muted: #93a1a1;
+
+  --color-on-surface: #ffffff;
+  --color-on-surface-variant: #adaaaa;
+  --color-outline-variant: #484847;
+  --color-surface-container-high: #00151c;
+  --color-surface-container-highest: #000c11;
+  --color-on-tertiary-container: #2f0018;
 
   --font-sans: "Bricolage Grotesque", system-ui, sans-serif;
 }

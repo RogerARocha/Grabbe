@@ -2,23 +2,25 @@ import { Link, useLocation } from 'react-router-dom';
 
 const navItems = [
   { name: 'Dashboard', path: '/', icon: 'dashboard' },
-  { name: 'Library', path: '/library', icon: 'library_books' },
-  { name: 'Analytics', path: '/analytics', icon: 'analytics' }
-
+  { name: 'Library', path: '/library', icon: 'movie_filter' },
+  { name: 'Analytics', path: '/analytics', icon: 'monitoring' },
+  { name: 'Community', path: '/community', icon: 'group' },
+  { name: 'Settings', path: '/settings', icon: 'settings' }
 ];
 
 export const Sidebar = () => {
   const location = useLocation();
 
   return (
-    <aside className="fixed left-0 top-0 h-full w-[260px] bg-[#073642] flex flex-col py-6 border-r border-white/5">
+    <aside className="fixed left-0 top-0 h-full w-[260px] bg-surface flex flex-col py-8 px-4 z-50 bloom-shadow">
       {/* Logo */}
-      <div className="px-6 mb-10">
-        <h1 className="text-3xl font-black tracking-tighter prismatic-text">Grabbe</h1>
+      <div className="mb-12 px-4">
+        <span className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">Grabbe</span>
+        <p className="text-[10px] font-bold text-text-muted tracking-widest uppercase mt-1">The Cinematic Critic</p>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 space-y-1">
+      <nav className="flex-1 space-y-2">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;
           
@@ -26,28 +28,25 @@ export const Sidebar = () => {
             <Link
               key={item.name}
               to={item.path}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] hover:scale-[1.02] active:scale-95 ${
+              className={`flex items-center gap-3 py-3 px-4 rounded-lg font-medium transition-all duration-200 ${
                 isActive 
-                  ? 'bg-[#00212b] text-[#00A3F5] border-l-4 border-[#00A3F5]' 
-                  : 'text-[#93a1a1] hover:text-white border-l-4 border-transparent hover:bg-white/5'
+                  ? 'text-primary font-bold border-r-2 border-primary' 
+                  : 'text-text-muted hover:bg-background hover:text-white'
               }`}
             >
               <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
-              <span className="font-bold text-sm tracking-wide">{item.name}</span>
+              <span className="text-[14px]">{item.name}</span>
             </Link>
           );
         })}
       </nav>
 
       {/* Bottom Actions */}
-      <div className="px-3 mt-auto">
-        <Link
-          to="/settings"
-          className="flex items-center gap-3 px-4 py-3 rounded-lg text-[#93a1a1] hover:text-white transition-all duration-200 hover:bg-white/5"
-        >
-          <span className="material-symbols-outlined text-[20px]">settings</span>
-          <span className="font-bold text-sm tracking-wide">Settings</span>
-        </Link>
+      <div className="mt-auto px-4">
+        <button className="w-full bg-primary py-3 rounded-lg text-on-primary font-bold flex items-center justify-center gap-2 hover:bg-gradient-to-r hover:from-primary hover:to-tertiary transition-all duration-300">
+          <span className="material-symbols-outlined text-[18px]">add</span>
+          <span className="text-sm">New Evaluation</span>
+        </button>
       </div>
     </aside>
   );
