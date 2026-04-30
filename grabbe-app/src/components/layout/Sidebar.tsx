@@ -20,7 +20,7 @@ export const Sidebar = () => {
         {/* Logo */}
         <div className="mb-12 px-4">
           <span className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">Grabbe</span>
-          <p className="text-[10px] font-bold text-text-muted tracking-widest uppercase mt-1">The Cinematic Critic</p>
+          <p className="text-[10px] font-bold text-text-muted tracking-widest uppercase mt-1">The Universal Tracker</p>
         </div>
 
         {/* Navigation */}
