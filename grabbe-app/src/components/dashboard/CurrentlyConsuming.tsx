@@ -1,3 +1,5 @@
+import { MediaCard } from '../shared/MediaCard';
+
 const mediaItems = [
   {
     id: 1,
@@ -38,20 +40,14 @@ export const CurrentlyConsuming = () => {
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
         {mediaItems.map(item => (
-          <div key={item.id} className="group relative bg-surface rounded-lg p-2 transition-transform duration-200 hover:scale-[1.05] primary-glow">
-            <div className="relative w-full h-[240px] rounded-lg overflow-hidden border-2 border-primary mb-3">
-              <img className="w-full h-full object-cover" alt={item.title} src={item.image} />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
-              <div className="absolute top-2 right-2 px-2 py-1 glass-panel rounded-full text-[10px] font-bold text-secondary uppercase">Active</div>
-            </div>
-            <h3 className="font-bold text-sm truncate px-1 text-text-high">{item.title}</h3>
-            <div className="px-1 mt-2">
-              <div className="w-full h-1 bg-surface-container-high rounded-full overflow-hidden">
-                <div className="bg-primary h-full rounded-full" style={{ width: `${item.percent}%` }}></div>
-              </div>
-              <p className="text-[9px] text-text-muted mt-1">{item.progress}</p>
-            </div>
-          </div>
+          <MediaCard 
+            key={item.id} 
+            variant="dashboard" 
+            title={item.title} 
+            subtitle={item.progress} 
+            image={item.image} 
+            percent={item.percent} 
+          />
         ))}
       </div>
     </section>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LibraryCard, MediaStatus } from './LibraryCard';
+import { MediaCard, MediaStatus } from '../shared/MediaCard';
 
 const dummyData = [
   {
@@ -105,7 +105,7 @@ export const LibraryGrid = () => {
     <>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
         {displayedItems.map(item => (
-          <LibraryCard key={item.id} {...item} />
+          <MediaCard key={item.id} variant="library" {...item} />
         ))}
       </div>
       
