@@ -1,13 +1,12 @@
-using DotNetEnv;
 using Grabbe.API.Infrastructure.Configuration;
 using Grabbe.API.Infrastructure.ExternalClients;
 
 var builder = WebApplication.CreateBuilder(args);
 
-//carrega o arquivo .env.local da raiz do projeto
-Env.Load(Path.Combine(Directory.GetCurrentDirectory(), "../../.env.local"));
-
-//injeta as variáveis de ambiente carregadas no sistema de configuração do .NET
+// As chaves de API são carregadas automaticamente via:
+//  - 'dotnet user-secrets' (ambiente Development)
+//  - Variáveis de ambiente do sistema (ambiente Production)
+// Não é necessário carregar nenhum arquivo .env manualmente.
 builder.Configuration.AddEnvironmentVariables();
 
 //mapeia manualmente as variáveis do .env para a nossa classe de configuração
