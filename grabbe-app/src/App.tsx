@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Dashboard } from './pages/Dashboard';
 import { Library } from './pages/Library';
+import { MediaDetails } from './pages/MediaDetails';
 import './App.css';
 
 function App() {
@@ -9,7 +10,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/library" element={<Library />} />
-        {/* Futuras rotas podem ser adicionadas aqui */}
+        <Route path="/media/:id" element={<MediaDetails />} />
         {/* <Route path="/movies" element={<Movies />} /> */}
         {/* <Route path="/series" element={<Series />} /> */}
         {/* <Route path="/anime" element={<Anime />} /> */}
