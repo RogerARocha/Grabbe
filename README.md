@@ -49,7 +49,7 @@ For an in-depth look at how Grabbe works, check out the core documentation files
 
 ---
 
-## ⚖️ Licença e Termos (License & Terms)
+## License & Terms
 
 Este projeto está sob a licença [MIT](./LICENSE).
 
@@ -62,16 +62,6 @@ Metadata & Images: All movie posters, book covers, and anime thumbnails displaye
 API Usage: This application uses the API services but is not endorsed or certified by any of the providers mentioned above.
 
 Fair Use: The use of these assets is intended for metadata visualization and personal organization under fair use principles for educational development.
-
-### Português
-⚠️ Aviso Legal / Disclaimer
-O Grabbe é um agregador de mídias desenvolvido para fins educacionais e de uso pessoal.
-
-Metadados e Imagens: Todos os pôsteres de filmes, capas de livros e miniaturas de animes exibidos na aplicação são fornecidos por APIs de terceiros (TMDB, Google Books e Jikan). Esses ativos são propriedade intelectual de seus respectivos detentores (estúdios, editoras e criadores). Este projeto não reivindica qualquer propriedade sobre esses ativos de mídia.
-
-Uso das APIs: Esta aplicação utiliza os serviços de API, mas não é endossada ou certificada por nenhum dos provedores mencionados acima.
-
-Uso Justo (Fair Use): O uso desses ativos destina-se à visualização de metadados e organização pessoal, sob os princípios de uso justo para desenvolvimento educacional.
 
 ---
 Developed by Roger Rocha.
