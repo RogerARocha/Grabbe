@@ -76,7 +76,7 @@ The BFF acts as a shield between Grabbe Desktop and third-party APIs. The deskto
 
 Grabbe's Backend for Frontend (BFF) acts as an intermediary (Aggregator and Normalizer). It has three main responsibilities:
 
-1. **Contract Unification / Normalization:** Whether the source is Jikan, TMDB, or GBooks, the BFF receives distinct JSONs from different APIs and transforms them into a single standard (`GrabbeMediaDTO`). The frontend doesn't need to handle different JSON structures.
+1. **Contract Unification / Anti-Corruption Layer (ACL):** Whether the source is Jikan, TMDB, or GBooks, the BFF receives distinct JSONs from different APIs and transforms them into a single universal standard (`GrabbeMediaDTO`). Each external client acts as an ACL boundary, ensuring the frontend never depends on any external API's data structure. The DTO is source-agnostic — fields like `CommunityScore`, `PublisherOrStudio`, and `FormattedConsumptionMetric` abstract away provider-specific concepts into universal terms.
 2. **Rate Limit Protection and Management:** APIs like IGDB and Jikan have strict limits. The BFF queues or limits calls to avoid exceeding free tiers.
 3. **Aggressive Caching (Redis/Memory):** Stores responses for repeated searches, reducing latency to milliseconds. Ex: If the user searches for "Breaking Bad", the BFF queries TMDB, formats it, and saves it with a TTL of 7 to 15 days. The next search will hit only the cache.
 
@@ -127,33 +127,46 @@ The `MediaAggregationService` will use `Task.WhenAll` to fire requests to TMDB, 
 
 ### **4.4. External Clients Specifications (Inputs)**
 
-C# will map only the necessary fields from each external API to avoid memory overhead.
+Each external client maps only the necessary fields from its API into the universal `GrabbeMediaDTO`. The detail endpoint uses `append_to_response` (TMDB) or equivalent strategies to fetch rich metadata in a single round-trip.
 
 **A. TMDB Client (Movies and Series)**
 * **Base Endpoint:** `https://api.themoviedb.org/3`
 * **Authentication:** Header `Authorization: Bearer {TMDB_READ_ACCESS_TOKEN}` (Read from `.env.local`).
+* **Detail Query:** `?append_to_response=credits,alternative_titles`
 * **Mapping:**
-  * `poster_path` -> `CoverImageUrl` (needs to concatenate with `https://image.tmdb.org/t/p/w500/`)
+  * `poster_path` -> `CoverImageUrl` (concatenated with `https://image.tmdb.org/t/p/w500/`)
   * `overview` -> `Description`
-  * If it's a series (TV), map `number_of_episodes` to `TotalProgress`.
+  * `vote_average` -> `CommunityScore` (rounded to 1 decimal, scale 0-10)
+  * `production_companies[0].name` -> `PublisherOrStudio`
+  * `runtime` -> `FormattedConsumptionMetric` ("Xh Ym" for movies) / `episode_run_time` ("X min per ep" for series)
+  * `number_of_episodes` -> `TotalProgressUnits` (series only; null for movies)
+  * `credits.crew` (Director) + `credits.cast` (top 5) -> `KeyPeople`
+  * `alternative_titles` -> `AlternativeTitles`
 
 **B. Jikan Client (Anime and Manga)**
 * **Base Endpoint:** `https://api.jikan.moe/v4`
 * **Authentication:** None (Open API).
-* **Critical Restriction:** Limit of 3 requests per second. The `JikanClient` must implement a retry policy (e.g., Polly library with exponential backoff) to handle the 429 Too Many Requests status.
+* **Critical Restriction:** Limit of 3 requests per second. The `JikanClient` should implement a retry policy (e.g., Polly library with exponential backoff) to handle the 429 Too Many Requests status.
 * **Mapping:**
   * `images.jpg.image_url` -> `CoverImageUrl`
   * `synopsis` -> `Description`
-  * `episodes` (Anime) or `chapters` (Manga) -> `TotalProgress`
+  * `score` -> `CommunityScore` (already 0-10 scale)
+  * `studios[0].name` (Anime) / `serializations[0].name` (Manga) -> `PublisherOrStudio`
+  * `duration` -> `FormattedConsumptionMetric` (used as-is, e.g. "24 min per ep")
+  * `episodes` (Anime) / `chapters` (Manga) -> `TotalProgressUnits`
+  * `titles` (non-Default) -> `AlternativeTitles`
+  * `KeyPeople`: left empty (would require extra `/characters` call).
 
 **C. Google Books Client (Books)**
 * **Base Endpoint:** `https://www.googleapis.com/books/v1`
 * **Authentication:** Query param `?key={GBOOKS_API_KEY}` (Read from `.env.local`).
 * **Mapping (extracted from volumeInfo):**
-  * `imageLinks.thumbnail` -> `CoverImageUrl`
+  * `imageLinks.thumbnail` -> `CoverImageUrl` (forced to HTTPS)
   * `description` -> `Description`
-  * `pageCount` -> `TotalProgress`
-  * `authors` -> Mapped as meta-information, if necessary.
+  * `averageRating` -> `CommunityScore` (multiplied by 2 to normalize from 0-5 to 0-10)
+  * `publisher` -> `PublisherOrStudio`
+  * `pageCount` -> `FormattedConsumptionMetric` (formatted as "X pages") and `TotalProgressUnits`
+  * `authors` -> `KeyPeople` (with Role = "Author")
 
 ## **5. Ideal Database Schema Structure (Local SQLite)**
 
@@ -252,49 +265,62 @@ The user will have a global view of their reviews.
 
 ## **7. Communication Contracts and Endpoints (BFF ↔ Desktop)**
 
-### **7.1. Unified Object Pattern (GrabbeMediaDTO)**
+### **7.1. Unified Object Pattern (GrabbeMediaDTO) — Anti-Corruption Layer**
 
-This is the schema the React/Tauri application will consume. C# guarantees it always outputs in this format, regardless of the original source.
+The BFF acts as an **Anti-Corruption Layer (ACL)**: each external client translates provider-specific responses into this universal, source-agnostic contract. The frontend never sees TMDB, Jikan, or GBooks data structures — only `GrabbeMediaDTO`.
 
 **A. C# Class (BFF Output):**
 ```csharp
 namespace Grabbe.API.Domain.DTOs;
 
-public class GrabbeMediaDTO  
-{  
-    public required string ExternalId { get; set; }  
-    public required string SourceApi { get; set; } // "TMDB", "JIKAN", "GBOOKS"  
-    public required string Type { get; set; }      // "MOVIE", "SERIES", "ANIME", "MANGA", "BOOK"  
-    public required string Title { get; set; }  
-    public string? Description { get; set; }  
-    public string? CoverImageUrl { get; set; }  
-    public string? ReleaseDate { get; set; }       // ISO 8601 (YYYY-MM-DD)  
-    public List<string> Genres { get; set; } = new();  
-    public int? TotalProgress { get; set; }        // Total episodes or book pages  
+public class GrabbeMediaDTO
+{
+    public required string ExternalId { get; set; }
+    public required string SourceApi { get; set; }  // "TMDB", "JIKAN", "GBOOKS"
+    public required string Type { get; set; }       // "MOVIE", "SERIES", "ANIME", "MANGA", "BOOK", "GAME"
+    public required string Title { get; set; }
+    public string? Description { get; set; }
+    public string? CoverImageUrl { get; set; }
+    public string? ReleaseDate { get; set; }        // Year only, e.g. "2024"
+    public List<string> Genres { get; set; } = new();
+    public string? OriginalLanguage { get; set; }
+
+    // --- Universal abstracted fields ---
+    public double? CommunityScore { get; set; }               // 0-10 scale
+    public string? PublisherOrStudio { get; set; }             // Studio, Publisher, or Production Company
+    public string? FormattedConsumptionMetric { get; set; }    // "2h 49m", "24 min per ep", "450 pages"
+    public int? TotalProgressUnits { get; set; }               // Total episodes or pages. Null for movies.
+
+    public List<string> AlternativeTitles { get; set; } = new();
+    public List<MediaPersonDTO> KeyPeople { get; set; } = new();
 }
 
-public class PaginatedResponse<T>  
-{  
-    public required IEnumerable<T> Data { get; set; }  
-    public int CurrentPage { get; set; }  
-    public int TotalPages { get; set; }  
-    public int TotalResults { get; set; }  
+public class MediaPersonDTO
+{
+    public required string Name { get; set; }
+    public required string Role { get; set; }
+    public string? ImageUrl { get; set; }
 }
 ```
 
 **B. JSON Response (Consumed by Frontend):**
 ```json
 {
-  "externalId": "string",
-  "sourceApi": "string",
-  "type": "string",
-  "title": "string",
-  "description": "string",
-  "coverImageUrl": "string",
-  "releaseDate": "string",
-  "franchise": "string",
-  "genres": ["string"],
-  "totalProgress": 0
+  "externalId": "11004",
+  "sourceApi": "JIKAN",
+  "type": "ANIME",
+  "title": "Hunter x Hunter (2011)",
+  "description": "Gon Freecss dreams of becoming a Hunter...",
+  "coverImageUrl": "https://cdn.myanimelist.net/...",
+  "releaseDate": "2011",
+  "genres": ["Action", "Adventure", "Fantasy"],
+  "originalLanguage": null,
+  "communityScore": 9.1,
+  "publisherOrStudio": "Madhouse",
+  "formattedConsumptionMetric": "23 min per ep",
+  "totalProgressUnits": 148,
+  "alternativeTitles": ["ハンター×ハンター (2011)", "HxH (2011)"],
+  "keyPeople": []
 }
 ```
 
@@ -485,7 +511,7 @@ O BFF atua como um escudo entre o Grabbe Desktop e as APIs de terceiros. O clien
 
 O Backend for Frontend (BFF) do Grabbe atua como um intermediário (Agregador e Normalizador). Ele tem três responsabilidades principais:
 
-1. **Unificação de Contratos / Normalização:** Independentemente de a origem ser o Jikan, TMDB ou GBooks, o BFF recebe JSONs distintos de APIs diferentes e os transforma em um único padrão (`GrabbeMediaDTO`). O frontend não precisa saber lidar com estruturas JSON diferentes.
+1. **Unificação de Contratos / Camada Anti-Corrupção (ACL):** Independentemente de a origem ser o Jikan, TMDB ou GBooks, o BFF recebe JSONs distintos de APIs diferentes e os transforma em um único padrão universal (`GrabbeMediaDTO`). Cada client externo atua como fronteira ACL, garantindo que o frontend nunca dependa da estrutura de dados de nenhuma API externa. O DTO é agnóstico de fonte — campos como `CommunityScore`, `PublisherOrStudio` e `FormattedConsumptionMetric` abstraem conceitos específicos do provedor em termos universais.
 2. **Proteção e Gerenciamento de Rate Limit:** APIs como IGDB e Jikan têm limites estritos. O BFF enfileira ou limita chamadas para não estourar os limites gratuitos.
 3. **Caching Agressivo (Redis/Memória):** Armazena respostas para buscas repetidas, reduzindo a latência para milissegundos. Ex: Se o usuário busca "Breaking Bad", o BFF consulta o TMDB, formata e salva com um TTL de 7 a 15 dias. A próxima busca baterá apenas no cache.
 
@@ -536,33 +562,46 @@ O `MediaAggregationService` utilizará `Task.WhenAll` para disparar as requisiç
 
 ### **4.4. Especificações dos Clients Externos (Inputs)**
 
-O C# mapeará apenas os campos necessários de cada API externa para evitar sobrecarga de memória.
+Cada client externo mapeia apenas os campos necessários de sua API para o `GrabbeMediaDTO` universal. O endpoint de detalhes usa `append_to_response` (TMDB) ou estratégias equivalentes para buscar metadados ricos em uma única requisição.
 
 **A. TMDB Client (Filmes e Séries)**
 * **Endpoint Base:** `https://api.themoviedb.org/3`
 * **Autenticação:** Header `Authorization: Bearer {TMDB_READ_ACCESS_TOKEN}` (Lido do `.env.local`).
+* **Query de Detalhe:** `?append_to_response=credits,alternative_titles`
 * **Mapeamento:**
-  * `poster_path` -> `CoverImageUrl` (necessita concatenar com `https://image.tmdb.org/t/p/w500/`)
+  * `poster_path` -> `CoverImageUrl` (concatenado com `https://image.tmdb.org/t/p/w500/`)
   * `overview` -> `Description`
-  * Se for série (TV), mapear `number_of_episodes` para `TotalProgress`.
+  * `vote_average` -> `CommunityScore` (arredondado 1 decimal, escala 0-10)
+  * `production_companies[0].name` -> `PublisherOrStudio`
+  * `runtime` -> `FormattedConsumptionMetric` ("Xh Ym" para filmes) / `episode_run_time` ("X min per ep" para séries)
+  * `number_of_episodes` -> `TotalProgressUnits` (apenas séries; nulo para filmes)
+  * `credits.crew` (Director) + `credits.cast` (top 5) -> `KeyPeople`
+  * `alternative_titles` -> `AlternativeTitles`
 
 **B. Jikan Client (Animes e Mangás)**
 * **Endpoint Base:** `https://api.jikan.moe/v4`
 * **Autenticação:** Nenhuma (API Aberta).
-* **Restrição Crítica:** Limite de 3 requisições por segundo. O `JikanClient` deve implementar política de retentativas (ex: Polly library com backoff exponencial) para lidar com o status 429 Too Many Requests.
+* **Restrição Crítica:** Limite de 3 requisições por segundo. O `JikanClient` deve implementar política de retentativas (ex: Polly library com backoff exponencial) para lidar com o status 429.
 * **Mapeamento:**
   * `images.jpg.image_url` -> `CoverImageUrl`
   * `synopsis` -> `Description`
-  * `episodes` (Anime) ou `chapters` (Mangá) -> `TotalProgress`
+  * `score` -> `CommunityScore` (já na escala 0-10)
+  * `studios[0].name` (Anime) / `serializations[0].name` (Mangá) -> `PublisherOrStudio`
+  * `duration` -> `FormattedConsumptionMetric` (usado diretamente, ex: "24 min per ep")
+  * `episodes` (Anime) / `chapters` (Mangá) -> `TotalProgressUnits`
+  * `titles` (não-Default) -> `AlternativeTitles`
+  * `KeyPeople`: vazio por ora (exigiria chamada extra `/characters`).
 
 **C. Google Books Client (Livros)**
 * **Endpoint Base:** `https://www.googleapis.com/books/v1`
 * **Autenticação:** Query param `?key={GBOOKS_API_KEY}` (Lido do `.env.local`).
 * **Mapeamento (extraído de volumeInfo):**
-  * `imageLinks.thumbnail` -> `CoverImageUrl`
+  * `imageLinks.thumbnail` -> `CoverImageUrl` (forçado para HTTPS)
   * `description` -> `Description`
-  * `pageCount` -> `TotalProgress`
-  * `authors` -> Mapeado como meta-informação, se necessário.
+  * `averageRating` -> `CommunityScore` (multiplicado por 2 para normalizar de 0-5 para 0-10)
+  * `publisher` -> `PublisherOrStudio`
+  * `pageCount` -> `FormattedConsumptionMetric` (formatado como "X pages") e `TotalProgressUnits`
+  * `authors` -> `KeyPeople` (com Role = "Author")
 
 ## **5. Estrutura Ideal do Database Schema (SQLite Local)**
 
@@ -661,49 +700,62 @@ O usuário terá uma visão global de suas avaliações.
 
 ## **7. Contratos de Comunicação e Endpoints (BFF ↔ Desktop)**
 
-### **7.1. Padrão de Objeto Unificado (GrabbeMediaDTO)**
+### **7.1. Padrão de Objeto Unificado (GrabbeMediaDTO) — Camada Anti-Corrupção**
 
-Este é o schema que o aplicativo em React/Tauri vai consumir. O C# garante que ele sempre saia neste formato, independentemente da fonte original.
+O BFF atua como uma **Camada Anti-Corrupção (ACL)**: cada client externo traduz respostas específicas do provedor para este contrato universal e agnóstico de fonte. O frontend nunca vê estruturas do TMDB, Jikan ou GBooks — apenas `GrabbeMediaDTO`.
 
 **A. Classe C# (Saída do BFF):**
 ```csharp
 namespace Grabbe.API.Domain.DTOs;
 
-public class GrabbeMediaDTO  
-{  
-    public required string ExternalId { get; set; }  
-    public required string SourceApi { get; set; } // "TMDB", "JIKAN", "GBOOKS"  
-    public required string Type { get; set; }      // "MOVIE", "SERIES", "ANIME", "MANGA", "BOOK"  
-    public required string Title { get; set; }  
-    public string? Description { get; set; }  
-    public string? CoverImageUrl { get; set; }  
-    public string? ReleaseDate { get; set; }       // ISO 8601 (YYYY-MM-DD)  
-    public List<string> Genres { get; set; } = new();  
-    public int? TotalProgress { get; set; }        // Episódios totais ou páginas do livro  
+public class GrabbeMediaDTO
+{
+    public required string ExternalId { get; set; }
+    public required string SourceApi { get; set; }  // "TMDB", "JIKAN", "GBOOKS"
+    public required string Type { get; set; }       // "MOVIE", "SERIES", "ANIME", "MANGA", "BOOK", "GAME"
+    public required string Title { get; set; }
+    public string? Description { get; set; }
+    public string? CoverImageUrl { get; set; }
+    public string? ReleaseDate { get; set; }        // Apenas o ano, ex: "2024"
+    public List<string> Genres { get; set; } = new();
+    public string? OriginalLanguage { get; set; }
+
+    // --- Campos universais abstraídos ---
+    public double? CommunityScore { get; set; }               // Escala 0-10
+    public string? PublisherOrStudio { get; set; }             // Estúdio, Editora ou Produtora
+    public string? FormattedConsumptionMetric { get; set; }    // "2h 49m", "24 min per ep", "450 pages"
+    public int? TotalProgressUnits { get; set; }               // Episódios totais ou páginas. Nulo para filmes.
+
+    public List<string> AlternativeTitles { get; set; } = new();
+    public List<MediaPersonDTO> KeyPeople { get; set; } = new();
 }
 
-public class PaginatedResponse<T>  
-{  
-    public required IEnumerable<T> Data { get; set; }  
-    public int CurrentPage { get; set; }  
-    public int TotalPages { get; set; }  
-    public int TotalResults { get; set; }  
+public class MediaPersonDTO
+{
+    public required string Name { get; set; }
+    public required string Role { get; set; }
+    public string? ImageUrl { get; set; }
 }
 ```
 
 **B. JSON de Resposta (Consumido pelo Frontend):**
 ```json
 {
-  "externalId": "string",
-  "sourceApi": "string",
-  "type": "string",
-  "title": "string",
-  "description": "string",
-  "coverImageUrl": "string",
-  "releaseDate": "string",
-  "franchise": "string",
-  "genres": ["string"],
-  "totalProgress": 0
+  "externalId": "11004",
+  "sourceApi": "JIKAN",
+  "type": "ANIME",
+  "title": "Hunter x Hunter (2011)",
+  "description": "Gon Freecss sonha em se tornar um Hunter...",
+  "coverImageUrl": "https://cdn.myanimelist.net/...",
+  "releaseDate": "2011",
+  "genres": ["Action", "Adventure", "Fantasy"],
+  "originalLanguage": null,
+  "communityScore": 9.1,
+  "publisherOrStudio": "Madhouse",
+  "formattedConsumptionMetric": "23 min per ep",
+  "totalProgressUnits": 148,
+  "alternativeTitles": ["ハンター×ハンター (2011)", "HxH (2011)"],
+  "keyPeople": []
 }
 ```
 

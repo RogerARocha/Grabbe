@@ -1,12 +1,16 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 
 namespace Grabbe.API.Infrastructure.ExternalClients.GBooks;
+
+// ==================== SEARCH RESPONSE ====================
 
 public class GoogleBooksSearchResponse
 {
     [JsonPropertyName("items")]
     public List<GoogleBooksItem>? Items { get; set; }
 }
+
+// ==================== ITEM ====================
 
 public class GoogleBooksItem
 {
@@ -17,6 +21,8 @@ public class GoogleBooksItem
     [JsonPropertyName("volumeInfo")]
     public GoogleBooksVolumeInfo? VolumeInfo { get; set; }
 }
+
+// ==================== VOLUME INFO ====================
 
 public class GoogleBooksVolumeInfo
 {
@@ -37,7 +43,21 @@ public class GoogleBooksVolumeInfo
 
     [JsonPropertyName("categories")]
     public List<string>? Categories { get; set; }
+
+    [JsonPropertyName("averageRating")]
+    public double? AverageRating { get; set; }
+
+    [JsonPropertyName("publisher")]
+    public string? Publisher { get; set; }
+
+    [JsonPropertyName("authors")]
+    public List<string>? Authors { get; set; }
+
+    [JsonPropertyName("language")]
+    public string? Language { get; set; }
 }
+
+// ==================== SUB-MODELS ====================
 
 public class GoogleBooksImageLinks
 {

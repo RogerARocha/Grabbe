@@ -2,11 +2,21 @@ using System.Text.Json.Serialization;
 
 namespace Grabbe.API.Infrastructure.ExternalClients.Jikan;
 
+// ==================== SEARCH / DETAIL RESPONSES ====================
+
 public class JikanSearchResponse
 {
     [JsonPropertyName("data")]
     public List<JikanAnimeData>? Data { get; set; }
 }
+
+public class JikanDetailResponse
+{
+    [JsonPropertyName("data")]
+    public JikanAnimeData? Data { get; set; }
+}
+
+// ==================== CORE DATA MODEL ====================
 
 public class JikanAnimeData
 {
@@ -25,12 +35,35 @@ public class JikanAnimeData
     [JsonPropertyName("episodes")]
     public int? Episodes { get; set; }
 
+    [JsonPropertyName("chapters")]
+    public int? Chapters { get; set; }
+
     [JsonPropertyName("aired")]
     public JikanAired? Aired { get; set; }
 
+    [JsonPropertyName("published")]
+    public JikanAired? Published { get; set; }
+
     [JsonPropertyName("genres")]
     public List<JikanGenre> Genres { get; set; } = new();
+
+    [JsonPropertyName("score")]
+    public double? Score { get; set; }
+
+    [JsonPropertyName("studios")]
+    public List<JikanNamedEntry>? Studios { get; set; }
+
+    [JsonPropertyName("serializations")]
+    public List<JikanNamedEntry>? Serializations { get; set; }
+
+    [JsonPropertyName("duration")]
+    public string? Duration { get; set; }
+
+    [JsonPropertyName("titles")]
+    public List<JikanTitle>? Titles { get; set; }
 }
+
+// ==================== SUB-MODELS ====================
 
 public class JikanImages
 {
@@ -56,8 +89,17 @@ public class JikanGenre
     public string Name { get; set; } = string.Empty;
 }
 
-public class JikanDetailResponse
+public class JikanNamedEntry
 {
-    [JsonPropertyName("data")]
-    public JikanAnimeData? Data { get; set; }
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+}
+
+public class JikanTitle
+{
+    [JsonPropertyName("type")]
+    public string? Type { get; set; }
+
+    [JsonPropertyName("title")]
+    public string Title { get; set; } = string.Empty;
 }
