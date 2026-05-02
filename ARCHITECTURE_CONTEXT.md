@@ -427,6 +427,8 @@ If there is an external API failure or the rate limit is exceeded, the frontend 
 * [ ] Analytics Dashboard.
 * [ ] Consumption Timeline.
 * [ ] Manual data Export/Import.
+* [ ] Themes choices.
+* [ ] Add new providers.
 
 ### **Phase 3: Cloud and Ecosystem**
 * [ ] Sync Engine (Event Sourcing).
