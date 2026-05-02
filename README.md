@@ -51,9 +51,8 @@ For an in-depth look at how Grabbe works, check out the core documentation files
 
 ## License & Terms
 
-Este projeto está sob a licença [MIT](./LICENSE).
+This work is licensed under the [MIT](./LICENSE) license.
 
-### English
 ⚠️ Legal Disclaimer
 Grabbe is a media aggregator developed for educational and personal purposes.
 
