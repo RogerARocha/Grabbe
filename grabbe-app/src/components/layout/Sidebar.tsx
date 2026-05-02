@@ -4,6 +4,7 @@ import { EvaluationModal } from '../modals/EvaluationModal';
 
 const navItems = [
   { name: 'Dashboard', path: '/', icon: 'dashboard' },
+  { name: 'Discover', path: '/discover', icon: 'travel_explore' },
   { name: 'Library', path: '/library', icon: 'movie_filter' },
   { name: 'Analytics', path: '/analytics', icon: 'monitoring' },
   { name: 'Community', path: '/community', icon: 'group' },
