@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { MainLayout } from '../components/layout/MainLayout';
 import { Breadcrumbs } from '../components/shared/Breadcrumbs';
 import { EvaluationModal } from '../components/modals/EvaluationModal';
@@ -9,58 +10,85 @@ import { ActionBar } from '../components/media-details/ActionBar';
 import { DetailsGrid } from '../components/media-details/DetailsGrid';
 import { CastSection } from '../components/media-details/CastSection';
 import { AlternativeTitles } from '../components/media-details/AlternativeTitles';
-
-const mockMedia = {
-  externalId: '157336',
-  sourceApi: 'TMDB',
-  type: 'MOVIE',
-  title: 'Interstellar',
-  description:
-    'When Earth becomes uninhabitable, a team of ex-pilots and scientists travel through a wormhole in search of a new home for humanity. A masterful exploration of time, love, and the vast loneliness of the cosmos.',
-  coverImageUrl:
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuCmiqtswy7UYHEQsfPpvrOtzVF91krHEHOq29RDtVs7sgOQLwQkCQ24eoRaN3S4V7eF6PZE79pRiMgObFSSvQhiVcAX4OCBcBdGVF3-rG0t9kymOhdTr5vPea0Fsdmb2ZwyR-yQBqdlpOAutIEpdWvnecXpMx25J7nzUwRNiYWQzDTsW4mpiEFm0Qer7EXhQJyu3pVmee7eSmkKQqhuJbC8A_4kzqpC8P3I5DQXB7HoHSynu0_0mDiGa9Uk5uc7LdXphEoh1TdvjPLW',
-  releaseDate: '2014-11-07',
-  genres: ['Sci-Fi', 'Adventure', 'Drama'],
-  totalProgress: null,
-};
-
-const mockExtras = {
-  runtime: '2h 49m',
-  externalRating: 9.4,
-  ratingSource: 'IMDB',
-  studio: 'Legendary Pictures',
-  originalLanguage: 'English',
-  alternativeTitles: ['Interestelar', 'Interstellar: The IMAX Experience'],
-  cast: [
-    { name: 'Christopher Nolan', role: 'Director', image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDYfUv4P2691j0T9R3A_Cq-7j0C29v_f5p92l5V_53-l-nS7S4-n5m-8O-l' },
-    { name: 'M. McConaughey', role: 'Cooper', image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCU945A2-4dIcVh2JfvTYAVnLWbzXusF90ey-oYWWwP6RmC7IFzQ8w6bsH_T18EDF5pwuJhcXhwa4vp0YY-AJm7sfOqTqItua7g5TMtFd7rbTtMZSzN9zTWm4T_NUV0t4dLwjgFZmD5Bta0AemLRGWMpZsLFYyP7v-LnZhx5r4qASOexbpkCUUX4mlmYK-AVU9T8tUyXyf_HYx5WAU7knsSg5rTSkZ_VNMkMnKlxnEQbLxRimIj-sES7JuCpf90kRGPN38MsNrn6Oom' },
-    { name: 'Anne Hathaway', role: 'Brand', image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDYbtmvC3y3ZNGpvVFUqel-q_U3kgsY30v0C1S7hu_ko342Ap4B2ky9TNEJqDzCyC5xwNAD9otP62XH4H2YFJCiv8AGNV6t7lzIq583MnYuRmXDZyuiUgLcR7rn1872xJVQZQXcpAoKsuGH5q-6nByES9p6LdiFdr5QtzHg9vrO9o-rC7uS3fkFE7PCdZVXDweACO-3jbpO86U4mF61sCx_uDxPHcBmTOLypgtkCJeL9nt585rdrjUShM78Yfhh96-8xg9ogAnn0g07' },
-    { name: 'Jessica Chastain', role: 'Murph', image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCmf5iovAasiUtztfP5tvInG9vFfNGydAB3CXYMMJrdmFNUoBEGQjqdLzAbn5gz9TErCV0RzK1eiSS2HyaSw6pPM11wli9xdipg7f1ulc5qQq02XQRowUoSWg0IAeMdj4vPqKvLQgITwTYVQChRLkmMakHl8zwmkqbc1BAnC2DIvOrF22c0h42NJbs7NhhJCIgf_Bjio7wg3dpEVbJzSR98vQo6_ChE9xKSgPyvq6Ucl1KEYZk4agXVRmtSDG6C-7_0_BXdkKntdHM1' },
-  ],
-};
-
-const mockTracking = {
-  status: 'CONSUMING' as const,
-  currentProgress: 92,
-  totalProgress: 110,
-  progressLabel: '92 mins of 110 mins',
-  userScore: 9.5,
-};
+import { getTrackingByExternalId, removeTrackingByExternalId, saveTracking } from '../lib/db';
 
 export const MediaDetails = () => {
-  const [isInLibrary, setIsInLibrary] = useState(false);
+  const { id: externalId } = useParams();
+  const [searchParams] = useSearchParams();
+  const sourceApi = searchParams.get('source');
+  const type = searchParams.get('type');
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'add' | 'update'>('add');
+  const [media, setMedia] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const media = mockMedia;
-  const extras = mockExtras;
-  const tracking = mockTracking;
+  const [isInLibrary, setIsInLibrary] = useState(false);
+  const [tracking, setTracking] = useState<any>({
+    status: 'PLANNED',
+    currentProgress: 0,
+    totalProgress: 0,
+    progressLabel: '',
+    userScore: undefined
+  });
+
+  const refreshTracking = async () => {
+    if (!externalId || !sourceApi) return;
+    const data = await getTrackingByExternalId(externalId, sourceApi);
+    if (data) {
+      setIsInLibrary(true);
+      setTracking((prev: any) => ({
+        ...prev,
+        status: data.status,
+        currentProgress: data.progress || 0,
+        totalProgress: data.total_progress || prev.totalProgress,
+        userScore: data.score
+      }));
+    } else {
+      setIsInLibrary(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!externalId || !sourceApi || !type) return;
+
+    setIsLoading(true);
+    fetch(`http://localhost:5244/api/v1/media/${sourceApi}/${type}/${externalId}`)
+      .then(res => res.json())
+      .then(res => {
+        setMedia(res.data);
+        setTracking((prev: any) => ({ ...prev, totalProgress: res.data.totalProgressUnits || 0 }));
+        setIsLoading(false);
+      })
+      .catch(err => {
+        console.error('Failed to fetch media details', err);
+        setIsLoading(false);
+      });
+  }, [externalId, sourceApi, type]);
+
+  useEffect(() => {
+    refreshTracking();
+  }, [externalId, sourceApi, isModalOpen]);
+
+  if (isLoading) return <MainLayout><div className="flex items-center justify-center min-h-[50vh]"><div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" /></div></MainLayout>;
+  if (!media) return <MainLayout><div className="flex items-center justify-center min-h-[50vh] text-text-muted">Failed to load media</div></MainLayout>;
+
+  // Temporarily map API response to UI variables
+  const extras = {
+    runtime: media.formattedConsumptionMetric,
+    externalRating: media.communityScore,
+    ratingSource: sourceApi ?? undefined,
+    studio: media.publisherOrStudio,
+    originalLanguage: media.originalLanguage,
+    alternativeTitles: media.alternativeTitles || [],
+    cast: media.keyPeople || []
+  };
+
   const year = media.releaseDate ? new Date(media.releaseDate).getFullYear() : null;
 
   const handleAddClick = () => {
     setModalMode('add');
     setIsModalOpen(true);
-    setIsInLibrary(true);
   };
 
   const handleUpdateClick = () => {
@@ -68,9 +96,25 @@ export const MediaDetails = () => {
     setIsModalOpen(true);
   };
 
-  const handleRemoveClick = () => {
+  const handleRemoveClick = async () => {
     if (window.confirm('Are you sure you want to remove this from your library?')) {
-      setIsInLibrary(false);
+      if (externalId && sourceApi) {
+        await removeTrackingByExternalId(externalId, sourceApi);
+        refreshTracking();
+      }
+    }
+  };
+
+  const handleQuickProgress = async () => {
+    if (!isInLibrary || !tracking) return;
+    const newProgress = (tracking.currentProgress || 0) + 1;
+    if (tracking.totalProgress && newProgress > tracking.totalProgress) return;
+
+    // We need the internal mediaId. refreshTracking data has it.
+    const data = await getTrackingByExternalId(externalId!, sourceApi!);
+    if (data) {
+      await saveTracking(data.media_id, data.status, data.score, newProgress, data.total_progress, data.notes);
+      refreshTracking();
     }
   };
 
@@ -99,6 +143,7 @@ export const MediaDetails = () => {
                 currentProgress={tracking.currentProgress}
                 totalProgress={tracking.totalProgress}
                 label={tracking.progressLabel}
+                onUpdate={handleQuickProgress}
               />
             )}
           </div>
@@ -122,6 +167,7 @@ export const MediaDetails = () => {
 
             <ActionBar
               isInLibrary={isInLibrary}
+              status={tracking.status}
               userScore={tracking.userScore}
               onAdd={handleAddClick}
               onUpdate={handleUpdateClick}
@@ -140,6 +186,10 @@ export const MediaDetails = () => {
         onClose={() => setIsModalOpen(false)}
         mode={modalMode}
         initialMediaName={media.title}
+        media={media}
+        initialStatus={tracking.status}
+        initialScore={tracking.userScore}
+        initialProgress={tracking.currentProgress}
       />
     </MainLayout>
   );

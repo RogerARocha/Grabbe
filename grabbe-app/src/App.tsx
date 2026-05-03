@@ -1,12 +1,22 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { Dashboard } from './pages/Dashboard';
 import { Library } from './pages/Library';
 import { MediaDetails } from './pages/MediaDetails';
 import './App.css';
 import { ComingSoon } from './pages/ComingSoon';
 import { Discover } from './pages/Discover';
+import { initDb } from './lib/db';
 
 function App() {
+  const [dbReady, setDbReady] = useState(false);
+
+  useEffect(() => {
+    initDb().then(() => setDbReady(true)).catch(console.error);
+  }, []);
+
+  if (!dbReady) return <div className="flex items-center justify-center min-h-screen text-text-high">Loading Database...</div>;
+
   return (
     <BrowserRouter>
       <Routes>

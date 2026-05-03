@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { upsertMedia, saveTracking } from '../../lib/db';
 
 export type EvaluationModalMode = 'add' | 'update';
 
@@ -7,11 +8,25 @@ interface EvaluationModalProps {
   onClose: () => void;
   mode: EvaluationModalMode;
   initialMediaName?: string;
+  media?: any;
+  initialStatus?: string;
+  initialScore?: number;
+  initialProgress?: number;
 }
 
-export const EvaluationModal = ({ isOpen, onClose, mode, initialMediaName }: EvaluationModalProps) => {
+export const EvaluationModal = ({ isOpen, onClose, mode, initialMediaName, media, initialStatus, initialScore, initialProgress }: EvaluationModalProps) => {
   const [isScoreOpen, setIsScoreOpen] = useState(false);
   const [selectedScore, setSelectedScore] = useState<number | null>(null);
+  const [status, setStatus] = useState('CONSUMING');
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    if (isOpen) {
+      setStatus(initialStatus || 'CONSUMING');
+      setSelectedScore(initialScore || null);
+      setProgress(initialProgress || 0);
+    }
+  }, [isOpen, initialStatus, initialScore, initialProgress]);
 
   if (!isOpen) return null;
 
@@ -31,6 +46,25 @@ export const EvaluationModal = ({ isOpen, onClose, mode, initialMediaName }: Eva
     { value: 2, label: 'Horrible', colorClass: 'text-error', bgHoverClass: 'hover:bg-error/10' },
     { value: 1, label: 'Appalling', colorClass: 'text-error', bgHoverClass: 'hover:bg-error/10' },
   ];
+
+const handleSave = async () => {
+    try {
+      if (media) {
+        // 1. Salva a mídia na tabela principal
+        const mediaId = await upsertMedia(media);
+        
+        // 2. Extrai o total da API de forma segura
+        const totalProgress = media.totalProgressUnits || null;
+        
+        // 3. Salva o tracking PASSANDO o totalProgress!
+        // ATENÇÃO: Adicionamos a variável 'totalProgress' aqui na chamada
+        await saveTracking(mediaId, status, selectedScore, progress, totalProgress, null);
+      }
+      onClose();
+    } catch (e) {
+      console.error("Failed to save media tracking", e);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
@@ -73,12 +107,12 @@ export const EvaluationModal = ({ isOpen, onClose, mode, initialMediaName }: Eva
           <div className="flex flex-col gap-2">
             <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Status</label>
             <div className="relative">
-              <select className="w-full bg-background border-none rounded-lg text-sm px-4 py-3 appearance-none focus:ring-2 focus:ring-primary transition-all cursor-pointer text-text-high outline-none">
-                <option>Currently Watching</option>
-                <option>Completed</option>
-                <option>On Hold</option>
-                <option>Dropped</option>
-                <option>Plan to Watch</option>
+              <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full bg-background border-none rounded-lg text-sm px-4 py-3 appearance-none focus:ring-2 focus:ring-primary transition-all cursor-pointer text-text-high outline-none">
+                <option value="CONSUMING">Currently Watching / Reading</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="ON_HOLD">On Hold</option>
+                <option value="DROPPED">Dropped</option>
+                <option value="PLANNED">Plan to Watch</option>
               </select>
               <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted">expand_more</span>
             </div>
@@ -90,10 +124,12 @@ export const EvaluationModal = ({ isOpen, onClose, mode, initialMediaName }: Eva
             <div className="flex items-center gap-3">
               <input 
                 type="number" 
+                value={progress}
+                onChange={(e) => setProgress(Number(e.target.value))}
                 className="flex-1 bg-background border-none rounded-lg text-sm px-4 py-3 focus:ring-2 focus:ring-primary transition-all text-text-high outline-none" 
                 placeholder="0" 
               />
-              <span className="text-text-muted font-medium text-sm">/ ?</span>
+              <span className="text-text-muted font-medium text-sm">/ {media?.totalProgressUnits || '?'}</span>
             </div>
           </div>
 
@@ -168,13 +204,10 @@ export const EvaluationModal = ({ isOpen, onClose, mode, initialMediaName }: Eva
 
         {/* Footer Actions */}
         <div className="flex items-center justify-end gap-4 pt-4 border-t border-outline-variant/10 mt-2">
-          <button 
-            onClick={onClose}
-            className="px-6 py-2.5 text-sm font-semibold text-text-muted hover:text-text-high transition-colors active:scale-95"
-          >
+          <button onClick={onClose} className="px-6 py-2.5 text-sm font-semibold text-text-muted hover:text-text-high transition-colors active:scale-95">
             Cancel
           </button>
-          <button className="px-8 py-2.5 bg-secondary hover:brightness-110 text-[#00412a] text-sm font-bold rounded-lg transition-all active:scale-95 bloom-shadow">
+          <button onClick={handleSave} className="px-8 py-2.5 bg-secondary hover:brightness-110 text-[#00412a] text-sm font-bold rounded-lg transition-all active:scale-95 bloom-shadow">
             {confirmText}
           </button>
         </div>

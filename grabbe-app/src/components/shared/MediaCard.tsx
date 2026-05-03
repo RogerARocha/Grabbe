@@ -17,12 +17,15 @@ export interface MediaCardProps {
   // Props para Library / Dashboard
   status?: MediaStatus;
   percent?: number;
+  currentProgress?: number;
+  totalProgress?: number;
   
   // Props para Discover (tipado como MediaType para auto-detectar a cor)
   typeBadge?: MediaType; 
   
   // Actions
   onAddClick?: (e: React.MouseEvent) => void;
+  onProgressClick?: (e: React.MouseEvent) => void;
   onClick?: () => void;
 }
 
@@ -78,13 +81,28 @@ export const MediaCard = ({
   image, 
   status = 'PENDING', 
   percent,
+  currentProgress,
+  totalProgress,
   typeBadge,
   onAddClick,
+  onProgressClick,
   onClick
 }: MediaCardProps) => {
   
-  // ── Variante: DASHBOARD ──
+// ── Variante: DASHBOARD ──
   if (variant === 'dashboard') {
+    // 1. Calcula a barra de progresso automaticamente se tivermos os valores
+    let calculatedPercent = percent;
+    if (currentProgress !== undefined && totalProgress && totalProgress > 0) {
+      calculatedPercent = Math.min(100, (currentProgress / totalProgress) * 100);
+    }
+
+    // 2. Monta o texto de episódios/páginas dinamicamente
+    const hasProgressData = currentProgress !== undefined;
+    const progressText = hasProgressData 
+      ? `${currentProgress} / ${totalProgress || '?'}` 
+      : null;
+
     return (
       <div onClick={onClick} className="group relative bg-surface rounded-lg p-2 transition-transform duration-200 hover:scale-[1.05] primary-glow cursor-pointer">
         <div className="relative w-full aspect-[2/3] max-h-[240px] rounded-lg overflow-hidden border-2 border-primary mb-3">
@@ -95,13 +113,36 @@ export const MediaCard = ({
           </div>
         </div>
         <h3 className="font-bold text-sm truncate px-1 text-text-high">{title}</h3>
-        <div className="px-1 mt-2">
-          {percent !== undefined && (
-            <div className="w-full h-1 bg-surface-container-high rounded-full overflow-hidden">
-              <div className="bg-primary h-full rounded-full" style={{ width: `${percent}%` }}></div>
+        
+        <div className="px-1 mt-2 flex items-center justify-between gap-3">
+          <div className="flex-1 overflow-hidden">
+            {/* Barra de Progresso Inteligente */}
+            {calculatedPercent !== undefined && (
+              <div className="w-full h-1.5 bg-surface-container-high rounded-full overflow-hidden mb-1">
+                <div 
+                  className="bg-primary h-full rounded-full shadow-[0_0_8px_rgba(var(--primary-rgb),0.5)] transition-all duration-500 ease-out" 
+                  style={{ width: `${calculatedPercent}%` }}
+                ></div>
+              </div>
+            )}
+          
+            <div className="flex items-center justify-between text-[10px] font-bold text-text-muted opacity-80 mt-1.5">
+              {hasProgressData && <span className="shrink-0 text-text-high">{progressText}</span>}
             </div>
+          </div>
+          
+          {onProgressClick && (
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                onProgressClick(e);
+              }}
+              className="w-7 h-7 shrink-0 rounded-lg bg-primary/10 text-primary flex items-center justify-center hover:bg-primary hover:text-on-primary transition-all active:scale-90 border border-primary/20 group-hover:border-primary/50"
+              title="Quick +1"
+            >
+              <span className="material-symbols-outlined text-base font-bold">add</span>
+            </button>
           )}
-          {subtitle && <p className="text-[9px] text-text-muted mt-1 truncate">{subtitle}</p>}
         </div>
       </div>
     );

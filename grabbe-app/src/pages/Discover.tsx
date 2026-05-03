@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '../components/layout/MainLayout';
 import { MediaType, MediaCard } from '../components/shared/MediaCard';
 import { TYPE_FILTERS } from '../components/shared/types';
-import { MOCK_RESULTS, DiscoverResult } from '../components/discover/data';
+import { DiscoverResult } from '../components/discover/data';
 import { SkeletonCard, EmptyState, IdleState } from '../components/discover/DiscorverStates';
 
 export const Discover = () => {
@@ -20,7 +20,7 @@ export const Discover = () => {
     inputRef.current?.focus();
   }, []);
 
-  const runSearch = (q: string, type: MediaType) => {
+  const runSearch = async (q: string, type: MediaType) => {
     if (!q.trim()) {
       setHasSearched(false);
       setResults([]);
@@ -30,15 +30,18 @@ export const Discover = () => {
     setIsLoading(true);
     setHasSearched(true);
 
-    setTimeout(() => {
-      const filtered = MOCK_RESULTS.filter((r) => {
-        const matchesQuery = r.title.toLowerCase().includes(q.toLowerCase());
-        const matchesType = type === 'ALL' || r.type === type;
-        return matchesQuery && matchesType;
-      });
-      setResults(filtered);
+    try {
+      const typeParam = type !== 'ALL' ? `&type=${type}` : '';
+      const response = await fetch(`http://localhost:5244/api/v1/search?query=${encodeURIComponent(q)}${typeParam}&page=1`);
+      if (!response.ok) throw new Error('Search failed');
+      const data = await response.json();
+      setResults(data.data || []);
+    } catch (error) {
+      console.error('Failed to search:', error);
+      setResults([]);
+    } finally {
       setIsLoading(false);
-    }, 600);
+    }
   };
 
   const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -125,17 +128,15 @@ export const Discover = () => {
 
     return (
       <MediaCard 
-        key={result.id}
+        key={result.externalId}
         variant="discover"
         title={result.title}
         subtitle={subtitle}
         image={result.coverImageUrl}
         typeBadge={result.type}
-        onClick={() => navigate(`/media/${result.id}`)}
+        onClick={() => navigate(`/media/${result.externalId}?source=${result.sourceApi}&type=${result.type}`)}
         onAddClick={() => {
-          //Modal de adicionar aqui
           console.log('Adicionando ao banco local SQLite:', result.title);
-          // Aqui entrará a lógica de invocar o Tauri para salvar na library
         }}
       />
     );

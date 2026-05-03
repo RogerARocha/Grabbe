@@ -1,18 +1,27 @@
 interface ActionBarProps {
   isInLibrary: boolean;
+  status?: string;
   userScore?: number;
   onAdd: () => void;
   onUpdate: () => void;
   onRemove: () => void;
 }
 
-export const ActionBar = ({ isInLibrary, userScore, onAdd, onUpdate, onRemove }: ActionBarProps) => {
+const statusMap: Record<string, string> = {
+  'PLANNED': 'Planned',
+  'CONSUMING': 'Watching/Reading',
+  'COMPLETED': 'Completed',
+  'DROPPED': 'Dropped',
+  'ON_HOLD': 'On Hold'
+};
+
+export const ActionBar = ({ isInLibrary, status, userScore, onAdd, onUpdate, onRemove }: ActionBarProps) => {
   if (isInLibrary) {
     return (
       <div className="flex items-center gap-6 pt-4">
         <button onClick={onUpdate} className="flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-lg cursor-pointer hover:bg-primary/20 transition-all group">
           <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
-          <span className="text-sm font-bold text-primary">Watching</span>
+          <span className="text-sm font-bold text-primary">{status ? (statusMap[status] || status) : 'Watching'}</span>
           <span className="material-symbols-outlined text-primary text-lg">expand_more</span>
         </button>
 

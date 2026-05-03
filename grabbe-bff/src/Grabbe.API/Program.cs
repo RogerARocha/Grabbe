@@ -45,6 +45,17 @@ builder.Services.AddTransient<IMediaProviderClient>(sp => sp.GetRequiredService<
 builder.Services.AddTransient<IMediaProviderClient>(sp => sp.GetRequiredService<JikanClient>());
 builder.Services.AddTransient<IMediaProviderClient>(sp => sp.GetRequiredService<GoogleBooksClient>());
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowTauri",
+        policy =>
+        {
+            policy.WithOrigins("http://localhost:1420", "tauri://localhost")
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        });
+});
+
 var app = builder.Build();
 
 // Configura o pipeline HTTP
@@ -55,6 +66,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors("AllowTauri");
 app.UseAuthorization();
 app.MapControllers();
 

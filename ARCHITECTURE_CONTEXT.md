@@ -415,9 +415,9 @@ If there is an external API failure or the rate limit is exceeded, the frontend 
 ## **9. Product Roadmap and Deliverables**
 
 ### **Phase 1: MVP - Focus on Local Retention**
-* [ ] Desktop Architecture Setup (Tauri) + SQLite.
+* [x] Desktop Architecture Setup (Tauri) + SQLite.
 * [x] BFF Implementation for initial providers.
-* [ ] CRUD operations on local tracking.
+* [x] CRUD operations on local tracking.
 * [x] Main Interface.
 * [x] Basic Ranking System (1 to 10).
 
