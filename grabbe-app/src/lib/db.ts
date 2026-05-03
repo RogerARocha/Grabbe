@@ -169,6 +169,12 @@ export async function getLibraryItems() {
   `);
 }
 
+export async function getMediaCount() {
+    const db = await getDb();
+    const result = await db.select<any[]>("SELECT COUNT(*) as count FROM UserTracking");
+    return result[0]?.count || 0;
+}
+
 export async function getTrackingForMedia(mediaId: string) {
     const db = await getDb();
     const tracking = await db.select<any[]>("SELECT * FROM UserTracking WHERE media_id = $1 LIMIT 1", [mediaId]);
