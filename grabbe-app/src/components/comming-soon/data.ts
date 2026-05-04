@@ -48,11 +48,11 @@ export const FEATURE_MAP: Record<string, FeatureConfig> = {
   settings: {
     icon: 'settings',
     label: 'Settings',
-    accentColor: 'text-warning',
-    accentBg: 'bg-warning/10',
-    accentBorder: 'border-warning/20',
-    phase: 'Phase 1 (upcoming)',
-    phaseColor: 'text-warning',
+    accentColor: 'text-primary',
+    accentBg: 'bg-primary/10',
+    accentBorder: 'border-primary/20',
+    phase: 'Phase 2',
+    phaseColor: 'text-primary',
     description:
       'Full control over how Grabbe looks, feels, and behaves. Settings will let you manage BFF API keys, choose alternate themes, configure auto-fill preferences, and set up import/export pipelines from MyAnimeList or Letterboxd.',
     bullets: [

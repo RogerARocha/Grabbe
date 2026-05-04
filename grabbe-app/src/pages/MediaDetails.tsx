@@ -29,7 +29,9 @@ export const MediaDetails = () => {
     currentProgress: 0,
     totalProgress: 0,
     progressLabel: '',
-    userScore: undefined
+    userScore: undefined,
+    startDate: undefined,
+    endDate: undefined
   });
 
   const refreshTracking = async () => {
@@ -42,7 +44,9 @@ export const MediaDetails = () => {
         status: data.status,
         currentProgress: data.progress || 0,
         totalProgress: data.total_progress || prev.totalProgress,
-        userScore: data.score
+        userScore: data.score,
+        startDate: data.startDate,
+        endDate: data.endDate
       }));
     } else {
       setIsInLibrary(false);
@@ -190,6 +194,8 @@ export const MediaDetails = () => {
         initialStatus={tracking.status}
         initialScore={tracking.userScore}
         initialProgress={tracking.currentProgress}
+        initialStartDate={tracking.startDate}
+        initialEndDate={tracking.endDate}
       />
     </MainLayout>
   );

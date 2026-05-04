@@ -117,7 +117,16 @@ export async function upsertMedia(media: any) {
 }
 
 // Add/Update Tracking
-export async function saveTracking(mediaId: string, status: string, score: number | null, progress: number, totalProgress: number | null, notes: string | null) {
+export async function saveTracking(
+  mediaId: string, 
+  status: string, 
+  score: number | null, 
+  progress: number, 
+  totalProgress: number | null, 
+  notes: string | null,
+  startDate?: string | null,
+  endDate?: string | null
+) {
   const db = await getDb();
   
   // Find tracking
@@ -128,7 +137,7 @@ export async function saveTracking(mediaId: string, status: string, score: numbe
     trackingId = trackResult[0].id;
     await db.execute(
       "UPDATE UserTracking SET status = $1, progress = $2, total_progress = $3, notes = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5",
-      [status, progress,totalProgress, notes, trackingId]
+      [status, progress, totalProgress, notes, trackingId]
     );
   } else {
     trackingId = uuidv4();
@@ -136,6 +145,22 @@ export async function saveTracking(mediaId: string, status: string, score: numbe
       "INSERT INTO UserTracking (id, media_id, status, progress, total_progress, notes) VALUES ($1, $2, $3, $4, $5, $6)",
       [trackingId, mediaId, status, progress, totalProgress, notes]
     );
+  }
+
+  // Update/Insert ConsumptionSession
+  if (startDate !== undefined || endDate !== undefined) {
+    const sessionResult = await db.select<any[]>("SELECT id FROM ConsumptionSession WHERE tracking_id = $1 AND is_active = TRUE LIMIT 1", [trackingId]);
+    if (sessionResult && sessionResult.length > 0) {
+      await db.execute(
+        "UPDATE ConsumptionSession SET start_date = $1, finish_date = $2 WHERE id = $3",
+        [startDate || null, endDate || null, sessionResult[0].id]
+      );
+    } else if (startDate || endDate) {
+      await db.execute(
+        "INSERT INTO ConsumptionSession (id, tracking_id, start_date, finish_date, is_active) VALUES ($1, $2, $3, $4, TRUE)",
+        [uuidv4(), trackingId, startDate || null, endDate || null]
+      );
+    }
   }
 
   // Update Ranking
@@ -181,9 +206,13 @@ export async function getTrackingForMedia(mediaId: string) {
     const ranking = await db.select<any[]>("SELECT * FROM Ranking WHERE media_id = $1 LIMIT 1", [mediaId]);
     
     if (tracking && tracking.length > 0) {
+        const session = await db.select<any[]>("SELECT start_date, finish_date FROM ConsumptionSession WHERE tracking_id = $1 AND is_active = TRUE LIMIT 1", [tracking[0].id]);
+        
         return {
             ...tracking[0],
-            score: ranking && ranking.length > 0 ? ranking[0].score : null
+            score: ranking && ranking.length > 0 ? ranking[0].score : null,
+            startDate: session && session.length > 0 ? session[0].start_date : null,
+            endDate: session && session.length > 0 ? session[0].finish_date : null
         };
     }
     return null;
