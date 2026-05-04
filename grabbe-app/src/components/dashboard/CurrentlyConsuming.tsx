@@ -1,23 +1,10 @@
-import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MediaCard } from '../shared/MediaCard';
-import { getLibraryItems } from '../../lib/db';
 
-export const CurrentlyConsuming = () => {
-  const [items, setItems] = useState<any[]>([]);
+export const CurrentlyConsuming = ({ items = [] }: { items?: any[] }) => {
   const navigate = useNavigate();
 
-  const loadItems = () => {
-    getLibraryItems().then((all) => {
-      if (all) {
-        setItems(all.filter(i => i.status === 'CONSUMING').slice(0, 4));
-      }
-    });
-  };
-
-  useEffect(() => {
-    loadItems();
-  }, []);
+  const consumingItems = items.filter(i => i.status === 'CONSUMING').slice(0, 4);
 
   return (
     <section>
@@ -26,14 +13,11 @@ export const CurrentlyConsuming = () => {
         <a className="text-sm font-bold text-primary hover:text-tertiary transition-colors" href="/library">View All Session</a>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-        {items.map(item => {
-          // ── DEBUG: Olhe no console do navegador para ver o nome exato! ──
-          console.log("Inspecionando item do banco:", item);
-
-          // Pega o progresso atual (tenta snake_case ou camelCase)
+        {consumingItems.map(item => {
+          // Pega o progresso atual
           const current = item.progress ?? item.currentProgress ?? 0;
           
-          // Pega o total (tenta snake_case, camelCase ou totalProgressUnits)
+          // Pega o total
           const total = item.total_progress ?? item.totalProgress ?? item.totalProgressUnits;
 
           // Proteção para o cálculo da porcentagem não quebrar (evita divisão por zero)
@@ -49,14 +33,14 @@ export const CurrentlyConsuming = () => {
               
               subtitle={item.type} 
               currentProgress={current} 
-              totalProgress={total} // Agora passamos a variável blindada
+              totalProgress={total}
               
               percent={percent} 
               onClick={() => navigate(`/media/${item.external_id}?source=${item.source_api}&type=${item.type}`)}
             />
           );
         })}
-        {items.length === 0 && (
+        {consumingItems.length === 0 && (
           <div className="col-span-4 py-8 text-center text-text-muted">
             You are not consuming anything at the moment.
           </div>

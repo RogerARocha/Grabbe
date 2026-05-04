@@ -1,66 +1,116 @@
-export const RecentEvaluations = () => {
+import { useNavigate } from 'react-router-dom';
+
+export const RecentEvaluations = ({ items = [] }: { items?: any[] }) => {
+  const navigate = useNavigate();
+  
+  // Filter items that have a score and sort by updated_at descending
+  // Assuming items are already sorted by updated_at DESC from getLibraryItems()
+  const evaluatedItems = items.filter(i => i.score && i.score > 0).slice(0, 2);
+
+  if (evaluatedItems.length === 0) return null;
+
+  const item1 = evaluatedItems[0];
+  const item2 = evaluatedItems.length > 1 ? evaluatedItems[1] : null;
+
+  const getScoreLabel = (score: number) => {
+    if (score === 10) return "Masterpiece";
+    if (score >= 8) return "Great";
+    if (score >= 6) return "Good";
+    if (score >= 4) return "Average";
+    return "Poor";
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score === 10) return "prismatic-text";
+    if (score >= 8) return "text-primary";
+    if (score >= 6) return "text-secondary";
+    if (score >= 4) return "text-warning";
+    return "text-error";
+  };
+
   return (
     <section>
       <div className="flex justify-between items-end mb-6">
         <h2 className="text-2xl font-bold tracking-tight text-text-high">Recent Evaluations</h2>
         <div className="flex gap-2">
-          <span className="bg-surface px-3 py-1 rounded-full text-[10px] font-bold text-text-high border border-outline-variant/20">Movies</span>
-          <span className="bg-surface px-3 py-1 rounded-full text-[10px] font-bold text-text-muted">Books</span>
-          <span className="bg-surface px-3 py-1 rounded-full text-[10px] font-bold text-text-muted">Series</span>
+          {/* We could filter these but let's just make them simple badges for now */}
+          <span className="bg-surface px-3 py-1 rounded-full text-[10px] font-bold text-text-high border border-outline-variant/20">All Types</span>
         </div>
       </div>
       
       <div className="grid grid-cols-12 gap-6">
         {/* Bento Large */}
-        <div className="col-span-12 md:col-span-8 bg-surface rounded-xl overflow-hidden bloom-shadow group border border-outline-variant/20">
-          <div className="flex flex-col md:flex-row h-full">
-            <div className="md:w-1/2 overflow-hidden h-full">
-              <img 
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
-                alt="Beyond The Horizon" 
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuB6-uwg4um-wuY88K2rmX-hsKVzzA3IKlIQz9OAvgjWsyzv45CHP2VCk_3EfQKc70Lm3xIu4YyfcgZund7jhDBQNLovlCp3eRjeqXha_b_7qHluXKkKinax0LB_8FS92nY-fDIBWrc1QWQw-YgigZO9v5NAI2s8HvDXzVECmDlFV2gmqbr_wr4P71G4QzPgtCY3MC73Dxm9DzWlAMZoYcmNC7qGV2huASIgiP_H5X5T3tK6LchNC-mhB3UD7vN7_F07roZAHNY-XFk6"
-              />
-            </div>
-            <div className="md:w-1/2 p-8 flex flex-col justify-center">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-[10px] font-bold px-2 py-1 bg-tertiary/10 text-tertiary rounded uppercase">Critic's Choice</span>
-                <span className="text-[10px] font-bold px-2 py-1 bg-secondary/10 text-secondary rounded uppercase">Masterpiece</span>
+        {item1 && (
+          <div 
+            onClick={() => navigate(`/media/${item1.external_id}?source=${item1.source_api}&type=${item1.type}`)}
+            className={`col-span-12 ${item2 ? 'md:col-span-8' : 'md:col-span-12'} bg-surface rounded-xl overflow-hidden bloom-shadow group border border-outline-variant/20 cursor-pointer`}
+          >
+            <div className="flex flex-col md:flex-row h-full">
+              <div className="md:w-1/2 overflow-hidden h-full bg-surface-container-high">
+                {item1.cover_image_path ? (
+                  <img 
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+                    alt={item1.title} 
+                    src={item1.cover_image_path}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center min-h-[200px]">
+                    <span className="material-symbols-outlined text-text-muted text-4xl">image</span>
+                  </div>
+                )}
               </div>
-              <h3 className="text-3xl font-black mb-4 leading-none prismatic-text">Beyond The Horizon</h3>
-              <p className="text-text-muted text-sm mb-6 line-clamp-3">
-                A visual symphony that redefines the genre. The use of negative space and silence creates a tension rarely seen in modern cinema. An absolute tour de force.
-              </p>
-              <div className="flex items-center gap-4">
-                <div className="flex flex-col">
-                  <span className="text-2xl font-black text-text-high">10/10</span>
-                  <span className="text-[9px] uppercase tracking-widest text-text-muted font-bold">Evaluation</span>
+              <div className="md:w-1/2 p-8 flex flex-col justify-center">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-[10px] font-bold px-2 py-1 bg-tertiary/10 text-tertiary rounded uppercase">{item1.type}</span>
+                  <span className={`text-[10px] font-bold px-2 py-1 bg-secondary/10 text-secondary rounded uppercase`}>{getScoreLabel(item1.score)}</span>
                 </div>
-                <button className="ml-auto flex items-center gap-2 text-xs font-bold hover:text-primary transition-colors text-text-high">
-                  Read Review <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-                </button>
+                <h3 className={`text-3xl font-black mb-4 leading-none ${getScoreColor(item1.score)} line-clamp-2`}>{item1.title}</h3>
+                <p className="text-text-muted text-sm mb-6 line-clamp-3">
+                  {item1.notes || "No review written for this item yet."}
+                </p>
+                <div className="flex items-center gap-4 mt-auto">
+                  <div className="flex flex-col">
+                    <span className="text-2xl font-black text-text-high">{item1.score}/10</span>
+                    <span className="text-[9px] uppercase tracking-widest text-text-muted font-bold">Evaluation</span>
+                  </div>
+                  <button className="ml-auto flex items-center gap-2 text-xs font-bold group-hover:text-primary transition-colors text-text-high">
+                    View Details <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Bento Small 1 */}
-        <div className="col-span-12 md:col-span-4 bg-surface rounded-xl p-6 bloom-shadow border border-outline-variant/20">
-          <div className="mb-4 aspect-video rounded-lg overflow-hidden">
-            <img 
-              className="w-full h-full object-cover" 
-              alt="Tokyo Drift: Nightfall" 
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuBeuQquA6OoMlzECX7qUAsudXlPfB1pwh8Jx0_-YTpTdmBNu4dfA3tVT_5mn8OvweEN8p0NSsrHYywxGqNeDOpElp7EgqYXC5WjxKC5UL3kHzT1jUb9eRvbSUzUrsZOEBLCLujs0lT2DqKY6ibRg01pHV9i9Lp36r_JQtXVbHo2jZS76AaTF_dTVKT9BiqzqmXtzFZUDfTF76hhiJQdNTRGGeNVlNJ4LYghemr4jwqJuQ3zaokymzyfD3igCeOsAuzzLQGhy4FTXs8K"
-            />
+        {item2 && (
+          <div 
+            onClick={() => navigate(`/media/${item2.external_id}?source=${item2.source_api}&type=${item2.type}`)}
+            className="col-span-12 md:col-span-4 bg-surface rounded-xl p-6 bloom-shadow border border-outline-variant/20 cursor-pointer group hover:border-primary/30 transition-colors"
+          >
+            <div className="mb-4 aspect-video rounded-lg overflow-hidden bg-surface-container-high">
+              {item2.cover_image_path ? (
+                <img 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                  alt={item2.title} 
+                  src={item2.cover_image_path}
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <span className="material-symbols-outlined text-text-muted text-2xl">image</span>
+                </div>
+              )}
+            </div>
+            <h4 className="font-bold mb-2 text-text-high line-clamp-1">{item2.title}</h4>
+            <p className="text-[12px] text-text-muted mb-4 line-clamp-2">
+              {item2.notes || "No review written yet."}
+            </p>
+            <div className="flex items-center justify-between mt-auto">
+              <span className={`text-lg font-bold ${getScoreColor(item2.score)}`}>{item2.score}/10</span>
+              <span className="text-[10px] font-bold text-text-muted">{item2.type}</span>
+            </div>
           </div>
-          <h4 className="font-bold mb-2 text-text-high">Tokyo Drift: Nightfall</h4>
-          <p className="text-[12px] text-text-muted mb-4 line-clamp-2">
-            The cinematography is peak, but the narrative falls slightly short in the third act.
-          </p>
-          <div className="flex items-center justify-between">
-            <span className="text-lg font-bold text-warning">8.2/10</span>
-            <span className="text-[10px] font-bold text-text-muted">Yesterday</span>
-          </div>
-        </div>
+        )}
       </div>
     </section>
   );
