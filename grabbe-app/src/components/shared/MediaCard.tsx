@@ -2,7 +2,7 @@ import React from 'react';
 
 // ─── 1. Types ───────────────────────────────────────────────────────────────
 
-export type MediaStatus = 'CONSUMING' | 'COMPLETED' | 'DROPPED' | 'PLANNED' | 'PENDING';
+export type MediaStatus = 'CONSUMING' | 'COMPLETED' | 'DROPPED' | 'PLANNED' | 'ON HOLD' | 'PENDING';
 export type MediaType = 'ALL' | 'MOVIE' | 'SERIES' | 'ANIME' | 'MANGA' | 'BOOK' | 'GAME';
 
 // Criamos uma tipagem base para os temas do aplicativo
@@ -49,6 +49,7 @@ const getStatusColor = (status: MediaStatus): ThemeColor => {
     case 'COMPLETED': return 'secondary';
     case 'DROPPED': return 'tertiary';
     case 'PLANNED': return 'warning';
+    case 'ON HOLD': return 'warning';
     default: return 'neutral';
   }
 };

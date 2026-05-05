@@ -119,7 +119,25 @@ export const MediaDetails = () => {
     // We need the internal mediaId. refreshTracking data has it.
     const data = await getTrackingByExternalId(externalId!, sourceApi!);
     if (data) {
-      await saveTracking(data.media_id, data.status, data.score, newProgress, data.total_progress, data.notes);
+      let newStatus = data.status;
+      let newStartDate = data.startDate;
+      let newEndDate = data.endDate;
+
+      if (newStatus === 'PLANNED' || newStatus === 'DROPPED' || newStatus === 'ON HOLD') {
+        newStatus = 'CONSUMING';
+        if (!newStartDate) {
+          newStartDate = new Date().toISOString();
+        }
+      }
+
+      if (data.total_progress && newProgress >= data.total_progress) {
+         newStatus = 'COMPLETED';
+         if (!newEndDate) {
+             newEndDate = new Date().toISOString();
+         }
+      }
+
+      await saveTracking(data.media_id, newStatus, data.score, newProgress, data.total_progress, data.notes, newStartDate, newEndDate);
       refreshTracking();
     }
   };
@@ -144,7 +162,7 @@ export const MediaDetails = () => {
           {/* Left Column */}
           <div className="md:col-span-5 lg:col-span-4 flex flex-col gap-6">
             <HeroCover title={media.title} imageUrl={media.coverImageUrl ?? ''} />
-            {isInLibrary && tracking.status === 'CONSUMING' && (
+            {isInLibrary && (
               <ProgressTracker
                 currentProgress={tracking.currentProgress}
                 totalProgress={tracking.totalProgress}

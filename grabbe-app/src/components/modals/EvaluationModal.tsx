@@ -224,10 +224,22 @@ export const EvaluationModal = ({
           <div className="flex flex-col gap-2">
             <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Status</label>
             <div className="relative">
-              <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full bg-background border-none rounded-lg text-sm px-4 py-3 appearance-none focus:ring-2 focus:ring-primary transition-all cursor-pointer text-text-high outline-none">
+              <select 
+                value={status} 
+                onChange={(e) => {
+                  const newStatus = e.target.value;
+                  setStatus(newStatus);
+                  if (newStatus === 'COMPLETED') {
+                    if (totalProgress > 0) setProgress(totalProgress);
+                    if (!endDate) setEndDate(new Date().toISOString().split('T')[0]);
+                  } else if (newStatus === 'CONSUMING') {
+                    if (!startDate) setStartDate(new Date().toISOString().split('T')[0]);
+                  }
+                }} 
+                className="w-full bg-background border-none rounded-lg text-sm px-4 py-3 appearance-none focus:ring-2 focus:ring-primary transition-all cursor-pointer text-text-high outline-none">
                 <option value="CONSUMING">Currently Watching / Reading</option>
                 <option value="COMPLETED">Completed</option>
-                <option value="ON_HOLD">On Hold</option>
+                <option value="ON HOLD">On Hold</option>
                 <option value="DROPPED">Dropped</option>
                 <option value="PLANNED">Plan to Watch</option>
               </select>
@@ -242,7 +254,14 @@ export const EvaluationModal = ({
               <input 
                 type="number" 
                 value={progress}
-                onChange={(e) => setProgress(Number(e.target.value))}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  setProgress(val);
+                  if (totalProgress > 0 && val >= totalProgress) {
+                    setStatus('COMPLETED');
+                    if (!endDate) setEndDate(new Date().toISOString().split('T')[0]);
+                  }
+                }}
                 className="flex-1 bg-background border-none rounded-lg text-sm px-4 py-3 focus:ring-2 focus:ring-primary transition-all text-text-high outline-none" 
                 placeholder="0" 
               />

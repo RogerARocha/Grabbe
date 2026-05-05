@@ -13,7 +13,7 @@ export const ProgressTracker = ({ currentProgress, totalProgress, label, onUpdat
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
-          <span className="text-xs font-bold text-primary uppercase tracking-wider">In Progress</span>
+          <span className="text-xs font-bold text-primary uppercase tracking-wider">Progress</span>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs font-black prismatic-text">{currentProgress} / {totalProgress || '?'}</span>

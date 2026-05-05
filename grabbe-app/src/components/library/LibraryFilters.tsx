@@ -7,7 +7,7 @@ interface LibraryFiltersProps {
   setActiveStatus: (status: MediaStatus | 'ALL') => void;
 }
 
-const STATUS_FILTERS: (MediaStatus | 'ALL')[] = ['ALL', 'CONSUMING', 'PLANNED', 'COMPLETED', 'DROPPED'];
+const STATUS_FILTERS: (MediaStatus | 'ALL')[] = ['ALL', 'CONSUMING', 'PLANNED', 'ON HOLD', 'COMPLETED', 'DROPPED'];
 
 export const LibraryFilters = ({ 
   activeTab, 
