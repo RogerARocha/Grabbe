@@ -1,6 +1,10 @@
 import { useNavigate } from 'react-router-dom';
 import { MediaCard } from '../shared/MediaCard';
 
+/**
+ * Displays a dashboard widget of up to 4 items the user is currently consuming,
+ * calculating and presenting their progress percentages.
+ */
 export const CurrentlyConsuming = ({ items = [] }: { items?: any[] }) => {
   const navigate = useNavigate();
 
@@ -14,15 +18,11 @@ export const CurrentlyConsuming = ({ items = [] }: { items?: any[] }) => {
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
         {consumingItems.map(item => {
-          // Pega o progresso atual
           const current = item.progress ?? item.currentProgress ?? 0;
-          
-          // Pega o total
           const total = item.total_progress ?? item.totalProgress ?? item.totalProgressUnits;
 
-          // Proteção para o cálculo da porcentagem não quebrar (evita divisão por zero)
-          const safeTotalForMath = total && total > 0 ? total : 1;
-          const percent = Math.min(Math.round((current / safeTotalForMath) * 100), 100);
+          const effectiveTotal = total && total > 0 ? total : 1;
+          const percent = Math.min(Math.round((current / effectiveTotal) * 100), 100);
           
           return (
             <MediaCard 

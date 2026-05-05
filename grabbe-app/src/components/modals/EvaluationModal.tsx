@@ -17,6 +17,10 @@ interface EvaluationModalProps {
   initialNotes?: string;
 }
 
+/**
+ * Modal component for adding new media to the library or updating existing tracking progress.
+ * Handles API search integration for new items and local database synchronization.
+ */
 export const EvaluationModal = ({ 
   isOpen, 
   onClose, 
@@ -87,6 +91,10 @@ export const EvaluationModal = ({
     { value: 1, label: 'Appalling', colorClass: 'text-error', bgHoverClass: 'hover:bg-error/10' },
   ];
 
+  /**
+   * Performs an external API search for media.
+   * This is debounced via handleQueryChange to prevent excessive API calls.
+   */
   const runSearch = async (q: string) => {
     if (!q.trim()) {
       setSearchResults([]);
@@ -131,16 +139,17 @@ export const EvaluationModal = ({
     }
   };
 
+  /**
+   * Saves tracking data to the local SQLite database.
+   * Follows a local-first pipeline:
+   * 1. Upserts the core media definition.
+   * 2. Synchronizes tracking progress, session dates, and user ranking.
+   */
   const handleSave = async () => {
     try {
       if (selectedMedia) {
-        // 1. Salva a mídia na tabela principal
         const mediaId = await upsertMedia(selectedMedia);
-        
-        // 2. Extrai o total da API de forma segura
         const finalTotalProgress = totalProgress || selectedMedia.totalProgressUnits || null;
-        
-        // 3. Salva o tracking PASSANDO o totalProgress, notes e datas
         await saveTracking(mediaId, status, selectedScore, progress, finalTotalProgress, notes || null, startDate || null, endDate || null);
       }
       onClose();
@@ -153,7 +162,6 @@ export const EvaluationModal = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="w-[420px] bg-surface rounded-[12px] p-6 bloom-shadow flex flex-col gap-6 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
         
-        {/* Title */}
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-text-high tracking-tight">{title}</h2>
           <button onClick={onClose} className="text-text-muted hover:text-text-high transition-colors">
@@ -161,10 +169,8 @@ export const EvaluationModal = ({
           </button>
         </div>
 
-        {/* Content */}
         <div className="flex flex-col gap-5">
           
-          {/* Search Media (Only Add Mode without Preselected Media) */}
           {showSearch ? (
             <div className="flex flex-col gap-2 relative">
               <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Search Media</label>
@@ -181,7 +187,6 @@ export const EvaluationModal = ({
                 {isSearching && <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />}
               </div>
               
-              {/* Dropdown */}
               {showDropdown && searchResults.length > 0 && (
                 <div className="absolute top-[100%] left-0 w-full mt-2 bg-surface rounded-lg border border-outline-variant/30 overflow-hidden z-50 max-h-[240px] overflow-y-auto bloom-shadow">
                   {searchResults.map((res) => (
@@ -220,7 +225,6 @@ export const EvaluationModal = ({
             </div>
           )}
 
-          {/* Status */}
           <div className="flex flex-col gap-2">
             <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Status</label>
             <div className="relative">
@@ -247,7 +251,6 @@ export const EvaluationModal = ({
             </div>
           </div>
 
-          {/* Progress/Episode */}
           <div className="flex flex-col gap-2">
             <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Progress / Episode</label>
             <div className="flex items-center gap-3">
@@ -269,7 +272,6 @@ export const EvaluationModal = ({
             </div>
           </div>
 
-          {/* Dates */}
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-2">
               <div className="flex justify-between items-baseline">
@@ -303,7 +305,6 @@ export const EvaluationModal = ({
             </div>
           </div>
 
-          {/* Rating */}
           <div className="flex flex-col gap-2">
             <div className="flex justify-between items-center cursor-pointer" onClick={() => setIsScoreOpen(!isScoreOpen)}>
               <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted cursor-pointer">Rating</label>
@@ -318,7 +319,6 @@ export const EvaluationModal = ({
               </div>
             </div>
 
-            {/* Score Selector Dropdown */}
             {isScoreOpen && (
               <div className="mt-1 bg-background rounded-lg border border-outline-variant/30 overflow-hidden">
                 <div className="max-h-[200px] overflow-y-auto">
@@ -347,7 +347,6 @@ export const EvaluationModal = ({
             )}
           </div>
           
-          {/* Notes / Review */}
           <div className="flex flex-col gap-2">
             <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Review & Notes</label>
             <textarea 
@@ -360,7 +359,6 @@ export const EvaluationModal = ({
 
         </div>
 
-        {/* Footer Actions */}
         <div className="flex items-center justify-end gap-4 pt-4 border-t border-outline-variant/10 mt-2">
           <button onClick={onClose} className="px-6 py-2.5 text-sm font-semibold text-text-muted hover:text-text-high transition-colors active:scale-95">
             Cancel

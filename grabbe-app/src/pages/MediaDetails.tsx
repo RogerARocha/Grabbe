@@ -12,6 +12,10 @@ import { CastSection } from '../components/media-details/CastSection';
 import { AlternativeTitles } from '../components/media-details/AlternativeTitles';
 import { getTrackingByExternalId, removeTrackingByExternalId, saveTracking } from '../lib/db';
 
+/**
+ * Detailed view for a specific media item. 
+ * Combines data fetched from the external API (TMDB/Jikan) with local tracking state.
+ */
 export const MediaDetails = () => {
   const { id: externalId } = useParams();
   const [searchParams] = useSearchParams();
@@ -79,7 +83,6 @@ export const MediaDetails = () => {
   if (isLoading) return <MainLayout><div className="flex items-center justify-center min-h-[50vh]"><div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" /></div></MainLayout>;
   if (!media) return <MainLayout><div className="flex items-center justify-center min-h-[50vh] text-text-muted">Failed to load media</div></MainLayout>;
 
-  // Temporarily map API response to UI variables
   const extras = {
     runtime: media.formattedConsumptionMetric,
     externalRating: media.communityScore,
@@ -111,12 +114,15 @@ export const MediaDetails = () => {
     }
   };
 
+  /**
+   * Increments progress. 
+   * Automatically transitions status to CONSUMING if starting, or COMPLETED if reaching the end.
+   */
   const handleQuickProgress = async () => {
     if (!isInLibrary || !tracking) return;
     const newProgress = (tracking.currentProgress || 0) + 1;
     if (tracking.totalProgress && newProgress > tracking.totalProgress) return;
 
-    // We need the internal mediaId. refreshTracking data has it.
     const data = await getTrackingByExternalId(externalId!, sourceApi!);
     if (data) {
       let newStatus = data.status;
@@ -159,7 +165,6 @@ export const MediaDetails = () => {
         ]} />
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-12 items-start">
-          {/* Left Column */}
           <div className="md:col-span-5 lg:col-span-4 flex flex-col gap-6">
             <HeroCover title={media.title} imageUrl={media.coverImageUrl ?? ''} />
             {isInLibrary && (
@@ -186,7 +191,6 @@ export const MediaDetails = () => {
             )}
           </div>
 
-          {/* Right Column */}
           <div className="md:col-span-7 lg:col-span-8 flex flex-col gap-8">
             <MediaHeader
               title={media.title}

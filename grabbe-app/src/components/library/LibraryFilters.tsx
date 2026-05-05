@@ -1,4 +1,4 @@
-import { MediaType, MediaStatus, TYPE_FILTERS } from '../shared/types'; // Ajuste seus imports
+import { MediaType, MediaStatus, TYPE_FILTERS } from '../shared/types';
 
 interface LibraryFiltersProps {
   activeTab: MediaType;
@@ -9,6 +9,9 @@ interface LibraryFiltersProps {
 
 const STATUS_FILTERS: (MediaStatus | 'ALL')[] = ['ALL', 'CONSUMING', 'PLANNED', 'ON HOLD', 'COMPLETED', 'DROPPED'];
 
+/**
+ * Renders the top-level type and status filter controls for the library view.
+ */
 export const LibraryFilters = ({ 
   activeTab, 
   setActiveTab, 
@@ -18,8 +21,6 @@ export const LibraryFilters = ({
   
   return (
     <div className="space-y-6 mb-12">
-      
-      {/* ── Top Level Media Categories ── */}
       <div className="flex items-center gap-2 border-b border-outline-variant/10">
         {TYPE_FILTERS.map((filter) => {
           const isActive = activeTab === filter.value;
@@ -41,7 +42,6 @@ export const LibraryFilters = ({
         })}
       </div>
 
-      {/* ── Secondary Status Filters ── */}
       <div className="flex items-center gap-3">
         {STATUS_FILTERS.map(status => {
           const isActive = activeStatus === status;

@@ -8,6 +8,10 @@ import { ComingSoon } from './pages/ComingSoon';
 import { Discover } from './pages/Discover';
 import { initDb } from './lib/db';
 
+/**
+ * Main application entry point.
+ * Initializes the local database and configures the routing for all main views.
+ */
 function App() {
   const [dbReady, setDbReady] = useState(false);
 
@@ -25,13 +29,13 @@ function App() {
         <Route path="/media/:id" element={<MediaDetails />} />
         <Route path="/discover" element={<Discover />} />
 
-        {/* Telas que estão em desenvolvimento (Coming Soon) */}
+        {/* Views currently in development (Coming Soon) */}
         <Route path="/analytics" element={<ComingSoon feature="analytics" />} />
         <Route path="/community" element={<ComingSoon feature="community" />} />
         <Route path="/settings" element={<ComingSoon feature="settings" />} />
         <Route path="/profile" element={<ComingSoon feature="profile" />} />
         
-        {/* Categorias específicas */}
+        {/* Specific categories */}
         <Route path="/movies" element={<ComingSoon feature="movies" />} />
         <Route path="/series" element={<ComingSoon feature="series" />} />
         <Route path="/anime" element={<ComingSoon feature="anime" />} />

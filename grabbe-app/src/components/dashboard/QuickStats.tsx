@@ -1,14 +1,16 @@
+/**
+ * Displays aggregate statistics for the user's library.
+ */
 export const QuickStats = ({ items = [] }: { items?: any[] }) => {
   const totalMedia = items.length;
   const oneWeekAgo = new Date();
   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
   
-  // Uses created_at to accurately track when media was first added
   const newThisWeek = items.filter(i => i.created_at && new Date(i.created_at) >= oneWeekAgo).length;
 
   const masterpieces = items.filter(i => i.score === 10).length;
 
-  // We don't have accurate hours watched yet without tracking runtime per item precisely,
+  // TODO: We don't have accurate hours watched yet without tracking runtime per item precisely,
   // so we'll just show completed count for now or mock the hours based on completed items.
   const completedCount = items.filter(i => i.status === 'COMPLETED').length;
   const estimatedHours = completedCount * 2; // rough mock

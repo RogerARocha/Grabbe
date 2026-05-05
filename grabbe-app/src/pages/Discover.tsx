@@ -1,11 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '../components/layout/MainLayout';
-import { MediaType, MediaCard } from '../components/shared/MediaCard';
-import { TYPE_FILTERS } from '../components/shared/types';
+import { MediaCard } from '../components/shared/MediaCard';
+import { TYPE_FILTERS, MediaType } from '../components/shared/types';
 import { DiscoverResult } from '../components/discover/data';
 import { SkeletonCard, EmptyState, IdleState } from '../components/discover/DiscorverStates';
 
+/**
+ * Discovery page allowing users to search across multiple external APIs.
+ * Integrates an idle state, loading skeleton, and an empty results state.
+ */
 export const Discover = () => {
   const [query, setQuery] = useState('');
   const [activeType, setActiveType] = useState<MediaType>('ALL');
@@ -20,6 +24,10 @@ export const Discover = () => {
     inputRef.current?.focus();
   }, []);
 
+  /**
+   * Executes the external API search.
+   * Debounced via handleQueryChange.
+   */
   const runSearch = async (q: string, type: MediaType) => {
     if (!q.trim()) {
       setHasSearched(false);
@@ -120,7 +128,6 @@ export const Discover = () => {
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
             {results.map((result) => {
-    // Montando o subtítulo com os metadados disponíveis
     const subtitleParts = [];
     if (result.releaseDate) subtitleParts.push(result.releaseDate);
     if (result.formattedConsumptionMetric) subtitleParts.push(result.formattedConsumptionMetric);

@@ -1,7 +1,16 @@
+/**
+ * Represents the current user tracking state for a media item.
+ */
 export type MediaStatus = 'CONSUMING' | 'COMPLETED' | 'DROPPED' | 'PLANNED' | 'ON HOLD' | 'PENDING';
 
+/**
+ * Defines the supported media types across the platform.
+ */
 export type MediaType = 'ALL' | 'MOVIE' | 'SERIES' | 'ANIME' | 'MANGA' | 'BOOK' | 'GAME';
 
+/**
+ * Configuration for type filter UI elements.
+ */
 export const TYPE_FILTERS: { label: string; value: MediaType; icon: string }[] = [
   { label: 'All', value: 'ALL', icon: 'grid_view' },
   { label: 'Movies', value: 'MOVIE', icon: 'movie' },
@@ -12,21 +21,21 @@ export const TYPE_FILTERS: { label: string; value: MediaType; icon: string }[] =
   { label: 'Games', value: 'GAME', icon: 'sports_esports' },
 ];
 
+/**
+ * Props for the MediaCard component, supporting multiple variants for different views.
+ */
 export interface MediaCardProps {
   variant?: 'library' | 'dashboard' | 'discover';
   title: string;
   subtitle?: string; 
   image: string | null; 
   
-  // Específico para Dashboard/Library
   status?: MediaStatus;
   percent?: number;
   
-  // Específico para Discover
   score?: number | null;
-  mediaType?: MediaType; // Substitui typeBadge e typeColor
+  mediaType?: MediaType;
   
-  // Ações
   onAddClick?: (e: React.MouseEvent) => void;
   onClick?: () => void;
 }

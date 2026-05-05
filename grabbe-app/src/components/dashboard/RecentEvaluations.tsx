@@ -1,10 +1,11 @@
 import { useNavigate } from 'react-router-dom';
 
+/**
+ * Dashboard widget showing the latest library items the user has explicitly rated.
+ */
 export const RecentEvaluations = ({ items = [] }: { items?: any[] }) => {
   const navigate = useNavigate();
   
-  // Filter items that have a score and sort by updated_at descending
-  // Assuming items are already sorted by updated_at DESC from getLibraryItems()
   const evaluatedItems = items.filter(i => i.score && i.score > 0).slice(0, 2);
 
   if (evaluatedItems.length === 0) return null;
@@ -33,13 +34,12 @@ export const RecentEvaluations = ({ items = [] }: { items?: any[] }) => {
       <div className="flex justify-between items-end mb-6">
         <h2 className="text-2xl font-bold tracking-tight text-text-high">Recent Evaluations</h2>
         <div className="flex gap-2">
-          {/* We could filter these but let's just make them simple badges for now */}
+          {/* TODO: Implement actual type filtering, currently a static badge */}
           <span className="bg-surface px-3 py-1 rounded-full text-[10px] font-bold text-text-high border border-outline-variant/20">All Types</span>
         </div>
       </div>
       
       <div className="grid grid-cols-12 gap-6">
-        {/* Bento Large */}
         {item1 && (
           <div 
             onClick={() => navigate(`/media/${item1.external_id}?source=${item1.source_api}&type=${item1.type}`)}
@@ -82,7 +82,6 @@ export const RecentEvaluations = ({ items = [] }: { items?: any[] }) => {
           </div>
         )}
 
-        {/* Bento Small 1 */}
         {item2 && (
           <div 
             onClick={() => navigate(`/media/${item2.external_id}?source=${item2.source_api}&type=${item2.type}`)}

@@ -1,11 +1,6 @@
 import React from 'react';
+import type { MediaStatus, MediaType } from './types';
 
-// ─── 1. Types ───────────────────────────────────────────────────────────────
-
-export type MediaStatus = 'CONSUMING' | 'COMPLETED' | 'DROPPED' | 'PLANNED' | 'ON HOLD' | 'PENDING';
-export type MediaType = 'ALL' | 'MOVIE' | 'SERIES' | 'ANIME' | 'MANGA' | 'BOOK' | 'GAME';
-
-// Criamos uma tipagem base para os temas do aplicativo
 export type ThemeColor = 'primary' | 'secondary' | 'tertiary' | 'warning' | 'neutral';
 
 export interface MediaCardProps {
@@ -14,24 +9,18 @@ export interface MediaCardProps {
   subtitle?: string; 
   image: string | null;
   
-  // Props para Library / Dashboard
   status?: MediaStatus;
   percent?: number;
   currentProgress?: number;
   totalProgress?: number;
   
-  // Props para Discover (tipado como MediaType para auto-detectar a cor)
   typeBadge?: MediaType; 
   
-  // Actions
   onAddClick?: (e: React.MouseEvent) => void;
   onProgressClick?: (e: React.MouseEvent) => void;
   onClick?: () => void;
 }
 
-// ─── 2. O Dicionário Central de Cores──────────────────
-
-// Aqui definimos o CSS completo de cada tema apenas UMA VEZ.
 const THEME_STYLES: Record<ThemeColor, string> = {
   primary: 'bg-primary/15 text-primary border-primary/30',
   secondary: 'bg-secondary/15 text-secondary border-secondary/30',
@@ -40,9 +29,6 @@ const THEME_STYLES: Record<ThemeColor, string> = {
   neutral: 'bg-background/70 text-text-muted border-outline-variant/20',
 };
 
-// ─── 3. Helpers (Semântica) ──────────────────────────────────────────────────
-
-// Qual cor cada status usa?
 const getStatusColor = (status: MediaStatus): ThemeColor => {
   switch (status) {
     case 'CONSUMING': return 'primary';
@@ -54,7 +40,6 @@ const getStatusColor = (status: MediaStatus): ThemeColor => {
   }
 };
 
-// Qual cor cada mídia usa?
 const getTypeColor = (type: MediaType): ThemeColor => {
   switch (type) {
     case 'MOVIE':
@@ -67,14 +52,16 @@ const getTypeColor = (type: MediaType): ThemeColor => {
   }
 };
 
-// ─── 4. Components ──────────────────────────────────────────────────────────
-
 const ImageFallback = () => (
   <div className="w-full h-full flex items-center justify-center bg-surface-container">
     <span className="material-symbols-outlined text-4xl text-text-muted">image_not_supported</span>
   </div>
 );
 
+/**
+ * A highly versatile card component for displaying media items across the application.
+ * Adapts its internal layout and hover effects based on the `variant` prop.
+ */
 export const MediaCard = ({ 
   variant = 'library', 
   title, 
@@ -90,15 +77,12 @@ export const MediaCard = ({
   onClick
 }: MediaCardProps) => {
   
-// ── Variante: DASHBOARD ──
   if (variant === 'dashboard') {
-    // 1. Calcula a barra de progresso automaticamente se tivermos os valores
-    let calculatedPercent = percent;
+    let progressPercentage = percent;
     if (currentProgress !== undefined && totalProgress && totalProgress > 0) {
-      calculatedPercent = Math.min(100, (currentProgress / totalProgress) * 100);
+      progressPercentage = Math.min(100, (currentProgress / totalProgress) * 100);
     }
 
-    // 2. Monta o texto de episódios/páginas dinamicamente
     const hasProgressData = currentProgress !== undefined;
     const progressText = hasProgressData 
       ? `${currentProgress} / ${totalProgress || '?'}` 
@@ -117,12 +101,11 @@ export const MediaCard = ({
         
         <div className="px-1 mt-2 flex items-center justify-between gap-3">
           <div className="flex-1 overflow-hidden">
-            {/* Barra de Progresso Inteligente */}
-            {calculatedPercent !== undefined && (
+            {progressPercentage !== undefined && (
               <div className="w-full h-1.5 bg-surface-container-high rounded-full overflow-hidden mb-1">
                 <div 
                   className="bg-primary h-full rounded-full shadow-[0_0_8px_rgba(var(--primary-rgb),0.5)] transition-all duration-500 ease-out" 
-                  style={{ width: `${calculatedPercent}%` }}
+                  style={{ width: `${progressPercentage}%` }}
                 ></div>
               </div>
             )}
@@ -149,17 +132,14 @@ export const MediaCard = ({
     );
   }
 
-  // ── Variante: DISCOVER ──
-if (variant === 'discover') {
+  if (variant === 'discover') {
     const badgeColor = typeBadge ? getTypeColor(typeBadge) : 'neutral';
 
     return (
       <div onClick={onClick} className="flex flex-col gap-3 group cursor-pointer">
-        {/* Usando exatamente as mesmas regras de borda da Library */}
         <div className={`relative w-full aspect-[2/3] rounded-lg overflow-hidden bg-surface-container bloom-shadow transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] hover:scale-[1.05] border-2 hover:border-outline-variant/60 ${THEME_STYLES[badgeColor].split(' ')[2]}`}>
           {image ? <img className="w-full h-full object-cover" alt={title} src={image} /> : <ImageFallback />}
 
-          {/* Type Badge na mesma posição e estilo do Status da Library (top-3 left-3) */}
           {typeBadge && (
             <div className="absolute top-3 left-3">
               <span className={`px-2 py-1 text-[10px] font-bold tracking-wider rounded-full backdrop-blur-md border ${THEME_STYLES[badgeColor]}`}>
@@ -168,7 +148,6 @@ if (variant === 'discover') {
             </div>
           )}
 
-          {/* Hover Action (Mantido para a funcionalidade rápida) */}
           <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-end p-3">
             <button 
               onClick={(e) => {
@@ -182,7 +161,6 @@ if (variant === 'discover') {
           </div>
         </div>
         <div className="px-1">
-          {/* Título e Subtítulo sem hover effects extras, igual à Library */}
           <h3 className="text-sm font-semibold text-text-high truncate leading-tight">{title}</h3>
           {subtitle && <p className="text-[11px] text-text-muted mt-1 font-medium truncate">{subtitle}</p>}
         </div>
@@ -190,16 +168,13 @@ if (variant === 'discover') {
     );
   }
 
-  // ── Variante: LIBRARY (Default) ──
   const statusColor = getStatusColor(status);
 
   return (
     <div onClick={onClick} className="flex flex-col gap-3 group cursor-pointer">
-      {/* O border-2 principal puxa a borda do THEME_STYLES */}
       <div className={`relative w-full aspect-[2/3] rounded-lg overflow-hidden bg-surface-container bloom-shadow transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] hover:scale-[1.05] border-2 hover:border-outline-variant/60 ${THEME_STYLES[statusColor].split(' ')[2]}`}>
         {image ? <img className="w-full h-full object-cover" alt={title} src={image} /> : <ImageFallback />}
         <div className="absolute top-3 left-3">
-          {/* Status Badge */}
           <span className={`px-2 py-1 text-[10px] font-bold tracking-wider rounded-full backdrop-blur-md border ${THEME_STYLES[statusColor]}`}>
             {status}
           </span>

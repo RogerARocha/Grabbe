@@ -3,6 +3,10 @@ import { v4 as uuidv4 } from 'uuid';
 
 let dbInstance: Database | null = null;
 
+/**
+ * Retrieves the singleton instance of the Tauri SQLite database.
+ * @returns The Database instance
+ */
 export async function getDb() {
   if (!dbInstance) {
     dbInstance = await Database.load('sqlite:grabbe.db');
@@ -10,6 +14,10 @@ export async function getDb() {
   return dbInstance;
 }
 
+/**
+ * Initializes the database schema and runs necessary migrations.
+ * Creates tables for Media, UserTracking, ConsumptionSession, TrackingHistory, and Ranking.
+ */
 export async function initDb() {
   const db = await getDb();
   
@@ -83,7 +91,11 @@ export async function initDb() {
   console.log("Database initialized and migrations ran successfully.");
 }
 
-// Media Add/Update
+/**
+ * Inserts a new media item or returns the existing one based on external API ID and source.
+ * @param media The media object containing external IDs and metadata
+ * @returns The internal UUID of the media
+ */
 export async function upsertMedia(media: any) {
   const db = await getDb();
   const existingResult = await db.select<any[]>(
@@ -116,7 +128,24 @@ export async function upsertMedia(media: any) {
   return mediaId;
 }
 
-// Add/Update Tracking
+/**
+ * Saves or updates tracking progress for a media item.
+ * 
+ * Algorithm:
+ * 1. Upserts the core `UserTracking` record.
+ * 2. Manages `ConsumptionSession` by closing existing active sessions or opening new ones based on dates.
+ * 3. Updates the `Ranking` table atomically if a score is provided.
+ * 
+ * @param mediaId The internal UUID of the media
+ * @param status The current tracking status (e.g., CONSUMING, COMPLETED)
+ * @param score Optional user score (1-10)
+ * @param progress Current progress (episodes/pages/minutes)
+ * @param totalProgress Total length of the media
+ * @param notes Optional user review or notes
+ * @param startDate Optional session start date
+ * @param endDate Optional session end date
+ * @returns The tracking ID
+ */
 export async function saveTracking(
   mediaId: string, 
   status: string, 
@@ -182,7 +211,12 @@ export async function saveTracking(
   return trackingId;
 }
 
-// Get Library Items
+/**
+ * Retrieves all tracked library items across all statuses.
+ * Includes join with Media, UserTracking, and Ranking tables.
+ * 
+ * @returns Array of library items sorted by latest update
+ */
 export async function getLibraryItems() {
   const db = await getDb();
   return await db.select<any[]>(`
@@ -194,12 +228,21 @@ export async function getLibraryItems() {
   `);
 }
 
+/**
+ * Gets the total number of tracked items in the user's library.
+ */
 export async function getMediaCount() {
     const db = await getDb();
     const result = await db.select<any[]>("SELECT COUNT(*) as count FROM UserTracking");
     return result[0]?.count || 0;
 }
 
+/**
+ * Fetches the specific tracking record, ranking score, and active session dates for a given media ID.
+ * 
+ * @param mediaId The internal UUID of the media
+ * @returns The combined tracking and session object, or null if not found
+ */
 export async function getTrackingForMedia(mediaId: string) {
     const db = await getDb();
     const tracking = await db.select<any[]>("SELECT * FROM UserTracking WHERE media_id = $1 LIMIT 1", [mediaId]);
@@ -218,6 +261,13 @@ export async function getTrackingForMedia(mediaId: string) {
     return null;
 }
 
+/**
+ * Looks up a tracking record using external API credentials.
+ * 
+ * @param externalId The ID from the source API
+ * @param sourceApi The name of the API (e.g., 'TMDB', 'Jikan')
+ * @returns The tracking object or null
+ */
 export async function getTrackingByExternalId(externalId: string, sourceApi: string) {
     const db = await getDb();
     const media = await db.select<any[]>("SELECT id FROM Media WHERE external_id = $1 AND source_api = $2 LIMIT 1", [externalId, sourceApi]);
@@ -225,6 +275,14 @@ export async function getTrackingByExternalId(externalId: string, sourceApi: str
     return await getTrackingForMedia(media[0].id);
 }
 
+/**
+ * Removes all tracking, sessions, and ranking data for a given external media item.
+ * Leaves the cached Media record intact.
+ * 
+ * @param externalId The ID from the source API
+ * @param sourceApi The name of the API
+ * @returns True if deleted successfully, false otherwise
+ */
 export async function removeTrackingByExternalId(externalId: string, sourceApi: string) {
     const db = await getDb();
     const media = await db.select<any[]>("SELECT id FROM Media WHERE external_id = $1 AND source_api = $2 LIMIT 1", [externalId, sourceApi]);

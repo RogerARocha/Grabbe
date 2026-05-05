@@ -1,4 +1,4 @@
-import { MediaType } from '../shared/MediaCard';
+import { MediaType } from '../shared/types';
 
 
 

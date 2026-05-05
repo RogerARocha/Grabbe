@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getLibraryItems } from '../../lib/db';
-import { MediaCard, MediaStatus } from '../shared/MediaCard';
-import type { MediaType } from '../shared/types';
+import { MediaCard } from '../shared/MediaCard';
+import type { MediaStatus, MediaType } from '../shared/types';
 
 
 interface LibraryGridProps {
@@ -12,6 +12,10 @@ interface LibraryGridProps {
 
 
 
+/**
+ * Displays the library collection as a responsive grid of media cards.
+ * Implements client-side cross-filtering by type and status.
+ */
 export const LibraryGrid = ({ activeTab, activeStatus }: LibraryGridProps) => {
   const [displayCount, setDisplayCount] = useState(12);
   const [data, setData] = useState<any[]>([]);
@@ -23,18 +27,19 @@ export const LibraryGrid = ({ activeTab, activeStatus }: LibraryGridProps) => {
     });
   }, [activeTab, activeStatus]);
 
-  // 1. Filtragem Cruzada (O coração do componente)
+  /**
+   * O(N) cross-filtering strategy.
+   * Both type and status filters must match unless set to 'ALL'.
+   */
   const filteredData = data.filter(item => {
     const matchesTab = activeTab === 'ALL' || item.type === activeTab;
     const matchesStatus = activeStatus === 'ALL' || item.status === activeStatus;
     return matchesTab && matchesStatus;
   });
 
-  // 2. Paginação
   const displayedItems = filteredData.slice(0, displayCount);
   const hasMore = displayCount < filteredData.length;
 
-  // 3. Renderização Condicional (Caso o filtro não retorne nada)
   if (filteredData.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -49,7 +54,6 @@ export const LibraryGrid = ({ activeTab, activeStatus }: LibraryGridProps) => {
     );
   }
 
-  // 4. Renderização do Grid
   return (
     <>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
@@ -74,7 +78,6 @@ export const LibraryGrid = ({ activeTab, activeStatus }: LibraryGridProps) => {
         })}
       </div>
       
-      {/* Pagination / Load More */}
       {hasMore && (
         <div className="mt-20 flex justify-center">
           <button 
