@@ -31,7 +31,8 @@ export const MediaDetails = () => {
     progressLabel: '',
     userScore: undefined,
     startDate: undefined,
-    endDate: undefined
+    endDate: undefined,
+    notes: ''
   });
 
   const refreshTracking = async () => {
@@ -46,7 +47,8 @@ export const MediaDetails = () => {
         totalProgress: data.total_progress || prev.totalProgress,
         userScore: data.score,
         startDate: data.startDate,
-        endDate: data.endDate
+        endDate: data.endDate,
+        notes: data.notes || ''
       }));
     } else {
       setIsInLibrary(false);
@@ -140,7 +142,7 @@ export const MediaDetails = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-12 items-start">
           {/* Left Column */}
-          <div className="md:col-span-5 lg:col-span-4">
+          <div className="md:col-span-5 lg:col-span-4 flex flex-col gap-6">
             <HeroCover title={media.title} imageUrl={media.coverImageUrl ?? ''} />
             {isInLibrary && tracking.status === 'CONSUMING' && (
               <ProgressTracker
@@ -149,6 +151,20 @@ export const MediaDetails = () => {
                 label={tracking.progressLabel}
                 onUpdate={handleQuickProgress}
               />
+            )}
+            {isInLibrary && tracking.notes && (
+              <div className="p-6 bg-surface-container rounded-xl border border-outline-variant/10 bloom-shadow relative overflow-hidden">
+                <div className="absolute top-0 right-0 -mt-4 -mr-4 opacity-5 pointer-events-none">
+                  <span className="material-symbols-outlined text-[120px]">format_quote</span>
+                </div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-3 flex items-center gap-2 relative z-10">
+                  <span className="material-symbols-outlined text-[14px]">reviews</span>
+                  Your Review
+                </p>
+                <p className="text-sm text-text-high italic leading-relaxed relative z-10">
+                  "{tracking.notes}"
+                </p>
+              </div>
             )}
           </div>
 
@@ -196,6 +212,7 @@ export const MediaDetails = () => {
         initialProgress={tracking.currentProgress}
         initialStartDate={tracking.startDate}
         initialEndDate={tracking.endDate}
+        initialNotes={tracking.notes}
       />
     </MainLayout>
   );

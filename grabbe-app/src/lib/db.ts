@@ -186,7 +186,7 @@ export async function saveTracking(
 export async function getLibraryItems() {
   const db = await getDb();
   return await db.select<any[]>(`
-    SELECT m.*, ut.status, ut.progress, ut.total_progress, r.score 
+    SELECT m.*, ut.status, ut.progress, ut.total_progress, ut.notes, r.score 
     FROM Media m 
     INNER JOIN UserTracking ut ON m.id = ut.media_id
     LEFT JOIN Ranking r ON m.id = r.media_id

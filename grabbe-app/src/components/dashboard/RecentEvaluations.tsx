@@ -65,8 +65,8 @@ export const RecentEvaluations = ({ items = [] }: { items?: any[] }) => {
                   <span className={`text-[10px] font-bold px-2 py-1 bg-secondary/10 text-secondary rounded uppercase`}>{getScoreLabel(item1.score)}</span>
                 </div>
                 <h3 className={`text-3xl font-black mb-4 leading-none ${getScoreColor(item1.score)} line-clamp-2`}>{item1.title}</h3>
-                <p className="text-text-muted text-sm mb-6 line-clamp-3">
-                  {item1.notes || "No review written for this item yet."}
+                <p className="text-text-muted text-sm mb-6 line-clamp-3 italic">
+                  {item1.notes ? `"${item1.notes}"` : "No review written for this item yet."}
                 </p>
                 <div className="flex items-center gap-4 mt-auto">
                   <div className="flex flex-col">
@@ -86,9 +86,9 @@ export const RecentEvaluations = ({ items = [] }: { items?: any[] }) => {
         {item2 && (
           <div 
             onClick={() => navigate(`/media/${item2.external_id}?source=${item2.source_api}&type=${item2.type}`)}
-            className="col-span-12 md:col-span-4 bg-surface rounded-xl p-6 bloom-shadow border border-outline-variant/20 cursor-pointer group hover:border-primary/30 transition-colors"
+            className="col-span-12 md:col-span-4 bg-surface rounded-xl p-6 bloom-shadow border border-outline-variant/20 cursor-pointer group hover:border-primary/30 transition-colors flex flex-col"
           >
-            <div className="mb-4 aspect-video rounded-lg overflow-hidden bg-surface-container-high">
+            <div className="mb-4 aspect-video rounded-lg overflow-hidden bg-surface-container-high shrink-0">
               {item2.cover_image_path ? (
                 <img 
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
@@ -101,11 +101,11 @@ export const RecentEvaluations = ({ items = [] }: { items?: any[] }) => {
                 </div>
               )}
             </div>
-            <h4 className="font-bold mb-2 text-text-high line-clamp-1">{item2.title}</h4>
-            <p className="text-[12px] text-text-muted mb-4 line-clamp-2">
-              {item2.notes || "No review written yet."}
+            <h4 className="font-bold mb-2 text-text-high line-clamp-1 shrink-0">{item2.title}</h4>
+            <p className="text-[12px] text-text-muted mb-4 line-clamp-2 italic">
+              {item2.notes ? `"${item2.notes}"` : "No review written yet."}
             </p>
-            <div className="flex items-center justify-between mt-auto">
+            <div className="flex items-center justify-between mt-auto shrink-0">
               <span className={`text-lg font-bold ${getScoreColor(item2.score)}`}>{item2.score}/10</span>
               <span className="text-[10px] font-bold text-text-muted">{item2.type}</span>
             </div>

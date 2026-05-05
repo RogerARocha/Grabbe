@@ -14,6 +14,7 @@ interface EvaluationModalProps {
   initialProgress?: number;
   initialStartDate?: string;
   initialEndDate?: string;
+  initialNotes?: string;
 }
 
 export const EvaluationModal = ({ 
@@ -26,13 +27,15 @@ export const EvaluationModal = ({
   initialScore, 
   initialProgress,
   initialStartDate,
-  initialEndDate
+  initialEndDate,
+  initialNotes
 }: EvaluationModalProps) => {
   const [isScoreOpen, setIsScoreOpen] = useState(false);
   const [selectedScore, setSelectedScore] = useState<number | null>(null);
   const [status, setStatus] = useState('CONSUMING');
   const [progress, setProgress] = useState(0);
   const [totalProgress, setTotalProgress] = useState(0);
+  const [notes, setNotes] = useState('');
   
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -52,6 +55,7 @@ export const EvaluationModal = ({
       setSelectedScore(initialScore || null);
       setProgress(initialProgress || 0);
       setTotalProgress(media?.totalProgressUnits || 0);
+      setNotes(initialNotes || '');
       
       // format dates to YYYY-MM-DD if they are full ISO strings
       setStartDate(initialStartDate ? initialStartDate.split('T')[0] : '');
@@ -61,7 +65,7 @@ export const EvaluationModal = ({
       setSearchResults([]);
       setShowDropdown(false);
     }
-  }, [isOpen, initialStatus, initialScore, initialProgress, media, initialStartDate, initialEndDate]);
+  }, [isOpen, initialStatus, initialScore, initialProgress, media, initialStartDate, initialEndDate, initialNotes]);
 
   if (!isOpen) return null;
 
@@ -136,8 +140,8 @@ export const EvaluationModal = ({
         // 2. Extrai o total da API de forma segura
         const finalTotalProgress = totalProgress || selectedMedia.totalProgressUnits || null;
         
-        // 3. Salva o tracking PASSANDO o totalProgress e datas
-        await saveTracking(mediaId, status, selectedScore, progress, finalTotalProgress, null, startDate || null, endDate || null);
+        // 3. Salva o tracking PASSANDO o totalProgress, notes e datas
+        await saveTracking(mediaId, status, selectedScore, progress, finalTotalProgress, notes || null, startDate || null, endDate || null);
       }
       onClose();
     } catch (e) {
@@ -147,7 +151,7 @@ export const EvaluationModal = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-[420px] bg-surface rounded-[12px] p-6 bloom-shadow flex flex-col gap-6 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-visible">
+      <div className="w-[420px] bg-surface rounded-[12px] p-6 bloom-shadow flex flex-col gap-6 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
         
         {/* Title */}
         <div className="flex items-center justify-between">
@@ -323,6 +327,18 @@ export const EvaluationModal = ({
               </div>
             )}
           </div>
+          
+          {/* Notes / Review */}
+          <div className="flex flex-col gap-2">
+            <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Review & Notes</label>
+            <textarea 
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="What did you think about it?"
+              className="w-full bg-background border-none rounded-lg text-sm px-4 py-3 focus:ring-2 focus:ring-primary transition-all text-text-high outline-none resize-none min-h-[80px]"
+            />
+          </div>
+
         </div>
 
         {/* Footer Actions */}

@@ -241,7 +241,7 @@ CREATE TABLE Ranking (
 ### **6.1. Tracking Engine**
 
 * **Progression Logic:** The app must adapt the numerical control. Example: For *Books*, track Pages or Percentage. For *Series*, Season/Episode. For *Games*, Hours played or Achievements (manual).
-* **Automatic Transitions:** If the user updates the episode from 1 to 2, the status automatically changes from "Planned" to "Consuming". If it reaches the total episodes, it changes to "Completed" and fills `finish_date`.
+* **Automatic Transitions:** If the user updates the episode from 1 to 2, the status automatically changes from "Planned"/"Dropped" to "Consuming". If it reaches the total episodes, it changes to "Completed" and fills `finish_date`.
 
 ### **6.2. Personal Ranking System**
 
