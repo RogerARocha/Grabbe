@@ -1,9 +1,10 @@
 export const QuickStats = ({ items = [] }: { items?: any[] }) => {
   const totalMedia = items.length;
-  // Approximation of "New this week" by checking updated_at in the last 7 days
   const oneWeekAgo = new Date();
   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-  const newThisWeek = items.filter(i => new Date(i.updated_at) >= oneWeekAgo).length;
+  
+  // Uses created_at to accurately track when media was first added
+  const newThisWeek = items.filter(i => i.created_at && new Date(i.created_at) >= oneWeekAgo).length;
 
   const masterpieces = items.filter(i => i.score === 10).length;
 
@@ -18,7 +19,7 @@ export const QuickStats = ({ items = [] }: { items?: any[] }) => {
         <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-1">Total Media</p>
         <div className="flex items-baseline gap-2">
           <span className="text-4xl font-bold">{totalMedia}</span>
-          <span className="text-[12px] text-secondary font-bold">+{newThisWeek} this week</span>
+          <span className="text-[12px] text-secondary font-bold">+{newThisWeek} added this week</span>
         </div>
       </div>
       <div className="bg-surface p-6 rounded-xl border-l-4 border-tertiary bloom-shadow">
