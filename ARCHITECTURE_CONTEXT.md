@@ -1,10 +1,8 @@
 # **Architecture Context & PRD — Grabbe**
 
-*(Para a versão em Português, role para baixo / For Portuguese version, scroll down)*
-
 **Version:** 1.3 (Desktop-First / Local-First / Enterprise Ready)
 
-**Status:** In Planning
+**Status:** In Development
 
 **Target Audience:** Engineering, Product, and Design
 
