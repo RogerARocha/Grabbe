@@ -45,7 +45,7 @@ export async function initDb() {
         progress INTEGER DEFAULT 0,
         total_progress INTEGER,
         rewatch_count INTEGER DEFAULT 0,
-        notes TEXT,
+        review_text TEXT,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (media_id) REFERENCES Media(id)
     );
@@ -141,7 +141,7 @@ export async function upsertMedia(media: any) {
  * @param score Optional user score (1-10)
  * @param progress Current progress (episodes/pages/minutes)
  * @param totalProgress Total length of the media
- * @param notes Optional user review or notes
+ * @param reviewText The user's written review for this media
  * @param startDate Optional session start date
  * @param endDate Optional session end date
  * @returns The tracking ID
@@ -152,7 +152,7 @@ export async function saveTracking(
   score: number | null, 
   progress: number, 
   totalProgress: number | null, 
-  notes: string | null,
+  reviewText: string | null,
   startDate?: string | null,
   endDate?: string | null
 ) {
@@ -165,14 +165,14 @@ export async function saveTracking(
   if (trackResult && trackResult.length > 0) {
     trackingId = trackResult[0].id;
     await db.execute(
-      "UPDATE UserTracking SET status = $1, progress = $2, total_progress = $3, notes = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5",
-      [status, progress, totalProgress, notes, trackingId]
+      "UPDATE UserTracking SET status = $1, progress = $2, total_progress = $3, review_text = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5",
+      [status, progress, totalProgress, reviewText, trackingId]
     );
   } else {
     trackingId = uuidv4();
     await db.execute(
-      "INSERT INTO UserTracking (id, media_id, status, progress, total_progress, notes) VALUES ($1, $2, $3, $4, $5, $6)",
-      [trackingId, mediaId, status, progress, totalProgress, notes]
+      "INSERT INTO UserTracking (id, media_id, status, progress, total_progress, review_text) VALUES ($1, $2, $3, $4, $5, $6)",
+      [trackingId, mediaId, status, progress, totalProgress, reviewText]
     );
   }
 
@@ -192,18 +192,28 @@ export async function saveTracking(
     }
   }
 
-  // Update Ranking
+  // Update Ranking — persist both score and review_text together.
+  // Also emit a point-in-time SCORE_CHANGE event so TrackingHistory is always auditable.
   if (score !== null && score > 0) {
     const rankResult = await db.select<any[]>("SELECT id FROM Ranking WHERE media_id = $1 LIMIT 1", [mediaId]);
+    const previousScore = rankResult && rankResult.length > 0 ? rankResult[0].score : null;
     if (rankResult && rankResult.length > 0) {
       await db.execute(
-        "UPDATE Ranking SET score = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2",
-        [score, rankResult[0].id]
+        "UPDATE Ranking SET score = $1, review_text = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3",
+        [score, reviewText, rankResult[0].id]
       );
     } else {
       await db.execute(
-        "INSERT INTO Ranking (id, media_id, score) VALUES ($1, $2, $3)",
-        [uuidv4(), mediaId, score]
+        "INSERT INTO Ranking (id, media_id, score, review_text) VALUES ($1, $2, $3, $4)",
+        [uuidv4(), mediaId, score, reviewText]
+      );
+    }
+
+    // Log the score change so the timeline can display point-in-time snapshots.
+    if (previousScore !== score) {
+      await db.execute(
+        "INSERT INTO TrackingHistory (id, tracking_id, event_type, previous_value, new_value) VALUES ($1, $2, 'SCORE_CHANGE', $3, $4)",
+        [uuidv4(), trackingId, previousScore !== null ? String(previousScore) : null, String(score)]
       );
     }
   }
@@ -220,7 +230,7 @@ export async function saveTracking(
 export async function getLibraryItems() {
   const db = await getDb();
   return await db.select<any[]>(`
-    SELECT m.*, ut.status, ut.progress, ut.total_progress, ut.notes, r.score 
+    SELECT m.*, ut.status, ut.progress, ut.total_progress, ut.review_text, r.score 
     FROM Media m 
     INNER JOIN UserTracking ut ON m.id = ut.media_id
     LEFT JOIN Ranking r ON m.id = r.media_id
@@ -238,10 +248,10 @@ export async function getMediaCount() {
 }
 
 /**
- * Fetches the specific tracking record, ranking score, and active session dates for a given media ID.
- * 
+ * Fetches the tracking record, ranking, active session dates, and full session history for a media item.
+ *
  * @param mediaId The internal UUID of the media
- * @returns The combined tracking and session object, or null if not found
+ * @returns The combined tracking object — including a `sessions` array of all ConsumptionSession rows — or null
  */
 export async function getTrackingForMedia(mediaId: string) {
     const db = await getDb();
@@ -249,13 +259,33 @@ export async function getTrackingForMedia(mediaId: string) {
     const ranking = await db.select<any[]>("SELECT * FROM Ranking WHERE media_id = $1 LIMIT 1", [mediaId]);
     
     if (tracking && tracking.length > 0) {
-        const session = await db.select<any[]>("SELECT start_date, finish_date FROM ConsumptionSession WHERE tracking_id = $1 AND is_active = TRUE LIMIT 1", [tracking[0].id]);
+        const trackingId = tracking[0].id;
+
+        const activeSession = await db.select<any[]>(
+            "SELECT start_date, finish_date FROM ConsumptionSession WHERE tracking_id = $1 AND is_active = TRUE LIMIT 1",
+            [trackingId]
+        );
+
+        // All sessions ordered chronologically for the timeline view.
+        const sessions = await db.select<any[]>(
+            "SELECT session_number, start_date, finish_date, is_active FROM ConsumptionSession WHERE tracking_id = $1 ORDER BY session_number ASC",
+            [trackingId]
+        );
+
+        // SESSION_COMPLETED events carry the archived score/review for past sessions.
+        const historyEvents = await db.select<any[]>(
+            "SELECT event_type, previous_value, new_value, event_date FROM TrackingHistory WHERE tracking_id = $1 AND event_type = 'SESSION_COMPLETED' ORDER BY event_date ASC",
+            [trackingId]
+        );
         
         return {
-            ...tracking[0],
+            ...tracking[0],                                              // exposes id, rewatch_count, status, review_text, etc.
             score: ranking && ranking.length > 0 ? ranking[0].score : null,
-            startDate: session && session.length > 0 ? session[0].start_date : null,
-            endDate: session && session.length > 0 ? session[0].finish_date : null
+            reviewTextFromRanking: ranking && ranking.length > 0 ? ranking[0].review_text : null,
+            startDate: activeSession && activeSession.length > 0 ? activeSession[0].start_date : null,
+            endDate: activeSession && activeSession.length > 0 ? activeSession[0].finish_date : null,
+            sessions,
+            historyEvents
         };
     }
     return null;
@@ -301,4 +331,98 @@ export async function removeTrackingByExternalId(externalId: string, sourceApi: 
     await db.execute("DELETE FROM UserTracking WHERE media_id = $1", [mediaId]);
     // Optionally delete Media itself, but keeping it is fine as cache
     return true;
+}
+
+/**
+ * Starts a new rewatch/reread/replay session for a media item that has been COMPLETED.
+ *
+ * Orchestration (in order):
+ * 1. Reads `rewatch_count` from `UserTracking` and fetches the final score/review from `Ranking`.
+ * 2. Persists a `SESSION_COMPLETED` event in `TrackingHistory`, storing the archived score and
+ *    review as a JSON payload in `previous_value` so the timeline can reconstruct past sessions.
+ * 3. Clears `Ranking.score`, `Ranking.review_text`, and `UserTracking.review_text` to give the
+ *    new session a clean slate — the modal will open with empty Score and Review fields.
+ * 4. Archives the active `ConsumptionSession` by setting `is_active = FALSE`.
+ * 5. Opens a new `ConsumptionSession` with `is_active = TRUE` and today's `start_date`.
+ * 6. Resets `UserTracking`: `progress → 0`, `status → CONSUMING`, `rewatch_count += 1`.
+ *
+ * @param trackingId The UUID of the UserTracking row to rewatch
+ * @param mediaId The UUID of the Media row (needed to clear the Ranking entry)
+ * @returns The new `rewatch_count` value after incrementing
+ */
+export async function startRewatch(trackingId: string, mediaId: string): Promise<number> {
+    const db = await getDb();
+
+    // Step 1: Read the current tracking state.
+    const trackResult = await db.select<any[]>(
+        "SELECT rewatch_count FROM UserTracking WHERE id = $1 LIMIT 1",
+        [trackingId]
+    );
+    if (!trackResult || trackResult.length === 0) {
+        throw new Error(`No UserTracking record found for id: ${trackingId}`);
+    }
+    const currentRewatchCount: number = trackResult[0].rewatch_count ?? 0;
+
+    // Step 2: Fetch the final score and review before wiping them.
+    const rankResult = await db.select<any[]>(
+        "SELECT score, review_text FROM Ranking WHERE media_id = $1 LIMIT 1",
+        [mediaId]
+    );
+    const finalScore = rankResult && rankResult.length > 0 ? rankResult[0].score : null;
+    const finalReview = rankResult && rankResult.length > 0 ? rankResult[0].review_text : null;
+
+    // Step 3: Archive the completed session's evaluation into TrackingHistory.
+    // `previous_value` carries a JSON snapshot; `new_value` stores the session ordinal for lookup.
+    const sessionOrdinal = currentRewatchCount + 1; // session that just ended
+    await db.execute(
+        "INSERT INTO TrackingHistory (id, tracking_id, event_type, previous_value, new_value) VALUES ($1, $2, 'SESSION_COMPLETED', $3, $4)",
+        [
+            uuidv4(),
+            trackingId,
+            JSON.stringify({ score: finalScore, reviewText: finalReview }),
+            String(sessionOrdinal)
+        ]
+    );
+
+    // Step 4: Clear the live Ranking entry so the new session starts with a blank slate.
+    if (rankResult && rankResult.length > 0) {
+        await db.execute(
+            "UPDATE Ranking SET score = NULL, review_text = NULL, updated_at = CURRENT_TIMESTAMP WHERE media_id = $1",
+            [mediaId]
+        );
+    }
+
+    // Step 5: Clear the review_text on UserTracking as well.
+    await db.execute(
+        "UPDATE UserTracking SET review_text = NULL WHERE id = $1",
+        [trackingId]
+    );
+
+    // Step 6: Archive the currently active ConsumptionSession.
+    await db.execute(
+        "UPDATE ConsumptionSession SET is_active = FALSE WHERE tracking_id = $1 AND is_active = TRUE",
+        [trackingId]
+    );
+
+    // Step 7: Determine the next session_number.
+    const maxSessionResult = await db.select<any[]>(
+        "SELECT COALESCE(MAX(session_number), 0) AS max_session FROM ConsumptionSession WHERE tracking_id = $1",
+        [trackingId]
+    );
+    const nextSessionNumber: number = (maxSessionResult[0]?.max_session ?? 0) + 1;
+
+    // Step 8: Open the new active session with today's date.
+    await db.execute(
+        "INSERT INTO ConsumptionSession (id, tracking_id, session_number, start_date, is_active) VALUES ($1, $2, $3, $4, TRUE)",
+        [uuidv4(), trackingId, nextSessionNumber, new Date().toISOString()]
+    );
+
+    // Step 9: Reset journey — progress to 0, status to CONSUMING, rewatch_count incremented.
+    const newRewatchCount = currentRewatchCount + 1;
+    await db.execute(
+        "UPDATE UserTracking SET progress = 0, status = 'CONSUMING', rewatch_count = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2",
+        [newRewatchCount, trackingId]
+    );
+
+    return newRewatchCount;
 }

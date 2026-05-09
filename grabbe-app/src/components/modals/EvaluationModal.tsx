@@ -14,7 +14,7 @@ interface EvaluationModalProps {
   initialProgress?: number;
   initialStartDate?: string;
   initialEndDate?: string;
-  initialNotes?: string;
+  initialReviewText?: string;
 }
 
 /**
@@ -32,14 +32,14 @@ export const EvaluationModal = ({
   initialProgress,
   initialStartDate,
   initialEndDate,
-  initialNotes
+  initialReviewText
 }: EvaluationModalProps) => {
   const [isScoreOpen, setIsScoreOpen] = useState(false);
   const [selectedScore, setSelectedScore] = useState<number | null>(null);
   const [status, setStatus] = useState('CONSUMING');
   const [progress, setProgress] = useState(0);
   const [totalProgress, setTotalProgress] = useState(0);
-  const [notes, setNotes] = useState('');
+  const [reviewText, setReviewText] = useState('');
   
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -59,7 +59,7 @@ export const EvaluationModal = ({
       setSelectedScore(initialScore || null);
       setProgress(initialProgress || 0);
       setTotalProgress(media?.totalProgressUnits || 0);
-      setNotes(initialNotes || '');
+      setReviewText(initialReviewText || '');
       
       // format dates to YYYY-MM-DD if they are full ISO strings
       setStartDate(initialStartDate ? initialStartDate.split('T')[0] : '');
@@ -69,7 +69,7 @@ export const EvaluationModal = ({
       setSearchResults([]);
       setShowDropdown(false);
     }
-  }, [isOpen, initialStatus, initialScore, initialProgress, media, initialStartDate, initialEndDate, initialNotes]);
+  }, [isOpen, initialStatus, initialScore, initialProgress, media, initialStartDate, initialEndDate, initialReviewText]);
 
   if (!isOpen) return null;
 
@@ -150,7 +150,7 @@ export const EvaluationModal = ({
       if (selectedMedia) {
         const mediaId = await upsertMedia(selectedMedia);
         const finalTotalProgress = totalProgress || selectedMedia.totalProgressUnits || null;
-        await saveTracking(mediaId, status, selectedScore, progress, finalTotalProgress, notes || null, startDate || null, endDate || null);
+        await saveTracking(mediaId, status, selectedScore, progress, finalTotalProgress, reviewText || null, startDate || null, endDate || null);
       }
       onClose();
     } catch (e) {
@@ -350,8 +350,8 @@ export const EvaluationModal = ({
           <div className="flex flex-col gap-2">
             <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Review & Notes</label>
             <textarea 
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              value={reviewText}
+              onChange={(e) => setReviewText(e.target.value)}
               placeholder="What did you think about it?"
               className="w-full bg-background border-none rounded-lg text-sm px-4 py-3 focus:ring-2 focus:ring-primary transition-all text-text-high outline-none resize-none min-h-[80px]"
             />

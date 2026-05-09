@@ -10,7 +10,8 @@ import { ActionBar } from '../components/media-details/ActionBar';
 import { DetailsGrid } from '../components/media-details/DetailsGrid';
 import { CastSection } from '../components/media-details/CastSection';
 import { AlternativeTitles } from '../components/media-details/AlternativeTitles';
-import { getTrackingByExternalId, removeTrackingByExternalId, saveTracking } from '../lib/db';
+import { getTrackingByExternalId, removeTrackingByExternalId, saveTracking, startRewatch } from '../lib/db';
+import { ConsumptionTimeline } from '../components/media-details/ConsumptionTimeline';
 
 /**
  * Detailed view for a specific media item. 
@@ -36,7 +37,12 @@ export const MediaDetails = () => {
     userScore: undefined,
     startDate: undefined,
     endDate: undefined,
-    notes: ''
+    reviewText: '',
+    rewatchCount: 0,
+    trackingId: undefined,
+    mediaId: undefined,
+    sessions: [],
+    historyEvents: []
   });
 
   const refreshTracking = async () => {
@@ -49,10 +55,16 @@ export const MediaDetails = () => {
         status: data.status,
         currentProgress: data.progress || 0,
         totalProgress: data.total_progress || prev.totalProgress,
+        // Prefer the Ranking.review_text (authoritative) over UserTracking.review_text.
         userScore: data.score,
+        reviewText: data.reviewTextFromRanking || data.review_text || '',
         startDate: data.startDate,
         endDate: data.endDate,
-        notes: data.notes || ''
+        rewatchCount: data.rewatch_count ?? 0,
+        trackingId: data.id,
+        mediaId: data.media_id,
+        sessions: data.sessions || [],
+        historyEvents: data.historyEvents || []
       }));
     } else {
       setIsInLibrary(false);
@@ -115,6 +127,17 @@ export const MediaDetails = () => {
   };
 
   /**
+   * Initiates a new rewatch/reread/replay session.
+   * Archives the evaluation (score + review) into TrackingHistory as SESSION_COMPLETED,
+   * clears the live Ranking entry, then opens a fresh ConsumptionSession.
+   */
+  const handleRewatchClick = async () => {
+    if (!tracking.trackingId || !tracking.mediaId) return;
+    await startRewatch(tracking.trackingId, tracking.mediaId);
+    refreshTracking();
+  };
+
+  /**
    * Increments progress. 
    * Automatically transitions status to CONSUMING if starting, or COMPLETED if reaching the end.
    */
@@ -143,7 +166,7 @@ export const MediaDetails = () => {
          }
       }
 
-      await saveTracking(data.media_id, newStatus, data.score, newProgress, data.total_progress, data.notes, newStartDate, newEndDate);
+      await saveTracking(data.media_id, newStatus, data.score, newProgress, data.total_progress, data.review_text, newStartDate, newEndDate);
       refreshTracking();
     }
   };
@@ -175,18 +198,15 @@ export const MediaDetails = () => {
                 onUpdate={handleQuickProgress}
               />
             )}
-            {isInLibrary && tracking.notes && (
-              <div className="p-6 bg-surface-container rounded-xl border border-outline-variant/10 bloom-shadow relative overflow-hidden">
-                <div className="absolute top-0 right-0 -mt-4 -mr-4 opacity-5 pointer-events-none">
-                  <span className="material-symbols-outlined text-[120px]">format_quote</span>
-                </div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-3 flex items-center gap-2 relative z-10">
-                  <span className="material-symbols-outlined text-[14px]">reviews</span>
-                  Your Review
-                </p>
-                <p className="text-sm text-text-high italic leading-relaxed relative z-10">
-                  "{tracking.notes}"
-                </p>
+            {isInLibrary && tracking.sessions.length > 0 && (
+              <div className="p-5 bg-surface-container rounded-xl border border-outline-variant/10 bloom-shadow">
+                <ConsumptionTimeline
+                  sessions={tracking.sessions}
+                  historyEvents={tracking.historyEvents}
+                  activeReviewText={tracking.reviewText}
+                  activeScore={tracking.userScore}
+                  mediaType={media.type}
+                />
               </div>
             )}
           </div>
@@ -199,6 +219,8 @@ export const MediaDetails = () => {
               runtime={extras.runtime}
               externalRating={extras.externalRating}
               ratingSource={extras.ratingSource}
+              rewatchCount={isInLibrary ? tracking.rewatchCount : undefined}
+              mediaType={media.type}
             />
 
             {media.description && (
@@ -211,9 +233,11 @@ export const MediaDetails = () => {
               isInLibrary={isInLibrary}
               status={tracking.status}
               userScore={tracking.userScore}
+              mediaType={media.type}
               onAdd={handleAddClick}
               onUpdate={handleUpdateClick}
               onRemove={handleRemoveClick}
+              onRewatch={handleRewatchClick}
             />
 
             <DetailsGrid items={detailItems} />
@@ -234,7 +258,7 @@ export const MediaDetails = () => {
         initialProgress={tracking.currentProgress}
         initialStartDate={tracking.startDate}
         initialEndDate={tracking.endDate}
-        initialNotes={tracking.notes}
+        initialReviewText={tracking.reviewText}
       />
     </MainLayout>
   );

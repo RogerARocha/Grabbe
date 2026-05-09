@@ -66,7 +66,7 @@ export const RecentEvaluations = ({ items = [] }: { items?: any[] }) => {
                 </div>
                 <h3 className={`text-3xl font-black mb-4 leading-none ${getScoreColor(item1.score)} line-clamp-2`}>{item1.title}</h3>
                 <p className="text-text-muted text-sm mb-6 line-clamp-3 italic">
-                  {item1.notes ? `"${item1.notes}"` : "No review written for this item yet."}
+                  {item1.review_text ? `"${item1.review_text}"` : "No review written for this item yet."}
                 </p>
                 <div className="flex items-center gap-4 mt-auto">
                   <div className="flex flex-col">
