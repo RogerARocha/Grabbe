@@ -2,9 +2,15 @@ using Grabbe.API.Domain.DTOs;
 
 namespace Grabbe.API.Infrastructure.ExternalClients.GBooks;
 
+/// <summary>
+/// Extension methods for mapping Google Books API response objects to the universal <see cref="GrabbeMediaDTO"/> contract.
+/// </summary>
 public static class GoogleBooksMapper
 {
-    // Extension method para mapear GoogleBooksItem -> GrabbeMediaDTO
+    /// <summary>
+    /// Maps a Google Books volume item to a <see cref="GrabbeMediaDTO"/>.
+    /// </summary>
+    /// <param name="item">The raw Google Books volume item. Its <c>VolumeInfo</c> must not be null.</param>
     public static GrabbeMediaDTO ToUniversalDto(this GoogleBooksItem item)
     {
         var info = item.VolumeInfo!;
@@ -16,12 +22,14 @@ public static class GoogleBooksMapper
             Type = "BOOK",
             Title = info.Title ?? "Unknown Title",
             Description = info.Description,
+            // Google Books returns HTTP image URLs; forcing HTTPS prevents mixed-content browser warnings.
             CoverImageUrl = info.ImageLinks?.Thumbnail?.Replace("http://", "https://"),
             ReleaseDate = ExtractYear(info.PublishedDate),
             OriginalLanguage = info.Language,
             Genres = info.Categories ?? new List<string>(),
 
-            // Google Books usa escala 0-5, normalizamos para 0-10
+            // Google Books uses a 0–5 star rating scale. Multiplying by 2 normalizes it to the
+            // universal 0–10 scale used across all providers in GrabbeMediaDTO.
             CommunityScore = info.AverageRating.HasValue
                 ? Math.Round(info.AverageRating.Value * 2, 1)
                 : null,
@@ -43,8 +51,6 @@ public static class GoogleBooksMapper
             }).ToList() ?? new List<MediaPersonDTO>()
         };
     }
-
-    // ==================== HELPERS PRIVADOS ====================
 
     private static string? ExtractYear(string? date)
     {

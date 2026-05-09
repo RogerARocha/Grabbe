@@ -1,6 +1,6 @@
 # **Architecture Context & PRD — Grabbe**
 
-**Version:** 1.3 (Desktop-First / Local-First / Enterprise Ready)
+**Version:** 1.4 (Desktop-First / Local-First / Enterprise Ready)
 
 **Status:** In Development
 
@@ -110,7 +110,8 @@ grabbe-bff/
                 ├── IMediaProviderClient.cs  
                 ├── TMDB/  
                 ├── Jikan/  
-                └── GBooks/
+                ├── GBooks/
+                └── IGDB/
 ```
 
 **Development Setup:**
@@ -190,7 +191,7 @@ CREATE TABLE Media (
 CREATE TABLE UserTracking (
     id TEXT PRIMARY KEY,
     media_id TEXT NOT NULL,
-    status TEXT NOT NULL, -- 'PLANNED', 'CONSUMING', 'PAUSED', 'DROPPED', 'COMPLETED'
+    status TEXT NOT NULL, -- 'PLANNED', 'CONSUMING', 'ON HOLD', 'DROPPED', 'COMPLETED'
     progress INTEGER DEFAULT 0, -- Current episode, hours played, or read %
     total_progress INTEGER, -- Total episodes/chapters (copied from Media)
     rewatch_count INTEGER DEFAULT 0, -- Automatically incremented upon completing a new session
@@ -338,9 +339,10 @@ Responsible for searching media from the search bar. If no type is specified, it
       "title": "Breaking Bad",
       "description": "A high school chemistry teacher...",
       "coverImageUrl": "https://image.tmdb.org/t/p/w500/...",
-      "releaseDate": "2008-01-20",
+      "releaseDate": "2008",
       "genres": ["Drama", "Crime"],
-      "totalProgress": 62
+      "communityScore": 8.9,
+      "totalProgressUnits": 62
     }
   ],
   "meta": {
@@ -350,6 +352,7 @@ Responsible for searching media from the search bar. If no type is specified, it
   }
 }
 ```
+> **Note:** Pagination metadata (`meta.currentPage`, `meta.totalPages`) is not yet implemented. Results are returned as a flat array under `data`.
 
 **2. Deep Media Details**
 Fetches deep metadata of the work, bypassing batch search cache limits.
@@ -365,13 +368,14 @@ Fetches deep metadata of the work, bypassing batch search cache limits.
     "title": "Hunter x Hunter (2011)",
     "description": "Gon Freecss dreams of becoming a Hunter...",
     "coverImageUrl": "https://cdn.myanimelist.net/...",
-    "releaseDate": "2011-10-02",
+    "releaseDate": "2011",
     "genres": ["Action", "Adventure"],
-    "totalProgress": 148,
-    "extraMetadata": {
-      "studios": ["Madhouse"],
-      "status": "Finished Airing"
-    }
+    "communityScore": 9.1,
+    "publisherOrStudio": "Madhouse",
+    "formattedConsumptionMetric": "23 min per ep",
+    "totalProgressUnits": 148,
+    "alternativeTitles": ["ハンター×ハンター (2011)"],
+    "keyPeople": []
   }
 }
 ```
@@ -379,6 +383,7 @@ Fetches deep metadata of the work, bypassing batch search cache limits.
 **3. Trending (Hot Items)**
 Feeds the "Discover" tab.
 * **Route:** `GET /api/v1/trending?type={mediaType}`
+* **Status:** ⚠️ Not yet implemented — endpoint does not exist in the current BFF codebase.
 
 ### **7.3. Standardized Error Handling**
 
@@ -432,3 +437,156 @@ If there is an external API failure or the rate limit is exceeded, the frontend 
 * [ ] Sync Engine (Event Sourcing).
 * [ ] Mobile apps (iOS/Android).
 * [ ] Public Profiles on the Web (e.g., grabbe.app/u/user).
+
+---
+
+## **10. Code Documentation Guidelines**
+
+This section defines the standards for documenting all code — both the C# BFF and the TypeScript/React frontend. These rules must be respected when writing or reviewing code in this project.
+
+### **10.1. General Principles**
+
+| Principle | Rule |
+|---|---|
+| **Clarity over Verbosity** | A comment should explain *why*, not *what*. If a variable or method name is self-explanatory, do not add a comment. |
+| **Name First** | If a comment is needed because a name is confusing, rename the thing instead of adding the comment. |
+| **English Only** | All comments, documentation strings, and error messages must be in English. |
+| **Preserve Volatile Notes** | `TODO:`, `FIXME:`, and `HACK:` tags must be kept exactly as written. They represent intentional technical debt. |
+
+---
+
+### **10.2. Backend (C# / .NET) Standards**
+
+#### Standard: XML Documentation (`///`)
+
+All `public` classes, interfaces, and methods **must** have an XML documentation block. These comments feed directly into the Swagger/OpenAPI spec via `<GenerateDocumentationFile>true</GenerateDocumentationFile>` in the `.csproj`.
+
+```csharp
+/// <summary>
+/// Resolves media detail requests to the correct external provider using a Strategy pattern.
+/// At runtime, it selects the matching <see cref="IMediaProviderClient"/> implementation
+/// from the DI-injected collection based on the caller-supplied <c>sourceApi</c> name.
+/// </summary>
+public class DetailsService { ... }
+```
+
+**Required tags:**
+- `<summary>` — on every public class, interface, and method. Explain intent and business context.
+- `<param name="x">` — on every method parameter.
+- `<returns>` — on every non-void method.
+- `<see cref="T">` — to cross-reference related types.
+- `<inheritdoc/>` — on interface implementations that repeat the contract without adding detail.
+
+#### Rule: Do Not Document the Obvious
+
+```csharp
+// ❌ Noise — do not write
+// Loops through all clients
+foreach (var client in _clients) { ... }
+
+// ✅ Document the non-obvious — the architectural pattern
+// Uses a Scatter-Gather pattern: all provider calls are parallel via Task.WhenAll.
+```
+
+#### Rule: Complex LINQ must explain the 'Why'
+
+```csharp
+// ❌ No comment needed — it reads itself
+.Where(g => g.Name != null)
+
+// ✅ The 'why' is non-obvious — requires a comment
+// Exclude Japanese-language animation (genre 16) from TMDB results.
+// These are anime titles that would be duplicated by the dedicated Jikan client.
+.Where(media => !(media.OriginalLanguage == "ja" && media.GenreIds.Contains(16)))
+```
+
+#### Rule: Document Mathematical Normalizations
+
+When a value from an external API is transformed to fit the internal contract, always explain the conversion:
+
+```csharp
+// Google Books uses a 0–5 star rating scale. Multiplying by 2 normalizes it to the
+// universal 0–10 scale used across all providers in GrabbeMediaDTO.
+CommunityScore = Math.Round(info.AverageRating.Value * 2, 1)
+```
+
+---
+
+### **10.3. Frontend (TypeScript / React) Standards**
+
+#### Standard: TSDoc (`/** */`)
+
+All exported **components**, **hooks**, and **utility functions** must have a TSDoc block. These blocks improve IDE tooltips and are the primary documentation mechanism for the frontend design system.
+
+```typescript
+/**
+ * A highly versatile card component for displaying media items across the application.
+ * Adapts its internal layout and hover effects based on the `variant` prop.
+ */
+export const MediaCard = ({ variant = 'library', ... }: MediaCardProps) => { ... };
+```
+
+**Required for:**
+- All exported React components
+- All `interface` and `type` definitions in `types.ts` or shared files
+- All utility functions (e.g., `getDb`, `upsertMedia`)
+- All database access functions in `lib/db.ts`
+
+#### Standard: `@param` and `@returns` for Utility Functions
+
+```typescript
+/**
+ * Saves or updates tracking progress for a media item.
+ * Follows a local-first pipeline:
+ * 1. Upserts the core media definition.
+ * 2. Synchronizes tracking progress, session dates, and user ranking.
+ *
+ * @param mediaId The internal UUID of the media
+ * @param status The current tracking status (e.g., CONSUMING, COMPLETED)
+ * @returns The tracking ID
+ */
+export async function saveTracking(...) { ... }
+```
+
+#### Rule: No Comments for Standard React Patterns
+
+```typescript
+// ❌ Remove — this is obvious
+// useEffect hook
+useEffect(() => { ... }, []);
+
+// ❌ Remove — structural dividers add noise
+// ─── Left Column ───────────────────────────────
+
+// ✅ Only explain non-obvious logic
+// Exclude `effectiveTotal = 1` from the divisor to prevent a divide-by-zero crash
+// when total progress is unknown.
+const effectiveTotal = total && total > 0 ? total : 1;
+```
+
+#### Rule: Document Status Transition Logic
+
+Status transitions in the tracking engine are business-critical. When a handler auto-transitions state (e.g., incrementing progress to trigger COMPLETED), that logic must be explained:
+
+```typescript
+/**
+ * Increments progress.
+ * Automatically transitions status to CONSUMING if starting,
+ * or COMPLETED if reaching the total unit count.
+ */
+const handleQuickProgress = async () => { ... };
+```
+
+---
+
+### **10.4. What Not to Document**
+
+The following patterns should **never** have a comment:
+
+| Pattern | Reason |
+|---|---|
+| `if (result == null) return null;` | Self-explanatory null guard |
+| JSX structural dividers (`{/* Left Column */}`) | The component tree is the structure |
+| Framework lifecycle methods with no custom logic | `useEffect`, `useState` calls that are idiomatic |
+| `return Ok(new { Data = results })` | Envelope shape is documented at the controller level |
+| Standard DI registration lines in `Program.cs` | Idiomatic .NET boilerplate |

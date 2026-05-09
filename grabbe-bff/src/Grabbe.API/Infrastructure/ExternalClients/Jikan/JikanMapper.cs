@@ -2,9 +2,18 @@ using Grabbe.API.Domain.DTOs;
 
 namespace Grabbe.API.Infrastructure.ExternalClients.Jikan;
 
+/// <summary>
+/// Extension methods for mapping Jikan API response objects to the universal <see cref="GrabbeMediaDTO"/> contract.
+/// </summary>
 public static class JikanMapper
 {
-    // Extension method unificado — Jikan V4 retorna o mesmo JikanAnimeData no search e no detail
+    /// <summary>
+    /// Maps a Jikan anime or manga data item to a <see cref="GrabbeMediaDTO"/>.
+    /// Jikan V4 returns the same <c>JikanAnimeData</c> shape for both search and detail endpoints,
+    /// so a single extension method handles both call sites.
+    /// </summary>
+    /// <param name="item">The raw Jikan data item.</param>
+    /// <param name="isManga">When <c>true</c>, maps manga-specific fields (chapters, serialization); otherwise maps anime fields (episodes, studio).</param>
     public static GrabbeMediaDTO ToUniversalDto(this JikanAnimeData item, bool isManga)
     {
         var totalUnits = isManga ? item.Chapters : item.Episodes;
@@ -39,8 +48,8 @@ public static class JikanMapper
                 .Take(10)
                 .ToList() ?? new List<string>(),
 
-            // A API do Jikan não retorna staff/cast no endpoint padrão.
-            // Exigiria uma chamada extra (/anime/{id}/characters).
+            // TODO: KeyPeople is not available from the standard Jikan search/detail endpoint.
+            // Populating it requires a separate call to /anime/{id}/characters, which is not currently implemented.
             KeyPeople = new List<MediaPersonDTO>()
         };
     }

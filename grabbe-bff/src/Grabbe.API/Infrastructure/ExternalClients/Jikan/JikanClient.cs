@@ -4,11 +4,18 @@ using System.Net.Http.Json;
 
 namespace Grabbe.API.Infrastructure.ExternalClients;
 
+/// <summary>
+/// <see cref="IMediaProviderClient"/> implementation for the Jikan API (unofficial MyAnimeList client).
+/// Handles anime and manga. No authentication is required by the Jikan API.
+/// </summary>
 public class JikanClient : IMediaProviderClient
 {
     private readonly HttpClient _httpClient;
 
+    /// <inheritdoc/>
     public string ProviderName => "JIKAN";
+
+    /// <inheritdoc/>
     public string[] SupportedTypes => new[] { "ANIME", "MANGA" };
 
     public JikanClient(HttpClient httpClient)
@@ -16,6 +23,7 @@ public class JikanClient : IMediaProviderClient
         _httpClient = httpClient;
     }
 
+    /// <inheritdoc/>
     public async Task<IEnumerable<GrabbeMediaDTO>> SearchAsync(string query, string type)
     {
         try
@@ -36,6 +44,7 @@ public class JikanClient : IMediaProviderClient
         }
     }
 
+    /// <inheritdoc/>
     public async Task<GrabbeMediaDTO?> GetDetailsAsync(string externalId, string type)
     {
         try

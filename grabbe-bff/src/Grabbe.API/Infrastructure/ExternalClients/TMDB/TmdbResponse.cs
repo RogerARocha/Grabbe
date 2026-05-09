@@ -2,8 +2,6 @@ using System.Text.Json.Serialization;
 
 namespace Grabbe.API.Infrastructure.ExternalClients.TMDB;
 
-// ==================== SEARCH RESPONSE ====================
-
 public class TmdbSearchResponse
 {
     [JsonPropertyName("results")]
@@ -15,7 +13,6 @@ public class TmdbResult
     [JsonPropertyName("id")]
     public int Id { get; set; }
 
-    // O TMDB usa "title" para Filmes e "name" para Séries (TV)
     [JsonPropertyName("title")]
     public string? Title { get; set; }
 
@@ -28,7 +25,6 @@ public class TmdbResult
     [JsonPropertyName("poster_path")]
     public string? PosterPath { get; set; }
 
-    // "release_date" para Filmes, "first_air_date" para Séries
     [JsonPropertyName("release_date")]
     public string? ReleaseDate { get; set; }
 
@@ -45,7 +41,6 @@ public class TmdbResult
     public double? VoteAverage { get; set; }
 }
 
-// ==================== DETAIL RESPONSE ====================
 
 public class TmdbDetailResponse : TmdbResult
 {
@@ -53,13 +48,13 @@ public class TmdbDetailResponse : TmdbResult
     public List<TmdbGenre>? GenresList { get; set; }
 
     [JsonPropertyName("number_of_episodes")]
-    public int? NumberOfEpisodes { get; set; } // Apenas para Séries
+    public int? NumberOfEpisodes { get; set; }
 
     [JsonPropertyName("runtime")]
-    public int? Runtime { get; set; } // Duração em minutos (Filmes)
+    public int? Runtime { get; set; }
 
     [JsonPropertyName("episode_run_time")]
-    public List<int>? EpisodeRunTime { get; set; } // Duração de cada episódio (Séries)
+    public List<int>? EpisodeRunTime { get; set; } 
 
     [JsonPropertyName("production_companies")]
     public List<TmdbProductionCompany>? ProductionCompanies { get; set; }
@@ -73,7 +68,6 @@ public class TmdbDetailResponse : TmdbResult
     public TmdbAlternativeTitlesWrapper? AlternativeTitlesWrapper { get; set; }
 }
 
-// ==================== SUB-MODELS ====================
 
 public class TmdbGenre
 {
@@ -125,7 +119,6 @@ public class TmdbCrewMember
 
 public class TmdbAlternativeTitlesWrapper
 {
-    // Filmes usam "titles", Séries usam "results"
     [JsonPropertyName("titles")]
     public List<TmdbAlternativeTitle>? Titles { get; set; }
 

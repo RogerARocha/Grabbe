@@ -2,12 +2,20 @@ using Grabbe.API.Domain.DTOs;
 
 namespace Grabbe.API.Infrastructure.ExternalClients.TMDB;
 
+/// <summary>
+/// Extension methods for mapping TMDB API response objects to the universal <see cref="GrabbeMediaDTO"/> contract.
+/// </summary>
 public static class TmdbMapper
 {
     private const string ImageBaseUrl = "https://image.tmdb.org/t/p/w500";
     private const string ProfileImageBaseUrl = "https://image.tmdb.org/t/p/w185";
 
-    // Extension method para busca (TmdbResult retorna dados parciais)
+    /// <summary>
+    /// Maps a lightweight TMDB search result to a <see cref="GrabbeMediaDTO"/>.
+    /// Genre names are not available in search results and are populated as an empty list.
+    /// </summary>
+    /// <param name="media">The raw TMDB search result item.</param>
+    /// <param name="type">The normalized media type ("MOVIE" or "SERIES").</param>
     public static GrabbeMediaDTO ToSearchDto(this TmdbResult media, string type)
     {
         return new GrabbeMediaDTO
@@ -32,7 +40,12 @@ public static class TmdbMapper
         };
     }
 
-    // Extension method para detalhes (TmdbDetailResponse retorna dados completos)
+    /// <summary>
+    /// Maps a full TMDB detail response to a <see cref="GrabbeMediaDTO"/>.
+    /// Includes genres, credits, runtime, and alternative titles.
+    /// </summary>
+    /// <param name="media">The raw TMDB detail response object.</param>
+    /// <param name="type">The normalized media type ("MOVIE" or "SERIES").</param>
     public static GrabbeMediaDTO ToUniversalDto(this TmdbDetailResponse media, string type)
     {
         var isSeries = type == "SERIES";
@@ -63,8 +76,6 @@ public static class TmdbMapper
         };
     }
 
-    // ==================== HELPERS PRIVADOS ====================
-
     private static string? ExtractYear(string? date)
     {
         if (string.IsNullOrWhiteSpace(date)) return null;
@@ -88,6 +99,7 @@ public static class TmdbMapper
     private static List<string> ExtractAlternativeTitles(TmdbAlternativeTitlesWrapper? wrapper)
     {
         if (wrapper == null) return new List<string>();
+        // TMDB uses "Titles" for movies and "Results" for TV series in the alternative titles wrapper.
         var source = wrapper.Titles ?? wrapper.Results;
         return source?.Select(t => t.Title).Distinct().Take(10).ToList() ?? new List<string>();
     }
@@ -113,6 +125,7 @@ public static class TmdbMapper
 
         if (credits.Cast != null)
         {
+            // Cast is ordered by billing order from TMDB; taking the top 5 gives the most prominent actors.
             var actors = credits.Cast
                 .OrderBy(c => c.Order)
                 .Take(5)

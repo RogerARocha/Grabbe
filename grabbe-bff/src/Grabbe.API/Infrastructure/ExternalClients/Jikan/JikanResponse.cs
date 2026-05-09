@@ -2,8 +2,6 @@ using System.Text.Json.Serialization;
 
 namespace Grabbe.API.Infrastructure.ExternalClients.Jikan;
 
-// ==================== SEARCH / DETAIL RESPONSES ====================
-
 public class JikanSearchResponse
 {
     [JsonPropertyName("data")]
@@ -15,8 +13,6 @@ public class JikanDetailResponse
     [JsonPropertyName("data")]
     public JikanAnimeData? Data { get; set; }
 }
-
-// ==================== CORE DATA MODEL ====================
 
 public class JikanAnimeData
 {
@@ -62,8 +58,6 @@ public class JikanAnimeData
     [JsonPropertyName("titles")]
     public List<JikanTitle>? Titles { get; set; }
 }
-
-// ==================== SUB-MODELS ====================
 
 public class JikanImages
 {

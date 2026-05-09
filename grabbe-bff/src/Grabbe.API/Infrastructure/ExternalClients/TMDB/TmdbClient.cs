@@ -6,11 +6,18 @@ using Grabbe.API.Infrastructure.ExternalClients.TMDB;
 
 namespace Grabbe.API.Infrastructure.ExternalClients;
 
+/// <summary>
+/// <see cref="IMediaProviderClient"/> implementation for The Movie Database (TMDB) API.
+/// Handles movies and TV series. Authenticated via Bearer token in the Authorization header.
+/// </summary>
 public class TmdbClient : IMediaProviderClient
 {
     private readonly HttpClient _httpClient;
 
+    /// <inheritdoc/>
     public string ProviderName => "TMDB";
+
+    /// <inheritdoc/>
     public string[] SupportedTypes => new[] { "MOVIE", "SERIES" };
 
     public TmdbClient(HttpClient httpClient, IOptions<ExternalApiOptions> options)
@@ -19,6 +26,7 @@ public class TmdbClient : IMediaProviderClient
         _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", options.Value.TmdbApiKey);
     }
 
+    /// <inheritdoc/>
     public async Task<IEnumerable<GrabbeMediaDTO>> SearchAsync(string query, string type)
     {
         try
@@ -30,6 +38,8 @@ public class TmdbClient : IMediaProviderClient
 
             if (response?.Results == null) return Array.Empty<GrabbeMediaDTO>();
 
+            // Exclude Japanese-language animation (genre 16) from TMDB results.
+            // These are anime titles that would be duplicated by the dedicated Jikan client.
             return response.Results
                 .Where(media => !(media.OriginalLanguage == "ja" && media.GenreIds.Contains(16)))
                 .Select(media => media.ToSearchDto(type));
@@ -40,6 +50,7 @@ public class TmdbClient : IMediaProviderClient
         }
     }
 
+    /// <inheritdoc/>
     public async Task<GrabbeMediaDTO?> GetDetailsAsync(string externalId, string type)
     {
         try

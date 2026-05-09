@@ -6,12 +6,20 @@ using System.Net.Http.Json;
 
 namespace Grabbe.API.Infrastructure.ExternalClients;
 
+/// <summary>
+/// <see cref="IMediaProviderClient"/> implementation for the Google Books API.
+/// The API key is appended as a query parameter on each request, as the Google Books API
+/// does not support header-based authentication for public volume endpoints.
+/// </summary>
 public class GoogleBooksClient : IMediaProviderClient
 {
     private readonly HttpClient _httpClient;
     private readonly string _apiKey;
 
+    /// <inheritdoc/>
     public string ProviderName => "GBOOKS";
+
+    /// <inheritdoc/>
     public string[] SupportedTypes => new[] { "BOOK" };
 
     public GoogleBooksClient(HttpClient httpClient, IOptions<ExternalApiOptions> options)
@@ -20,6 +28,7 @@ public class GoogleBooksClient : IMediaProviderClient
         _apiKey = options.Value.GBooksApiKey;
     }
 
+    /// <inheritdoc/>
     public async Task<IEnumerable<GrabbeMediaDTO>> SearchAsync(string query, string type)
     {
         try
@@ -40,6 +49,7 @@ public class GoogleBooksClient : IMediaProviderClient
         }
     }
 
+    /// <inheritdoc/>
     public async Task<GrabbeMediaDTO?> GetDetailsAsync(string externalId, string type)
     {
         try
