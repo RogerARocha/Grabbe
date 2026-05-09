@@ -334,34 +334,35 @@ export async function removeTrackingByExternalId(externalId: string, sourceApi: 
 }
 
 /**
- * Starts a new rewatch/reread/replay session for a media item that has been COMPLETED.
+ * Starts a new session for a media item that was COMPLETED, DROPPED, or ON HOLD.
  *
  * Orchestration (in order):
- * 1. Reads `rewatch_count` from `UserTracking` and fetches the final score/review from `Ranking`.
- * 2. Persists a `SESSION_COMPLETED` event in `TrackingHistory`, storing the archived score and
- *    review as a JSON payload in `previous_value` so the timeline can reconstruct past sessions.
- * 3. Clears `Ranking.score`, `Ranking.review_text`, and `UserTracking.review_text` to give the
- *    new session a clean slate — the modal will open with empty Score and Review fields.
+ * 1. Reads `rewatch_count` and `status` from `UserTracking`; fetches score/review from `Ranking`.
+ * 2. Persists a `SESSION_COMPLETED` event in `TrackingHistory`, storing a JSON payload with
+ *    the archived score, review, and the session's final status so the timeline can
+ *    differentiate completed, dropped, and on-hold past sessions.
+ * 3. Clears `Ranking.score`, `Ranking.review_text`, and `UserTracking.review_text` — clean slate.
  * 4. Archives the active `ConsumptionSession` by setting `is_active = FALSE`.
  * 5. Opens a new `ConsumptionSession` with `is_active = TRUE` and today's `start_date`.
  * 6. Resets `UserTracking`: `progress → 0`, `status → CONSUMING`, `rewatch_count += 1`.
  *
- * @param trackingId The UUID of the UserTracking row to rewatch
+ * @param trackingId The UUID of the UserTracking row to restart
  * @param mediaId The UUID of the Media row (needed to clear the Ranking entry)
  * @returns The new `rewatch_count` value after incrementing
  */
 export async function startRewatch(trackingId: string, mediaId: string): Promise<number> {
     const db = await getDb();
 
-    // Step 1: Read the current tracking state.
+    // Step 1: Read the current tracking state — both rewatch_count and status.
     const trackResult = await db.select<any[]>(
-        "SELECT rewatch_count FROM UserTracking WHERE id = $1 LIMIT 1",
+        "SELECT rewatch_count, status FROM UserTracking WHERE id = $1 LIMIT 1",
         [trackingId]
     );
     if (!trackResult || trackResult.length === 0) {
         throw new Error(`No UserTracking record found for id: ${trackingId}`);
     }
     const currentRewatchCount: number = trackResult[0].rewatch_count ?? 0;
+    const finalStatus: string = trackResult[0].status ?? 'COMPLETED';
 
     // Step 2: Fetch the final score and review before wiping them.
     const rankResult = await db.select<any[]>(
@@ -373,13 +374,15 @@ export async function startRewatch(trackingId: string, mediaId: string): Promise
 
     // Step 3: Archive the completed session's evaluation into TrackingHistory.
     // `previous_value` carries a JSON snapshot; `new_value` stores the session ordinal for lookup.
+    // `finalStatus` preserves whether the session ended as COMPLETED, DROPPED, or ON HOLD so the
+    // timeline can render the correct colour-coded badge for each past session.
     const sessionOrdinal = currentRewatchCount + 1; // session that just ended
     await db.execute(
         "INSERT INTO TrackingHistory (id, tracking_id, event_type, previous_value, new_value) VALUES ($1, $2, 'SESSION_COMPLETED', $3, $4)",
         [
             uuidv4(),
             trackingId,
-            JSON.stringify({ score: finalScore, reviewText: finalReview }),
+            JSON.stringify({ score: finalScore, reviewText: finalReview, finalStatus }),
             String(sessionOrdinal)
         ]
     );

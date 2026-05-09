@@ -1,4 +1,3 @@
-/** Formats a raw ISO/SQLite datetime string as a locale-aware short date (e.g. "May 9, 2026"). */
 function formatDate(raw: string | null | undefined): string {
   if (!raw) return '—';
   const d = new Date(raw);
@@ -7,7 +6,6 @@ function formatDate(raw: string | null | undefined): string {
     : d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
-/** Returns the ordinal label for a number: 1 → "1st", 2 → "2nd", 3 → "3rd", 4+ → "Nth". */
 function ordinal(n: number): string {
   const s = ['th', 'st', 'nd', 'rd'];
   const v = n % 100;
@@ -21,12 +19,9 @@ interface Session {
   is_active: boolean;
 }
 
-/** A SESSION_COMPLETED row from TrackingHistory. `new_value` holds the session ordinal (as string). */
 interface HistoryEvent {
   event_type: string;
-  /** JSON-encoded `{ score: number | null, reviewText: string | null }` */
   previous_value: string | null;
-  /** Session ordinal as string (e.g. "1", "2") */
   new_value: string | null;
   event_date: string;
 }
@@ -34,24 +29,39 @@ interface HistoryEvent {
 interface ArchivedEvaluation {
   score: number | null;
   reviewText: string | null;
+  finalStatus?: string;
 }
 
 interface ConsumptionTimelineProps {
   sessions: Session[];
-  /** SESSION_COMPLETED events from TrackingHistory — one per completed session. */
   historyEvents: HistoryEvent[];
-  /** The live review text from Ranking for the currently active session. */
   activeReviewText?: string | null;
-  /** The live score from Ranking for the currently active session. */
   activeScore?: number | null;
   mediaType?: string;
+}
+
+/**
+ * Returns the Tailwind colour classes and label for a past-session status badge.
+ * Follows the GrabbeCS status colour map defined in DESIGN.md.
+ */
+function statusBadge(status?: string): { classes: string; label: string } {
+  switch (status) {
+    case 'COMPLETED':
+      return { classes: 'bg-secondary/15 text-secondary', label: 'Completed' };
+    case 'DROPPED':
+      return { classes: 'bg-tertiary/15 text-tertiary', label: 'Dropped' };
+    case 'ON HOLD':
+      return { classes: 'bg-warning/15 text-warning', label: 'On Hold' };
+    default:
+      return { classes: 'bg-secondary/15 text-secondary', label: 'Completed' };
+  }
 }
 
 /**
  * Renders the full consumption timeline for a tracked media item.
  *
  * Data routing:
- * - **Past sessions** (is_active = false): their score/review is reconstructed from the
+ * - **Past sessions** (is_active = false): their score/review/status is reconstructed from the
  *   `SESSION_COMPLETED` events in `historyEvents`. The `new_value` column holds the session
  *   ordinal (as a string), used as the join key.
  * - **Active session** (is_active = true): uses `activeReviewText` and `activeScore`, which
@@ -86,7 +96,7 @@ export const ConsumptionTimeline = ({
         const parsed = JSON.parse(event.previous_value) as ArchivedEvaluation;
         archivedByOrdinal.set(ordinalKey, parsed);
       } catch {
-        // Malformed JSON in history — skip gracefully.
+        // skip malformed JSON
       }
     }
   }
@@ -124,11 +134,18 @@ export const ConsumptionTimeline = ({
                   <span className="text-sm font-bold text-text-high">
                     {ordinal(s.session_number)} {noun}
                   </span>
-                  {s.is_active && (
+                  {s.is_active ? (
                     <span className="text-[9px] font-bold uppercase tracking-widest text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
                       Active
                     </span>
-                  )}
+                  ) : (() => {
+                    const badge = statusBadge(archived?.finalStatus);
+                    return (
+                      <span className={`text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full ${badge.classes}`}>
+                        {badge.label}
+                      </span>
+                    );
+                  })()}
                   {displayScore && (
                     <span className="text-[10px] font-bold tracking-wider prismatic-text">
                       {displayScore}/10

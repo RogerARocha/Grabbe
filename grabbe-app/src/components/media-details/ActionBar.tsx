@@ -40,8 +40,8 @@ interface ActionBarProps {
 
 /**
  * Renders the primary action controls for the media detail view.
- * When the item is in the library and its status is COMPLETED, also renders
- * the context-aware "Rewatch / Reread / Play Again" secondary CTA.
+ * When the item is in the library and its status is COMPLETED, DROPPED, or ON HOLD,
+ * also renders the context-aware "Rewatch / Reread / Play Again" secondary CTA.
  */
 export const ActionBar = ({
   isInLibrary,
@@ -54,7 +54,7 @@ export const ActionBar = ({
   onRewatch,
 }: ActionBarProps) => {
   if (isInLibrary) {
-    const isCompleted = status === 'COMPLETED';
+    const canRestart = status === 'COMPLETED' || status === 'DROPPED' || status === 'ON HOLD';
 
     return (
       <div className="flex flex-wrap items-center gap-4 pt-4">
@@ -77,7 +77,7 @@ export const ActionBar = ({
           <span className="text-sm font-black prismatic-text">{userScore ?? '-'}/10</span>
         </button>
 
-        {isCompleted && onRewatch && (
+        {canRestart && onRewatch && (
           <button
             onClick={onRewatch}
             className="flex items-center gap-2 px-5 py-2 bg-secondary/10 border border-secondary/30 text-secondary rounded-lg cursor-pointer hover:bg-secondary/20 active:scale-95 transition-all group"
