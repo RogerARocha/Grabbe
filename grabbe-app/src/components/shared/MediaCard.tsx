@@ -78,14 +78,16 @@ export const MediaCard = ({
 }: MediaCardProps) => {
   
   if (variant === 'dashboard') {
+    const effectiveTotal = typeBadge === 'MOVIE' ? 1 : (totalProgress || 0);
+
     let progressPercentage = percent;
-    if (currentProgress !== undefined && totalProgress && totalProgress > 0) {
-      progressPercentage = Math.min(100, (currentProgress / totalProgress) * 100);
+    if (currentProgress !== undefined && effectiveTotal > 0) {
+      progressPercentage = Math.min(100, (currentProgress / effectiveTotal) * 100);
     }
 
     const hasProgressData = currentProgress !== undefined;
     const progressText = hasProgressData 
-      ? `${currentProgress} / ${totalProgress || '?'}` 
+      ? `${currentProgress} / ${effectiveTotal || '?'}` 
       : null;
 
     return (

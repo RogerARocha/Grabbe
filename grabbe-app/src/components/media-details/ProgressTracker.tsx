@@ -2,11 +2,18 @@ interface ProgressTrackerProps {
   currentProgress: number;
   totalProgress: number;
   label: string;
+  mediaType?: string;
   onUpdate?: () => void;
 }
 
-export const ProgressTracker = ({ currentProgress, totalProgress, label, onUpdate }: ProgressTrackerProps) => {
-  const percent = Math.min(Math.round((currentProgress / (totalProgress || 1)) * 100), 100);
+/**
+ * Displays a live progress bar and +1 quick-update button for a tracked media item.
+ * For MOVIE type, `totalProgress` from the BFF is null/0 (no episodes), so the component
+ * treats it as 1 (binary: 0 = unwatched, 1 = watched) to avoid a bare '?' display.
+ */
+export const ProgressTracker = ({ currentProgress, totalProgress, label, mediaType, onUpdate }: ProgressTrackerProps) => {
+  const effectiveTotal = mediaType === 'MOVIE' ? 1 : (totalProgress || 0);
+  const percent = Math.min(Math.round((currentProgress / (effectiveTotal || 1)) * 100), 100);
 
   return (
     <div className="mt-6 bg-surface rounded-lg p-5 border border-outline-variant/10">
@@ -16,7 +23,7 @@ export const ProgressTracker = ({ currentProgress, totalProgress, label, onUpdat
           <span className="text-xs font-bold text-primary uppercase tracking-wider">Progress</span>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-xs font-black prismatic-text">{currentProgress} / {totalProgress || '?'}</span>
+          <span className="text-xs font-black prismatic-text">{currentProgress} / {effectiveTotal || '?'}</span>
           <span className="text-xs font-bold text-text-muted">{percent}%</span>
         </div>
       </div>

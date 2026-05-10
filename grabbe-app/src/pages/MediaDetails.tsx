@@ -143,8 +143,10 @@ export const MediaDetails = () => {
    */
   const handleQuickProgress = async () => {
     if (!isInLibrary || !tracking) return;
+
+    const effectiveTotal = media.type === 'MOVIE' ? 1 : (tracking.totalProgress || 0);
     const newProgress = (tracking.currentProgress || 0) + 1;
-    if (tracking.totalProgress && newProgress > tracking.totalProgress) return;
+    if (effectiveTotal > 0 && newProgress > effectiveTotal) return;
 
     const data = await getTrackingByExternalId(externalId!, sourceApi!);
     if (data) {
@@ -159,11 +161,11 @@ export const MediaDetails = () => {
         }
       }
 
-      if (data.total_progress && newProgress >= data.total_progress) {
-         newStatus = 'COMPLETED';
-         if (!newEndDate) {
-             newEndDate = new Date().toISOString();
-         }
+      if (effectiveTotal > 0 && newProgress >= effectiveTotal) {
+        newStatus = 'COMPLETED';
+        if (!newEndDate) {
+          newEndDate = new Date().toISOString();
+        }
       }
 
       await saveTracking(data.media_id, newStatus, data.score, newProgress, data.total_progress, data.review_text, newStartDate, newEndDate);
@@ -195,6 +197,7 @@ export const MediaDetails = () => {
                 currentProgress={tracking.currentProgress}
                 totalProgress={tracking.totalProgress}
                 label={tracking.progressLabel}
+                mediaType={media.type}
                 onUpdate={handleQuickProgress}
               />
             )}

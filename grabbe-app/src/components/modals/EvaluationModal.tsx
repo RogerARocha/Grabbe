@@ -61,7 +61,6 @@ export const EvaluationModal = ({
       setTotalProgress(media?.totalProgressUnits || 0);
       setReviewText(initialReviewText || '');
       
-      // format dates to YYYY-MM-DD if they are full ISO strings
       setStartDate(initialStartDate ? initialStartDate.split('T')[0] : '');
       setEndDate(initialEndDate ? initialEndDate.split('T')[0] : '');
       
@@ -77,6 +76,8 @@ export const EvaluationModal = ({
   const showSearch = isAddMode && !media;
   const title = isAddMode ? 'Add to Library' : 'Update Progress';
   const confirmText = isAddMode ? 'Add Media' : 'Save Changes';
+
+  const effectiveTotal = selectedMedia?.type === 'MOVIE' ? 1 : totalProgress;
 
   const scores = [
     { value: 10, label: 'Masterpiece', colorClass: 'prismatic-text-blue prismatic-text-blue-hover', bgHoverClass: 'hover:bg-error/10' },
@@ -234,7 +235,7 @@ export const EvaluationModal = ({
                   const newStatus = e.target.value;
                   setStatus(newStatus);
                   if (newStatus === 'COMPLETED') {
-                    if (totalProgress > 0) setProgress(totalProgress);
+                    if (effectiveTotal > 0) setProgress(effectiveTotal);
                     if (!endDate) setEndDate(new Date().toISOString().split('T')[0]);
                   } else if (newStatus === 'CONSUMING') {
                     if (!startDate) setStartDate(new Date().toISOString().split('T')[0]);
@@ -257,10 +258,12 @@ export const EvaluationModal = ({
               <input 
                 type="number" 
                 value={progress}
+                min={0}
+                max={effectiveTotal > 0 ? effectiveTotal : undefined}
                 onChange={(e) => {
-                  const val = Number(e.target.value);
+                  const val = Math.min(Number(e.target.value), effectiveTotal > 0 ? effectiveTotal : Infinity);
                   setProgress(val);
-                  if (totalProgress > 0 && val >= totalProgress) {
+                  if (effectiveTotal > 0 && val >= effectiveTotal) {
                     setStatus('COMPLETED');
                     if (!endDate) setEndDate(new Date().toISOString().split('T')[0]);
                   }
@@ -268,7 +271,7 @@ export const EvaluationModal = ({
                 className="flex-1 bg-background border-none rounded-lg text-sm px-4 py-3 focus:ring-2 focus:ring-primary transition-all text-text-high outline-none" 
                 placeholder="0" 
               />
-              <span className="text-text-muted font-medium text-sm">/ {totalProgress || '?'}</span>
+              <span className="text-text-muted font-medium text-sm">/ {effectiveTotal || '?'}</span>
             </div>
           </div>
 
