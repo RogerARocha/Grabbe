@@ -29,6 +29,7 @@ export const TopBar = () => {
         className="w-[260px] shrink-0 flex items-center px-6 h-full"
         onMouseDown={handleDragStart}
       >
+        <img src="/app-icon.png" alt="Logo" className="w-10 h-10" />
         <span className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary pointer-events-none">
           Grabbe
         </span>
@@ -41,7 +42,7 @@ export const TopBar = () => {
       />
 
       {/* Search bar — not draggable */}
-      <div className="flex items-center bg-background/70 rounded-lg px-4 py-1.5 w-80 shrink-0">
+      <div className="flex items-center bg-background/70 rounded-lg px-4 py-1.5 h-6 w-80 shrink-0">
         <span className="material-symbols-outlined text-text-muted text-[20px]">search</span>
         <input
           className="bg-transparent border-none focus:ring-0 text-sm text-text-high placeholder:text-text-muted w-full outline-none ml-2"
