@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "grabbe-app",
+  "productName": "Grabbe",
   "version": "0.1.0",
   "identifier": "com.grabbe.dev",
   "build": {
@@ -12,9 +12,12 @@
   "app": {
     "windows": [
       {
-        "title": "grabbe-app",
-        "width": 800,
-        "height": 600
+        "title": "Grabbe",
+        "width": 1024,
+        "height": 768,
+        "decorations": false,
+        "transparent": true,
+        "backgroundColor": "#121212"
       }
     ],
     "security": {
