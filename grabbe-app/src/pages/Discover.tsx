@@ -126,7 +126,7 @@ export const Discover = () => {
         subtitle={subtitle}
         image={result.coverImageUrl}
         typeBadge={result.type}
-        onClick={() => navigate(`/media/${result.externalId}?source=${result.sourceApi}&type=${result.type}`)}
+        onClick={() => navigate(`/media/${result.externalId}?source=${result.sourceApi}&type=${result.type}`, { state: { from: 'Discover', path: '/discover' } })}
         onAddClick={() => {
           console.log('Adicionando ao banco local SQLite:', result.title);
         }}

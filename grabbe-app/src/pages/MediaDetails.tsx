@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams, useLocation } from 'react-router-dom';
 import { MainLayout } from '../components/layout/MainLayout';
 import { Breadcrumbs } from '../components/shared/Breadcrumbs';
 import { EvaluationModal } from '../components/modals/EvaluationModal';
@@ -22,6 +22,7 @@ export const MediaDetails = () => {
   const [searchParams] = useSearchParams();
   const sourceApi = searchParams.get('source');
   const type = searchParams.get('type');
+  const location = useLocation();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'add' | 'update'>('add');
@@ -180,12 +181,14 @@ export const MediaDetails = () => {
     ...(media.releaseDate ? [{ label: 'Release', value: media.releaseDate }] : []),
   ];
 
+  const fromLabel = location.state?.from || 'Library';
+  const fromPath = location.state?.path || '/library';
+
   return (
     <MainLayout>
       <div className="max-w-6xl mx-auto">
         <Breadcrumbs items={[
-          { label: 'Library', path: '/library' },
-          { label: media.type === 'SERIES' ? 'Series' : 'Movies' },
+          { label: fromLabel, path: fromPath },
           { label: media.title },
         ]} />
 

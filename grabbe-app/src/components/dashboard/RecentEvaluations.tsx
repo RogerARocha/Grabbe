@@ -42,7 +42,7 @@ export const RecentEvaluations = ({ items = [] }: { items?: any[] }) => {
       <div className="grid grid-cols-12 gap-6">
         {item1 && (
           <div 
-            onClick={() => navigate(`/media/${item1.external_id}?source=${item1.source_api}&type=${item1.type}`)}
+            onClick={() => navigate(`/media/${item1.external_id}?source=${item1.source_api}&type=${item1.type}`, { state: { from: 'Dashboard', path: '/' } })}
             className={`col-span-12 ${item2 ? 'md:col-span-8' : 'md:col-span-12'} bg-surface rounded-xl overflow-hidden bloom-shadow group border border-outline-variant/20 cursor-pointer`}
           >
             <div className="flex flex-col md:flex-row h-full">
@@ -84,7 +84,7 @@ export const RecentEvaluations = ({ items = [] }: { items?: any[] }) => {
 
         {item2 && (
           <div 
-            onClick={() => navigate(`/media/${item2.external_id}?source=${item2.source_api}&type=${item2.type}`)}
+            onClick={() => navigate(`/media/${item2.external_id}?source=${item2.source_api}&type=${item2.type}`, { state: { from: 'Dashboard', path: '/' } })}
             className="col-span-12 md:col-span-4 bg-surface rounded-xl p-6 bloom-shadow border border-outline-variant/20 cursor-pointer group hover:border-primary/30 transition-colors flex flex-col"
           >
             <div className="mb-4 aspect-video rounded-lg overflow-hidden bg-surface-container-high shrink-0">

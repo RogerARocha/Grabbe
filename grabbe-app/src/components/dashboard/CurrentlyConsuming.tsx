@@ -36,7 +36,7 @@ export const CurrentlyConsuming = ({ items = [] }: { items?: any[] }) => {
               totalProgress={total}
               
               percent={percent} 
-              onClick={() => navigate(`/media/${item.external_id}?source=${item.source_api}&type=${item.type}`)}
+              onClick={() => navigate(`/media/${item.external_id}?source=${item.source_api}&type=${item.type}`, { state: { from: 'Dashboard', path: '/' } })}
             />
           );
         })}

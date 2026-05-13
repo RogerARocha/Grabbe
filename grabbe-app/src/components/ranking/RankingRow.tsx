@@ -18,7 +18,7 @@ export const RankingRow = ({ item, onOpenModal }: RankingRowProps) => {
   const styles = getScoreStyles(item.score);
 
   const handleNavigate = () => {
-    navigate(`/media/${item.external_id}?source=${item.source_api}&type=${item.type}`);
+    navigate(`/media/${item.external_id}?source=${item.source_api}&type=${item.type}`, { state: { from: 'Ranking', path: '/ranking' } });
   };
 
   const handleInfoClick = (e: React.MouseEvent) => {

@@ -72,7 +72,7 @@ export const LibraryGrid = ({ activeTab, activeStatus }: LibraryGridProps) => {
               image={item.cover_image_path}
               status={item.status}
               typeBadge={item.type}
-              onClick={() => navigate(`/media/${item.external_id}?source=${item.source_api}&type=${item.type}`)}
+              onClick={() => navigate(`/media/${item.external_id}?source=${item.source_api}&type=${item.type}`, { state: { from: 'Library', path: '/library' } })}
             />
           );
         })}
