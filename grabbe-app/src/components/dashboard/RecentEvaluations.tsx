@@ -33,10 +33,6 @@ export const RecentEvaluations = ({ items = [] }: { items?: any[] }) => {
     <section>
       <div className="flex justify-between items-end mb-6">
         <h2 className="text-2xl font-bold tracking-tight text-text-high">Recent Evaluations</h2>
-        <div className="flex gap-2">
-          {/* TODO: Implement actual type filtering, currently a static badge */}
-          <span className="bg-surface px-3 py-1 rounded-full text-[10px] font-bold text-text-high border border-outline-variant/20">All Types</span>
-        </div>
       </div>
       
       <div className="grid grid-cols-12 gap-6">
