@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { Dashboard } from './pages/Dashboard';
 import { Library } from './pages/Library';
+import { Ranking } from './pages/Ranking';
 import { MediaDetails } from './pages/MediaDetails';
 import './App.css';
 import { ComingSoon } from './pages/ComingSoon';
@@ -26,6 +27,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/library" element={<Library />} />
+        <Route path="/ranking" element={<Ranking />} />
         <Route path="/media/:id" element={<MediaDetails />} />
         <Route path="/discover" element={<Discover />} />
 

@@ -6,6 +6,7 @@ const navItems = [
   { name: 'Dashboard', path: '/', icon: 'dashboard' },
   { name: 'Discover', path: '/discover', icon: 'travel_explore' },
   { name: 'Library', path: '/library', icon: 'movie_filter' },
+  { name: 'Ranking', path: '/ranking', icon: 'leaderboard' },
   { name: 'Analytics', path: '/analytics', icon: 'monitoring' },
   { name: 'Community', path: '/community', icon: 'group' },
   { name: 'Settings', path: '/settings', icon: 'settings' }

@@ -63,6 +63,18 @@
     display: inline-block; /* Required for transform */
   }
 
+  @keyframes prismatic-animate-vertical {
+    from { background-position: 50% 0%; }
+    to { background-position: 50% 200%; }
+  }
+
+  .prismatic-bg-blue {
+    background-image: linear-gradient(to bottom, #014770, #26618c, #6497b1, #14274c, #014770);
+    background-size: auto 200%;
+    animation: prismatic-animate-vertical 4s linear infinite;
+    transition: all 0.3s ease;
+  }
+
   .group:hover .prismatic-text-blue-hover {
     animation: prismatic-animate 0.7s linear infinite;
     filter: drop-shadow(0 0 8px rgba(100, 151, 177, 0.8)) drop-shadow(0 0 16px rgba(1, 71, 112, 0.6));
