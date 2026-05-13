@@ -115,6 +115,7 @@ grabbe-bff/
 ```
 
 **Development Setup:**
+
 * The solution can be natively opened in Rider or Visual Studio, ensuring the `.sln` and `.csproj` files are properly tracked by Git.
 * Sensitive keys (like TMDB and Google API Keys) must be isolated in the `.env.local` file at the project root.
 
@@ -128,7 +129,8 @@ The `MediaAggregationService` will use `Task.WhenAll` to fire requests to TMDB, 
 
 Each external client maps only the necessary fields from its API into the universal `GrabbeMediaDTO`. The detail endpoint uses `append_to_response` (TMDB) or equivalent strategies to fetch rich metadata in a single round-trip.
 
-**A. TMDB Client (Movies and Series)**
+## A. TMDB Client (Movies and Series)**
+
 * **Base Endpoint:** `https://api.themoviedb.org/3`
 * **Authentication:** Header `Authorization: Bearer {TMDB_READ_ACCESS_TOKEN}` (Read from `.env.local`).
 * **Detail Query:** `?append_to_response=credits,alternative_titles`
@@ -142,7 +144,8 @@ Each external client maps only the necessary fields from its API into the univer
   * `credits.crew` (Director) + `credits.cast` (top 5) -> `KeyPeople`
   * `alternative_titles` -> `AlternativeTitles`
 
-**B. Jikan Client (Anime and Manga)**
+## B. Jikan Client (Anime and Manga)**
+
 * **Base Endpoint:** `https://api.jikan.moe/v4`
 * **Authentication:** None (Open API).
 * **Critical Restriction:** Limit of 3 requests per second. The `JikanClient` should implement a retry policy (e.g., Polly library with exponential backoff) to handle the 429 Too Many Requests status.
@@ -156,7 +159,8 @@ Each external client maps only the necessary fields from its API into the univer
   * `titles` (non-Default) -> `AlternativeTitles`
   * `KeyPeople`: left empty (would require extra `/characters` call).
 
-**C. Google Books Client (Books)**
+## C. Google Books Client (Books)**
+
 * **Base Endpoint:** `https://www.googleapis.com/books/v1`
 * **Authentication:** Query param `?key={GBOOKS_API_KEY}` (Read from `.env.local`).
 * **Mapping (extracted from volumeInfo):**
@@ -245,6 +249,7 @@ CREATE TABLE Ranking (
 ### **6.2. Personal Ranking System**
 
 The user will have a global view of their reviews.
+
 * **Automatic Tier List:** Based on 1 to 10 scores, the app can generate List viewings separating Movies, Games, and Anime on the same panel.
 
 ### **6.3. Consumption Dates Management (Timeline Control)**
@@ -269,6 +274,7 @@ The user will have a global view of their reviews.
 The BFF acts as an **Anti-Corruption Layer (ACL)**: each external client translates provider-specific responses into this universal, source-agnostic contract. The frontend never sees TMDB, Jikan, or GBooks data structures — only `GrabbeMediaDTO`.
 
 **A. C# Class (BFF Output):**
+
 ```csharp
 namespace Grabbe.API.Domain.DTOs;
 
@@ -303,6 +309,7 @@ public class MediaPersonDTO
 ```
 
 **B. JSON Response (Consumed by Frontend):**
+
 ```json
 {
   "externalId": "11004",
@@ -327,8 +334,10 @@ public class MediaPersonDTO
 
 **1. Global Search (Concurrent)**
 Responsible for searching media from the search bar. If no type is specified, it triggers all APIs via `Task.WhenAll` and merges the results.
+
 * **Route:** `GET /api/v1/search?query={text}&type={MOVIE|ANIME|BOOK}&page=1`
 * **Response Example:**
+
 ```json
 {
   "data": [
@@ -352,13 +361,16 @@ Responsible for searching media from the search bar. If no type is specified, it
   }
 }
 ```
+
 > **Note:** Pagination metadata (`meta.currentPage`, `meta.totalPages`) is not yet implemented. Results are returned as a flat array under `data`.
 
 **2. Deep Media Details**
 Fetches deep metadata of the work, bypassing batch search cache limits.
+
 * **Route:** `GET /api/v1/media/{sourceApi}/{type}/{externalId}`
 * **Example:** `/api/v1/media/JIKAN/ANIME/11004`
 * **Response Example:**
+
 ```json
 {
   "data": {
@@ -382,6 +394,7 @@ Fetches deep metadata of the work, bypassing batch search cache limits.
 
 **3. Trending (Hot Items)**
 Feeds the "Discover" tab.
+
 * **Route:** `GET /api/v1/trending?type={mediaType}`
 * **Status:** ⚠️ Not yet implemented — endpoint does not exist in the current BFF codebase.
 
@@ -402,52 +415,32 @@ If there is an external API failure or the rate limit is exceeded, the frontend 
 ## **8. Retention, Identity, and Shareability Engine**
 
 ### **8.1. Grabbe Recap (Entertainment "Wrapped")**
+
 * **Frequency:** Monthly and Yearly.
 * **Export:** "Story" (9:16) or landscape format, generating a `.png` in one click.
 * **Local Insights:** Time Invested, "Your Monthly Trinity", Binge Habits.
 
 ### **8.2. Unified Profile Card**
+
 * **Hall of Fame:** Pin 4 to 5 favorite works at the top.
 * **Statistics:** Completed media, consumption radar chart, hours of life invested.
 * **Export:** Horizontal banner for social networks.
 
 ### **8.3. Deep Analytics Dashboard**
+
 * **Niche Connections:** Taste patterns by studio/genre.
 * **Dispersion and Bias:** Correlation between Given Score and Release Year.
 
-## **9. Product Roadmap and Deliverables**
-
-### **Phase 1: MVP - Focus on Local Retention**
-* [x] Desktop Architecture Setup (Tauri) + SQLite.
-* [x] BFF Implementation for initial providers.
-* [x] CRUD operations on local tracking.
-* [x] Main Interface.
-* [x] Basic Ranking System (1 to 10).
-
-### **Phase 2: Identity, Engagement, and Statistics**
-* [ ] Unified Profile Card with exportable Banner.
-* [ ] Grabbe Recap (Story Export).
-* [ ] Analytics Dashboard.
-* [ ] Consumption Timeline.
-* [ ] Manual data Export/Import.
-* [ ] Themes choices.
-* [ ] Add new providers.
-
-### **Phase 3: Cloud and Ecosystem**
-* [ ] Sync Engine (Event Sourcing).
-* [ ] Mobile apps (iOS/Android).
-* [ ] Public Profiles on the Web (e.g., grabbe.app/u/user).
-
 ---
 
-## **10. Code Documentation Guidelines**
+## **9. Code Documentation Guidelines**
 
 This section defines the standards for documenting all code — both the C# BFF and the TypeScript/React frontend. These rules must be respected when writing or reviewing code in this project.
 
-### **10.1. General Principles**
+### **9.1. General Principles**
 
 | Principle | Rule |
-|---|---|
+| --- | --- |
 | **Clarity over Verbosity** | A comment should explain *why*, not *what*. If a variable or method name is self-explanatory, do not add a comment. |
 | **Name First** | If a comment is needed because a name is confusing, rename the thing instead of adding the comment. |
 | **English Only** | All comments, documentation strings, and error messages must be in English. |
@@ -455,7 +448,7 @@ This section defines the standards for documenting all code — both the C# BFF 
 
 ---
 
-### **10.2. Backend (C# / .NET) Standards**
+### **9.2. Backend (C# / .NET) Standards**
 
 #### Standard: XML Documentation (`///`)
 
@@ -471,11 +464,12 @@ public class DetailsService { ... }
 ```
 
 **Required tags:**
-- `<summary>` — on every public class, interface, and method. Explain intent and business context.
-- `<param name="x">` — on every method parameter.
-- `<returns>` — on every non-void method.
-- `<see cref="T">` — to cross-reference related types.
-- `<inheritdoc/>` — on interface implementations that repeat the contract without adding detail.
+
+* `<summary>` — on every public class, interface, and method. Explain intent and business context.
+* `<param name="x">` — on every method parameter.
+* `<returns>` — on every non-void method.
+* `<see cref="T">` — to cross-reference related types.
+* `<inheritdoc/>` — on interface implementations that repeat the contract without adding detail.
 
 #### Rule: Do Not Document the Obvious
 
@@ -512,7 +506,7 @@ CommunityScore = Math.Round(info.AverageRating.Value * 2, 1)
 
 ---
 
-### **10.3. Frontend (TypeScript / React) Standards**
+### **9.3. Frontend (TypeScript / React) Standards**
 
 #### Standard: TSDoc (`/** */`)
 
@@ -527,10 +521,11 @@ export const MediaCard = ({ variant = 'library', ... }: MediaCardProps) => { ...
 ```
 
 **Required for:**
-- All exported React components
-- All `interface` and `type` definitions in `types.ts` or shared files
-- All utility functions (e.g., `getDb`, `upsertMedia`)
-- All database access functions in `lib/db.ts`
+
+* All exported React components
+* All `interface` and `type` definitions in `types.ts` or shared files
+* All utility functions (e.g., `getDb`, `upsertMedia`)
+* All database access functions in `lib/db.ts`
 
 #### Standard: `@param` and `@returns` for Utility Functions
 
@@ -579,14 +574,42 @@ const handleQuickProgress = async () => { ... };
 
 ---
 
-### **10.4. What Not to Document**
+### **9.4. What Not to Document**
 
 The following patterns should **never** have a comment:
 
 | Pattern | Reason |
-|---|---|
+| --- | --- |
 | `if (result == null) return null;` | Self-explanatory null guard |
 | JSX structural dividers (`{/* Left Column */}`) | The component tree is the structure |
 | Framework lifecycle methods with no custom logic | `useEffect`, `useState` calls that are idiomatic |
 | `return Ok(new { Data = results })` | Envelope shape is documented at the controller level |
 | Standard DI registration lines in `Program.cs` | Idiomatic .NET boilerplate |
+
+## **10. Product Roadmap and Deliverables**
+
+### **Phase 1: MVP - Focus on Local Retention**
+
+* [x] Desktop Architecture Setup (Tauri) + SQLite.
+* [x] BFF Implementation for initial providers.
+* [x] CRUD operations on local tracking.
+* [x] Main Interface.
+* [x] Basic Ranking System (1 to 10).
+
+### **Phase 2: Identity, Engagement, and Statistics**
+
+* [ ] Search history.
+* [ ] Analytics Dashboard.
+* [ ] Consumption Timeline.
+* [ ] Commands Palette
+* [ ] Unified Profile Card with exportable Banner.
+* [ ] Grabbe Recap (Story Export).
+* [ ] Manual data Export/Import.
+* [ ] Themes choices.
+* [ ] Add new providers.
+
+### **Phase 3: Cloud and Ecosystem**
+
+* [ ] Sync Engine (Event Sourcing).
+* [ ] Mobile apps (iOS/Android).
+* [ ] Public Profiles on the Web (e.g., grabbe.app/u/user).
