@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '../components/layout/MainLayout';
 import { MediaCard } from '../components/shared/MediaCard';
 import { TYPE_FILTERS, MediaType } from '../components/shared/types';
+import { TypeFilters } from '../components/shared/TypeFilters';
 import { DiscoverResult } from '../components/discover/data';
 import { SkeletonCard, EmptyState, IdleState } from '../components/discover/DiscorverStates';
 
@@ -66,10 +67,7 @@ export const Discover = () => {
 
   return (
     <MainLayout>
-      <div className="mb-10">
-        <p className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">
-          Discover
-        </p>
+      <div className="mb-6">
         <h1 className="text-5xl font-black tracking-tighter text-text-high">
           Discover <span className="prismatic-text">Everything</span>
         </h1>
@@ -92,21 +90,8 @@ export const Discover = () => {
         </div>
       </div>
 
-      <div className="flex items-center gap-2 mb-10 flex-wrap">
-        {TYPE_FILTERS.map((filter) => (
-          <button
-            key={filter.value}
-            onClick={() => handleTypeChange(filter.value)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all duration-200 active:scale-95 ${
-              activeType === filter.value
-                ? 'bg-primary text-on-primary primary-glow'
-                : 'bg-surface text-text-muted hover:bg-surface-container hover:text-text-high border border-outline-variant/20'
-            }`}
-          >
-            <span className="material-symbols-outlined text-[16px]">{filter.icon}</span>
-            {filter.label}
-          </button>
-        ))}
+      <div className="mb-10">
+        <TypeFilters activeTab={activeType} setActiveTab={handleTypeChange} />
       </div>
 
       {!hasSearched && !isLoading && <IdleState />}
