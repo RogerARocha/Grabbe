@@ -1,3 +1,4 @@
+import { useState, useMemo } from 'react';
 import { RankingRow } from './RankingRow';
 
 interface RankingListProps {
@@ -7,6 +8,24 @@ interface RankingListProps {
 }
 
 export const RankingList = ({ items, isLoading, onOpenModal }: RankingListProps) => {
+  const [nameSort, setNameSort] = useState<'asc' | 'desc'>('asc');
+  const [scoreSort, setScoreSort] = useState<'desc' | 'asc'>('desc');
+
+  const sortedItems = useMemo(() => {
+    return [...items].sort((a, b) => {
+      // Primary sort: Score
+      if (a.score !== b.score) {
+        return scoreSort === 'desc' ? b.score - a.score : a.score - b.score;
+      }
+      // Secondary sort: Name
+      const nameA = (a.title || '').toLowerCase();
+      const nameB = (b.title || '').toLowerCase();
+      if (nameA < nameB) return nameSort === 'asc' ? -1 : 1;
+      if (nameA > nameB) return nameSort === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [items, nameSort, scoreSort]);
+
   if (isLoading) {
     return (
       <div className="flex flex-col gap-4">
@@ -41,7 +60,39 @@ export const RankingList = ({ items, isLoading, onOpenModal }: RankingListProps)
 
   return (
     <div className="flex flex-col">
-      {items.map((item, index) => (
+      {/* Header Row for Sorting */}
+      <div className="flex items-stretch h-8 mb-2 text-xs font-bold uppercase tracking-widest text-text-muted px-2">
+        <div className="w-2 shrink-0" />
+        <div className="flex flex-1 items-center px-4 gap-6">
+          <div className="w-12 shrink-0" />
+          
+          <div 
+            className="flex-1 flex items-center gap-2 cursor-pointer hover:text-text-base transition-colors select-none"
+            onClick={() => setNameSort(prev => prev === 'asc' ? 'desc' : 'asc')}
+          >
+            Name
+            <span className="bg-surface-container-high text-text-base px-2 py-0.5 rounded text-[10px]">
+              {nameSort === 'asc' ? 'A-Z' : 'Z-A'}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-12 shrink-0 px-4">
+            <div 
+              className="flex items-center justify-center gap-2 w-16 cursor-pointer hover:text-text-base transition-colors select-none"
+              onClick={() => setScoreSort(prev => prev === 'desc' ? 'asc' : 'desc')}
+            >
+              Score
+              <span className="bg-surface-container-high text-text-base px-2 py-0.5 rounded text-[10px]">
+                {scoreSort === 'desc' ? 'DESC' : 'ASC'}
+              </span>
+            </div>
+            <div className="flex items-center justify-center w-20">Type</div>
+            <div className="flex items-center justify-center w-24">Progress</div>
+          </div>
+        </div>
+      </div>
+
+      {sortedItems.map((item, index) => (
         <RankingRow key={item.id || index} item={item} onOpenModal={onOpenModal} />
       ))}
     </div>

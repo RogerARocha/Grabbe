@@ -13,6 +13,34 @@ import { AlternativeTitles } from '../components/media-details/AlternativeTitles
 import { getTrackingByExternalId, removeTrackingByExternalId, saveTracking, startRewatch } from '../lib/db';
 import { ConsumptionTimeline } from '../components/media-details/ConsumptionTimeline';
 
+const getPublisherLabel = (type?: string) => {
+  switch (type) {
+    case 'BOOK':
+    case 'MANGA':
+      return 'Publisher';
+    case 'GAME':
+      return 'Developer / Publisher';
+    case 'SERIES':
+      return 'Network';
+    case 'ANIME':
+    case 'MOVIE':
+    default:
+      return 'Studio';
+  }
+};
+
+const getTypeLabel = (type?: string) => {
+  switch (type) {
+    case 'SERIES': return 'TV Series';
+    case 'MOVIE': return 'Film';
+    case 'ANIME': return 'Anime';
+    case 'MANGA': return 'Manga';
+    case 'BOOK': return 'Book';
+    case 'GAME': return 'Game';
+    default: return type ? type.charAt(0).toUpperCase() + type.slice(1).toLowerCase() : 'Unknown';
+  }
+};
+
 /**
  * Detailed view for a specific media item. 
  * Combines data fetched from the external API (TMDB/Jikan) with local tracking state.
@@ -175,9 +203,9 @@ export const MediaDetails = () => {
   };
 
   const detailItems = [
-    { label: 'Studio', value: extras.studio },
-    { label: 'Original Language', value: extras.originalLanguage },
-    ...(media.type ? [{ label: 'Type', value: media.type === 'SERIES' ? 'TV Series' : 'Film' }] : []),
+    ...(extras.studio ? [{ label: getPublisherLabel(media.type), value: extras.studio }] : []),
+    ...(extras.originalLanguage ? [{ label: 'Original Language', value: extras.originalLanguage }] : []),
+    ...(media.type ? [{ label: 'Type', value: getTypeLabel(media.type) }] : []),
     ...(media.releaseDate ? [{ label: 'Release', value: media.releaseDate }] : []),
   ];
 
@@ -231,7 +259,7 @@ export const MediaDetails = () => {
 
             {media.description && (
               <div className="max-w-2xl">
-                <p className="text-lg text-text-base leading-relaxed font-light opacity-90">{media.description}</p>
+                <p className="selectable-text text-lg text-text-base leading-relaxed font-light opacity-90">{media.description}</p>
               </div>
             )}
 

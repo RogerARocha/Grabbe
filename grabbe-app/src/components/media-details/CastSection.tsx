@@ -16,7 +16,7 @@ export const CastSection = ({ cast }: CastSectionProps) => {
       <h3 className="text-xs font-black uppercase tracking-[0.2em] text-text-muted">Main Cast</h3>
       <div className="flex flex-wrap gap-4">
         {cast.map((actor, index) => (
-          <div key={index} className="flex items-center gap-3 bg-surface-container p-2 pr-6 rounded-full border border-outline-variant/10 hover:bg-surface-container-high transition-colors cursor-pointer group">
+          <div key={index} className="selectable-text flex items-center gap-3 bg-surface-container p-2 pr-6 rounded-full border border-outline-variant/10 hover:bg-surface-container-high transition-colors cursor-pointer group">
             <div className="w-10 h-10 rounded-full overflow-hidden grayscale group-hover:grayscale-0 transition-all bg-surface-container-highest flex items-center justify-center">
               <img alt={actor.name} className="w-full h-full object-cover" src={actor.image} />
             </div>

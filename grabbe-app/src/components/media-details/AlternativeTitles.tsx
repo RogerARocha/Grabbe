@@ -12,7 +12,7 @@ export const AlternativeTitles = ({ titles }: AlternativeTitlesProps) => {
         {titles.map((title, i) => (
           <span
             key={i}
-            className={`bg-surface-container border border-outline-variant/10 px-4 py-2 rounded-lg text-sm font-medium text-text-base ${i > 0 ? 'opacity-50 italic' : ''}`}
+            className={`selectable-text bg-surface-container border border-outline-variant/10 px-4 py-2 rounded-lg text-sm font-medium text-text-base ${i > 0 ? 'opacity-50 italic' : ''}`}
           >
             {title}
           </span>

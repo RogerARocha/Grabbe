@@ -42,14 +42,14 @@ export const TopBar = () => {
       />
 
       {/* Search bar — not draggable */}
-      <div className="flex items-center bg-background/70 rounded-lg px-4 py-1.5 h-6 w-80 shrink-0">
+      {/* <div className="flex items-center bg-background/70 rounded-lg px-4 py-1.5 h-6 w-80 shrink-0">
         <span className="material-symbols-outlined text-text-muted text-[20px]">search</span>
         <input
           className="bg-transparent border-none focus:ring-0 text-sm text-text-high placeholder:text-text-muted w-full outline-none ml-2"
           placeholder="Search evaluations..."
           type="text"
         />
-      </div>
+      </div> */}
 
       {/* Draggable spacer right of search */}
       <div

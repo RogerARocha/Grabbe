@@ -56,7 +56,7 @@ export const MediaHeader = ({
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-6">
         <div className="flex flex-col gap-2">
-          <h1 className="text-5xl font-extrabold tracking-tighter text-text-high leading-none">{title}</h1>
+          <h1 className="selectable-text text-5xl font-extrabold tracking-tighter text-text-high leading-none">{title}</h1>
 
           {showRewatchBadge && (
             <div className="flex items-center gap-1.5 self-start px-3 py-1 rounded-full bg-secondary/10 border border-secondary/25 bloom-shadow">

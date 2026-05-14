@@ -172,7 +172,7 @@ export const ConsumptionTimeline = ({
 
                 {/* Review text */}
                 {displayReview && (
-                  <p className="mt-1.5 text-sm text-text-high italic leading-relaxed border-l-2 border-outline-variant/30 pl-3">
+                  <p className="selectable-text mt-1.5 text-sm text-text-high italic leading-relaxed border-l-2 border-outline-variant/30 pl-3">
                     "{displayReview}"
                   </p>
                 )}

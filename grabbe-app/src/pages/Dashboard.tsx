@@ -20,7 +20,7 @@ export const Dashboard = () => {
 
   return (
     <MainLayout>
-      <WelcomeHeader />
+      <WelcomeHeader items={items} />
       <QuickStats items={items} />
       
       <div className="grid grid-cols-12 gap-8">
