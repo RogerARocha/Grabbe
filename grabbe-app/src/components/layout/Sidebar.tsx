@@ -45,7 +45,7 @@ export const Sidebar = () => {
         <div className="mt-auto px-4">
           <button
             onClick={() => setIsModalOpen(true)}
-            className="w-full bg-primary py-3 rounded-lg text-on-primary font-bold flex items-center justify-center gap-2 hover:bg-gradient-to-r hover:from-primary hover:to-tertiary transition-all duration-300"
+            className="w-full bg-primary py-3 rounded-lg text-on-primary font-bold flex items-center justify-center gap-2 hover:brightness-110 transition-all duration-300"
           >
             <span className="material-symbols-outlined text-[18px]">add</span>
             <span className="text-sm">New Evaluation</span>
