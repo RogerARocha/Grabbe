@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useParams, useSearchParams, useLocation } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { useParams, useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import { MainLayout } from '../components/layout/MainLayout';
 import { Breadcrumbs } from '../components/shared/Breadcrumbs';
 import { EvaluationModal } from '../components/modals/EvaluationModal';
@@ -10,7 +10,7 @@ import { ActionBar } from '../components/media-details/ActionBar';
 import { DetailsGrid } from '../components/media-details/DetailsGrid';
 import { CastSection } from '../components/media-details/CastSection';
 import { AlternativeTitles } from '../components/media-details/AlternativeTitles';
-import { getTrackingByExternalId, removeTrackingByExternalId, saveTracking, startRewatch } from '../lib/db';
+import { getTrackingByExternalId, removeTrackingByExternalId, saveTracking, startRewatch, getMediaByExternalId, linkMediaToRealId, unlinkMedia } from '../lib/db';
 import { ConsumptionTimeline } from '../components/media-details/ConsumptionTimeline';
 
 const getPublisherLabel = (type?: string) => {
@@ -51,6 +51,13 @@ export const MediaDetails = () => {
   const sourceApi = searchParams.get('source');
   const type = searchParams.get('type');
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'add' | 'update'>('add');
@@ -105,14 +112,22 @@ export const MediaDetails = () => {
 
     setIsLoading(true);
     fetch(`http://localhost:5244/api/v1/media/${sourceApi}/${type}/${externalId}`)
-      .then(res => res.json())
       .then(res => {
+        if (!res.ok) throw new Error('Failed to load from BFF');
+        return res.json();
+      })
+      .then(res => {
+        if (!res.data) throw new Error('Empty data from BFF');
         setMedia(res.data);
         setTracking((prev: any) => ({ ...prev, totalProgress: res.data.totalProgressUnits || 0 }));
         setIsLoading(false);
       })
-      .catch(err => {
-        console.error('Failed to fetch media details', err);
+      .catch(async err => {
+        console.warn('BFF fallback triggered:', err);
+        const localMedia = await getMediaByExternalId(externalId, sourceApi);
+        if (localMedia) {
+          setMedia(localMedia);
+        }
         setIsLoading(false);
       });
   }, [externalId, sourceApi, type]);
@@ -202,6 +217,62 @@ export const MediaDetails = () => {
     }
   };
 
+  const runSearch = async (q: string) => {
+    if (!q.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    setIsSearching(true);
+    try {
+      const response = await fetch(`http://localhost:5244/api/v1/search?query=${encodeURIComponent(q)}&page=1`);
+      if (!response.ok) throw new Error('Search failed');
+      const data = await response.json();
+      setSearchResults(data.data || []);
+      setShowDropdown(true);
+    } catch (error) {
+      console.error('Failed to search:', error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setSearchQuery(val);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => runSearch(val), 400);
+  };
+
+  const handleSelectResult = async (result: any) => {
+    if (!tracking.mediaId) return;
+    setSearchQuery(result.title);
+    setShowDropdown(false);
+    setIsSearching(true);
+    try {
+      await linkMediaToRealId(tracking.mediaId, result.externalId, result.sourceApi, result.type, result.title, result.coverImageUrl || null);
+      // Replace current URL with new valid URL to refresh the whole page
+      navigate(`/media/${result.externalId}?source=${result.sourceApi}&type=${result.type}`, { replace: true });
+      window.location.reload(); // Ensure everything is fully refreshed, as the library cache might be stale
+    } catch (err) {
+      console.error("Link failed", err);
+      alert("Failed to link media. Check console.");
+      setIsSearching(false);
+    }
+  };
+
+  const handleUnlink = async () => {
+    if (!tracking.mediaId || !window.confirm("Are you sure you want to unlink this media? It will clear the metadata and allow you to search again.")) return;
+    try {
+      const newExternalId = await unlinkMedia(tracking.mediaId);
+      navigate(`/media/${newExternalId}?source=${sourceApi}&type=${media.type}`, { replace: true });
+      window.location.reload();
+    } catch (err) {
+      console.error("Unlink failed", err);
+      alert("Failed to unlink media.");
+    }
+  };
+
   const detailItems = [
     ...(extras.studio ? [{ label: getPublisherLabel(media.type), value: extras.studio }] : []),
     ...(extras.originalLanguage ? [{ label: 'Original Language', value: extras.originalLanguage }] : []),
@@ -211,6 +282,8 @@ export const MediaDetails = () => {
 
   const fromLabel = location.state?.from || 'Library';
   const fromPath = location.state?.path || '/library';
+  
+  const isBasicImport = !media.coverImageUrl || externalId?.startsWith('imported_');
 
   return (
     <MainLayout>
@@ -222,7 +295,13 @@ export const MediaDetails = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-12 items-start">
           <div className="md:col-span-5 lg:col-span-4 flex flex-col gap-6">
-            <HeroCover title={media.title} imageUrl={media.coverImageUrl ?? ''} />
+            {isBasicImport ? (
+              <div className="aspect-[2/3] rounded-lg overflow-hidden bloom-shadow transition-all duration-300 bg-surface-elevated flex items-center justify-center">
+                <span className="material-symbols-outlined text-6xl text-text-muted opacity-30">image</span>
+              </div>
+            ) : (
+              <HeroCover title={media.title} imageUrl={media.coverImageUrl ?? ''} />
+            )}
             {isInLibrary && (
               <ProgressTracker
                 currentProgress={tracking.currentProgress}
@@ -257,9 +336,58 @@ export const MediaDetails = () => {
               mediaType={media.type}
             />
 
-            {media.description && (
+            {media.description && !isBasicImport && (
               <div className="max-w-2xl">
                 <p className="selectable-text text-lg text-text-base leading-relaxed font-light opacity-90">{media.description}</p>
+              </div>
+            )}
+            
+            {isBasicImport && (
+              <div className="max-w-2xl p-5 border border-sky-500/30 bg-sky-500/10 rounded-xl flex flex-col gap-4">
+                <p className="text-sm text-text-base font-medium leading-relaxed">
+                  We not finded the details online (poster, synopsis) for this media. You can try to search and link it manually later. If you can't find it, don't worry: your data, notes and progress are already saved securely.
+                </p>
+                <div className="flex flex-col gap-2 relative">
+                  <div className="relative">
+                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-sky-400">search</span>
+                    <input
+                      type="text"
+                      placeholder="Search by title to link..."
+                      className="w-full bg-background border border-sky-500/30 text-text-high text-sm pl-10 pr-10 py-3 rounded-lg focus:outline-none focus:border-sky-500 transition-colors"
+                      value={searchQuery}
+                      onChange={handleQueryChange}
+                      onFocus={() => { if (searchResults.length > 0) setShowDropdown(true); }}
+                    />
+                    {isSearching && <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-sky-500/30 border-t-sky-500 animate-spin" />}
+                  </div>
+                  
+                  {showDropdown && searchResults.length > 0 && (
+                    <div className="absolute top-[100%] left-0 w-full mt-2 bg-surface rounded-lg border border-outline-variant/30 overflow-hidden z-50 max-h-[240px] overflow-y-auto bloom-shadow">
+                      {searchResults.map((res) => (
+                        <div 
+                          key={res.externalId} 
+                          onClick={() => handleSelectResult(res)}
+                          className="flex gap-3 p-3 cursor-pointer hover:bg-surface-container transition-colors border-b border-outline-variant/10 last:border-0"
+                        >
+                          {res.coverImageUrl ? (
+                            <img src={res.coverImageUrl} className="w-10 h-14 object-cover rounded bg-background" alt="" />
+                          ) : (
+                            <div className="w-10 h-14 bg-background rounded flex items-center justify-center shrink-0">
+                              <span className="material-symbols-outlined text-text-muted">image</span>
+                            </div>
+                          )}
+                          <div className="flex flex-col justify-center overflow-hidden">
+                            <span className="text-sm font-bold text-text-high truncate">{res.title}</span>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-[10px] font-bold uppercase text-text-muted bg-background px-1.5 py-0.5 rounded">{res.type}</span>
+                              <span className="text-[10px] text-text-muted">{res.releaseDate?.substring(0, 4) || 'N/A'}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -277,6 +405,18 @@ export const MediaDetails = () => {
             <DetailsGrid items={detailItems} />
             <CastSection cast={extras.cast} />
             <AlternativeTitles titles={extras.alternativeTitles} />
+
+            {isInLibrary && !isBasicImport && (
+              <div className="pt-8 flex justify-end">
+                <button 
+                  onClick={handleUnlink}
+                  className="text-xs font-bold text-text-muted hover:text-warning transition-colors flex items-center gap-1 opacity-60 hover:opacity-100"
+                >
+                  <span className="material-symbols-outlined text-[14px]">link_off</span>
+                  Incorrect metadata? Unlink this media
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

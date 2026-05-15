@@ -454,3 +454,51 @@ export async function startRewatch(trackingId: string, mediaId: string): Promise
 
     return newRewatchCount;
 }
+
+/**
+ * Retrieves the base Media record by its external ID and source API.
+ * Useful as a fallback when the BFF cannot fetch rich metadata.
+ */
+export async function getMediaByExternalId(externalId: string, sourceApi: string) {
+    const db = await getDb();
+    const media = await db.select<any[]>("SELECT * FROM Media WHERE external_id = $1 AND source_api = $2 LIMIT 1", [externalId, sourceApi]);
+    if (!media || media.length === 0) return null;
+    
+    return {
+        id: media[0].id,
+        externalId: media[0].external_id,
+        sourceApi: media[0].source_api,
+        type: media[0].type,
+        title: media[0].title,
+        description: media[0].description,
+        coverImageUrl: media[0].cover_image_path,
+        releaseDate: media[0].release_date,
+        genres: media[0].genres ? JSON.parse(media[0].genres) : [],
+    };
+}
+
+/**
+ * Updates the external_id and source_api of a dummy imported Media item
+ * to link it to a real external API item. Also updates the cache fields.
+ */
+export async function linkMediaToRealId(mediaId: string, newExternalId: string, newSourceApi: string, newType: string, newTitle: string, newCoverUrl: string | null) {
+    const db = await getDb();
+    await db.execute(
+        "UPDATE Media SET external_id = $1, source_api = $2, type = $3, title = $4, cover_image_path = $5 WHERE id = $6",
+        [newExternalId, newSourceApi, newType, newTitle, newCoverUrl, mediaId]
+    );
+}
+
+/**
+ * Unlinks a media item by reverting its external_id to a dummy ID and clearing rich metadata.
+ * This allows the user to re-link it if they made a mistake.
+ */
+export async function unlinkMedia(mediaId: string): Promise<string> {
+    const db = await getDb();
+    const newExternalId = `imported_unlinked_${uuidv4()}`;
+    await db.execute(
+        "UPDATE Media SET external_id = $1, cover_image_path = NULL, description = NULL, release_date = NULL WHERE id = $2",
+        [newExternalId, mediaId]
+    );
+    return newExternalId;
+}

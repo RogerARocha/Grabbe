@@ -7,7 +7,9 @@ import { MediaDetails } from './pages/MediaDetails';
 import './App.css';
 import { ComingSoon } from './pages/ComingSoon';
 import { Discover } from './pages/Discover';
+import { Settings } from './pages/Settings';
 import { initDb } from './lib/db';
+import { ImportProvider } from './contexts/ImportContext';
 
 /**
  * Main application entry point.
@@ -23,7 +25,8 @@ function App() {
   if (!dbReady) return <div className="flex items-center justify-center min-h-screen text-text-high">Loading Database...</div>;
 
   return (
-    <BrowserRouter>
+    <ImportProvider>
+      <BrowserRouter>
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/library" element={<Library />} />
@@ -34,7 +37,7 @@ function App() {
         {/* Views currently in development (Coming Soon) */}
         <Route path="/analytics" element={<ComingSoon feature="analytics" />} />
         <Route path="/community" element={<ComingSoon feature="community" />} />
-        <Route path="/settings" element={<ComingSoon feature="settings" />} />
+        <Route path="/settings" element={<Settings />} />
         <Route path="/profile" element={<ComingSoon feature="profile" />} />
         
         {/* Specific categories */}
@@ -45,6 +48,7 @@ function App() {
         <Route path="/books" element={<ComingSoon feature="books" />} />
       </Routes>
     </BrowserRouter>
+    </ImportProvider>
   );
 }
 

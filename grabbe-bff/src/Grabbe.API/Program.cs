@@ -26,6 +26,8 @@ builder.Services.AddSwaggerGen(options =>
 });
 builder.Services.AddScoped<Grabbe.API.Features.MediaSearch.SearchAggregationService>();
 builder.Services.AddScoped<Grabbe.API.Features.MediaDetails.DetailsService>();
+builder.Services.AddScoped<MalImportService>();
+builder.Services.AddScoped<LetterboxdImportService>();
 
 builder.Services.AddHttpClient<TmdbClient>(client =>
 {
