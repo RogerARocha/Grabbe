@@ -10,6 +10,8 @@ export const Settings = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    e.target.value = '';
+
     try {
       setIsImporting(true);
       
@@ -23,6 +25,7 @@ export const Settings = () => {
       alert('Error during import. Check console.');
     } finally {
       setIsImporting(false);
+      setProgress({ current: 0, total: 0 });
     }
   };
 

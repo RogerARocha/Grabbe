@@ -88,6 +88,14 @@ export async function initDb() {
     );
   `);
 
+  // Enforce uniqueness at the DB level so concurrent upsert calls and
+  // re-imports can never produce duplicate (external_id, source_api) pairs.
+  // IF NOT EXISTS makes this idempotent across app restarts.
+  await db.execute(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_media_external_source
+      ON Media(external_id, source_api);
+  `);
+
   console.log("Database initialized and migrations ran successfully.");
 }
 
@@ -98,43 +106,58 @@ export async function initDb() {
  */
 export async function upsertMedia(media: any) {
   const db = await getDb();
+
+  // --- Primary lookup: resolved external ID ---
   const existingResult = await db.select<any[]>(
     "SELECT id FROM Media WHERE external_id = $1 AND source_api = $2 LIMIT 1",
     [media.externalId, media.sourceApi]
   );
-  
-  let mediaId;
   if (existingResult && existingResult.length > 0) {
-    mediaId = existingResult[0].id;
-    // We could update it, but let's just keep the ID for now
-  } else {
-    mediaId = uuidv4();
-    await db.execute(
-      `INSERT INTO Media (id, external_id, source_api, type, title, description, cover_image_path, release_date, genres) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-      [
-        mediaId, 
-        media.externalId, 
-        media.sourceApi, 
-        media.type, 
-        media.title, 
-        media.description, 
-        media.coverImageUrl, 
-        media.releaseDate, 
-        JSON.stringify(media.genres)
-      ]
-    );
+    return existingResult[0].id;
   }
-  return mediaId;
+
+  // --- Fallback lookup: title + type (only for unresolved placeholder imports) ---
+  // When the BFF search fails, externalId is 'imported_<uuid>' — a new random value
+  // each time. Without this guard, every re-import of the same file creates a new row.
+  const isPlaceholder = media.externalId?.startsWith('imported_');
+  if (isPlaceholder) {
+    const byTitle = await db.select<any[]>(
+      "SELECT id FROM Media WHERE title = $1 AND type = $2 LIMIT 1",
+      [media.title, media.type]
+    );
+    if (byTitle && byTitle.length > 0) {
+      return byTitle[0].id;
+    }
+  }
+
+  // --- Insert: INSERT OR IGNORE respects the DB-level unique index atomically ---
+  const mediaId = uuidv4();
+  await db.execute(
+    `INSERT OR IGNORE INTO Media (id, external_id, source_api, type, title, description, cover_image_path, release_date, genres)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+    [
+      mediaId,
+      media.externalId,
+      media.sourceApi,
+      media.type,
+      media.title,
+      media.description,
+      media.coverImageUrl,
+      media.releaseDate,
+      JSON.stringify(media.genres)
+    ]
+  );
+
+  // INSERT OR IGNORE is a no-op when there's a conflict, so re-fetch the winner.
+  const winner = await db.select<any[]>(
+    "SELECT id FROM Media WHERE external_id = $1 AND source_api = $2 LIMIT 1",
+    [media.externalId, media.sourceApi]
+  );
+  return winner && winner.length > 0 ? winner[0].id : mediaId;
 }
 
 /**
  * Saves or updates tracking progress for a media item.
- * 
- * Algorithm:
- * 1. Upserts the core `UserTracking` record.
- * 2. Manages `ConsumptionSession` by closing existing active sessions or opening new ones based on dates.
- * 3. Updates the `Ranking` table atomically if a score is provided.
  * 
  * @param mediaId The internal UUID of the media
  * @param status The current tracking status (e.g., CONSUMING, COMPLETED)

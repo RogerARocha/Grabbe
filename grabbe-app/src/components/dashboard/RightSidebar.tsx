@@ -54,11 +54,11 @@ export const RightSidebar = ({ items = [] }: { items?: any[] }) => {
         </button>
       </section>
 
-      {/* Recently Dropped */}
+      {/* Last Dropped */}
       <section className="bg-surface rounded-xl p-6 bloom-shadow border border-outline-variant/20">
         <h2 className="text-lg font-bold mb-6 flex items-center gap-2 text-text-high">
           <span className="material-symbols-outlined text-error">delete_sweep</span>
-          Recently Dropped
+          Last Dropped
         </h2>
         
         {droppedItems.length > 0 ? (

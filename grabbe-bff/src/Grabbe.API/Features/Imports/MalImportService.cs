@@ -10,16 +10,16 @@ public class MalImportService
 
         foreach (var anime in doc.Descendants("anime"))
         {
-            // Mapeamento de Status do MAL para o padrão do Grabbe
+            // Map MAL's status strings to the canonical Grabbe status enum values.
             var malStatus = anime.Element("my_status")?.Value;
             var grabbeStatus = malStatus switch
             {
-                "Completed" => "COMPLETED",
-                "Watching" => "CONSUMING",
-                "On-Hold" => "ON HOLD",
-                "Dropped" => "DROPPED",
+                "Completed"     => "COMPLETED",
+                "Watching"      => "CONSUMING",
+                "On-Hold"       => "ON HOLD",
+                "Dropped"       => "DROPPED",
                 "Plan to Watch" => "PLANNED",
-                _ => "PLANNED"
+                _               => "PLANNED"
             };
 
             _ = int.TryParse(anime.Element("my_score")?.Value, out int score);
@@ -28,23 +28,23 @@ public class MalImportService
 
             importedList.Add(new ImportedMediaDto
             {
-                Title = anime.Element("series_title")?.Value?.Trim(),
-                Type = "ANIME",
-                Status = grabbeStatus,
-                Score = score,
-                Progress = progress,
+                Title            = anime.Element("series_title")?.Value?.Trim(),
+                Type             = "ANIME",
+                Status           = grabbeStatus,
+                Score            = score,
+                Progress         = progress,
                 TotalProgressUnits = totalProgress == 0 ? null : totalProgress,
-                StartDate = ParseMalDate(anime.Element("my_start_date")?.Value),
-                EndDate = ParseMalDate(anime.Element("my_finish_date")?.Value)
+                StartDate        = ParseMalDate(anime.Element("my_start_date")?.Value),
+                EndDate          = ParseMalDate(anime.Element("my_finish_date")?.Value)
             });
         }
+
         return importedList;
     }
 
-    private string ParseMalDate(string dateStr)
+    private static string ParseMalDate(string dateStr)
     {
-        // O MAL as vezes manda "0000-00-00" quando não há data
         if (string.IsNullOrWhiteSpace(dateStr) || dateStr.Contains("0000")) return null;
-        return dateStr; 
+        return dateStr;
     }
 }

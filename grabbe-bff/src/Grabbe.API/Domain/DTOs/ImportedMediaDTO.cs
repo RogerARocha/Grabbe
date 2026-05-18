@@ -1,7 +1,7 @@
 public class ImportedMediaDto
 {
     public string Title { get; set; }
-    public string Type { get; set; } // "ANIME", "MOVIE", etc.
+    public string Type { get; set; }
     public string Status { get; set; }
     public int Score { get; set; }
     public int Progress { get; set; }
