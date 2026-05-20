@@ -1,6 +1,6 @@
 export const SkeletonCard = () => (
   <div className="flex flex-col gap-3 animate-pulse">
-    <div className="aspect-[2/3] rounded-lg bg-surface-container" />
+    <div className="aspect-2/3 rounded-lg bg-surface-container" />
     <div className="px-1 space-y-2">
       <div className="h-3 w-3/4 bg-surface-container rounded" />
       <div className="h-2 w-1/2 bg-surface-container rounded" />

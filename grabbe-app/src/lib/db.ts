@@ -525,3 +525,105 @@ export async function unlinkMedia(mediaId: string): Promise<string> {
     );
     return newExternalId;
 }
+
+/**
+ * Compiles and exports the user's entire local library into a structured, relational JSON backup format.
+ * Executes parallel, highly performant select statements across Media, UserTracking, Ranking, ConsumptionSession,
+ * and TrackingHistory, and maps them in memory.
+ * 
+ * @returns A promise resolving to the complete nested JSON backup object.
+ */
+export async function exportLibraryData() {
+  const db = await getDb();
+
+  // Perform parallel, highly optimized flat queries for all relevant tables
+  const mediaList = await db.select<any[]>("SELECT * FROM Media");
+  const trackingList = await db.select<any[]>("SELECT * FROM UserTracking");
+  const sessionsList = await db.select<any[]>("SELECT * FROM ConsumptionSession");
+  const rankingsList = await db.select<any[]>("SELECT * FROM Ranking");
+  const historyList = await db.select<any[]>("SELECT * FROM TrackingHistory");
+
+  // Map Media records by their primary key ID for O(1) in-memory lookup
+  const mediaMap = new Map<string, any>();
+  for (const m of mediaList) {
+    mediaMap.set(m.id, m);
+  }
+
+  // Map Ranking evaluations by media ID for direct linking
+  const rankingMap = new Map<string, any>();
+  for (const r of rankingsList) {
+    rankingMap.set(r.media_id, r);
+  }
+
+  // Group Consumption Sessions chronologically by their parent tracking tracking_id
+  const sessionsGroup = new Map<string, any[]>();
+  for (const s of sessionsList) {
+    if (!sessionsGroup.has(s.tracking_id)) {
+      sessionsGroup.set(s.tracking_id, []);
+    }
+    sessionsGroup.get(s.tracking_id)!.push({
+      session_number: s.session_number,
+      start_date: s.start_date,
+      finish_date: s.finish_date,
+      is_active: s.is_active
+    });
+  }
+
+  // Group Tracking History event snapshots by their parent tracking tracking_id
+  const historyGroup = new Map<string, any[]>();
+  for (const h of historyList) {
+    if (!historyGroup.has(h.tracking_id)) {
+      historyGroup.set(h.tracking_id, []);
+    }
+    historyGroup.get(h.tracking_id)!.push({
+      event_type: h.event_type,
+      previous_value: h.previous_value,
+      new_value: h.new_value,
+      event_date: h.event_date
+    });
+  }
+
+  // Build the nested collection representing tracked items with full relational fidelity
+  const items = [];
+  for (const t of trackingList) {
+    const m = mediaMap.get(t.media_id);
+    if (!m) continue; // Safety guard: ignore tracking records without active media definitions
+
+    const r = rankingMap.get(t.media_id);
+    const sessions = sessionsGroup.get(t.id) || [];
+    const history = historyGroup.get(t.id) || [];
+
+    items.push({
+      media: {
+        external_id: m.external_id,
+        source_api: m.source_api,
+        type: m.type,
+        title: m.title,
+        description: m.description,
+        cover_image_path: m.cover_image_path,
+        release_date: m.release_date,
+        genres: m.genres ? JSON.parse(m.genres) : []
+      },
+      tracking: {
+        status: t.status,
+        progress: t.progress,
+        total_progress: t.total_progress,
+        rewatch_count: t.rewatch_count,
+        review_text: t.review_text,
+        updated_at: t.updated_at
+      },
+      ranking: r ? {
+        score: r.score,
+        review_text: r.review_text
+      } : null,
+      sessions,
+      history
+    });
+  }
+
+  return {
+    version: "1.0",
+    exportedAt: new Date().toISOString(),
+    items
+  };
+}

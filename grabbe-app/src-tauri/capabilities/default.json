@@ -6,6 +6,21 @@
   "permissions": [
     "core:default",
     "opener:default",
+    "core:path:default",
+    {
+      "identifier": "opener:allow-open-path",
+      "allow": [
+        {
+          "path": "$DOWNLOAD"
+        },
+        {
+          "path": "$DOWNLOAD/*"
+        },
+        {
+          "path": "$DOWNLOAD/**"
+        }
+      ]
+    },
     "sql:default",
     "sql:allow-load",
     "sql:allow-execute",

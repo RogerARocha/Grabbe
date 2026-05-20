@@ -2,10 +2,10 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '../components/layout/MainLayout';
 import { MediaCard } from '../components/shared/MediaCard';
-import { TYPE_FILTERS, MediaType } from '../components/shared/types';
+import { MediaType } from '../components/shared/types';
 import { TypeFilters } from '../components/shared/TypeFilters';
 import { DiscoverResult } from '../components/discover/data';
-import { SkeletonCard, EmptyState, IdleState } from '../components/discover/DiscorverStates';
+import { SkeletonCard, EmptyState, IdleState } from '../components/discover/DiscoverStates';
 
 /**
  * Discovery page allowing users to search across multiple external APIs.
