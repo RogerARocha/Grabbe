@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getLibraryItems } from '../../lib/db';
 import { MediaCard } from '../shared/MediaCard';
@@ -8,15 +8,16 @@ import type { MediaStatus, MediaType } from '../shared/types';
 interface LibraryGridProps {
   activeTab: MediaType;
   activeStatus: MediaStatus | 'ALL';
+  searchQuery: string;
+  sortBy: string;
 }
-
-
 
 /**
  * Displays the library collection as a responsive grid of media cards.
- * Implements client-side cross-filtering by type and status.
+ * Implements client-side cross-filtering by type and status, full-text
+ * search across title/genre/franchise fields, and multi-mode sorting.
  */
-export const LibraryGrid = ({ activeTab, activeStatus }: LibraryGridProps) => {
+export const LibraryGrid = ({ activeTab, activeStatus, searchQuery, sortBy }: LibraryGridProps) => {
   const [displayCount, setDisplayCount] = useState(12);
   const [data, setData] = useState<any[]>([]);
   const navigate = useNavigate();
@@ -25,30 +26,80 @@ export const LibraryGrid = ({ activeTab, activeStatus }: LibraryGridProps) => {
     getLibraryItems().then(items => {
       setData(items || []);
     });
+    // Reset pagination when filters change
+    setDisplayCount(12);
   }, [activeTab, activeStatus]);
 
+  // Also reset pagination on search/sort change
+  useEffect(() => {
+    setDisplayCount(12);
+  }, [searchQuery, sortBy]);
+
   /**
-   * O(N) cross-filtering strategy.
-   * Both type and status filters must match unless set to 'ALL'.
+   * O(N) cross-filtering, search, and sort pipeline.
+   * All transforms are memoized so they only recompute when inputs change.
    */
-  const filteredData = data.filter(item => {
-    const matchesTab = activeTab === 'ALL' || item.type === activeTab;
-    const matchesStatus = activeStatus === 'ALL' || item.status === activeStatus;
-    return matchesTab && matchesStatus;
-  });
+  const processedData = useMemo(() => {
+    //Filter by type and status
+    let result = data.filter(item => {
+      const matchesTab = activeTab === 'ALL' || item.type === activeTab;
+      const matchesStatus = activeStatus === 'ALL' || item.status === activeStatus;
+      return matchesTab && matchesStatus;
+    });
 
-  const displayedItems = filteredData.slice(0, displayCount);
-  const hasMore = displayCount < filteredData.length;
+    //Filter by search query (title, genres, franchise)
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      result = result.filter(item => {
+        const inTitle = item.title?.toLowerCase().includes(q);
+        const inGenres = item.genres?.toLowerCase().includes(q);
+        const inFranchise = item.franchise?.toLowerCase().includes(q);
+        return inTitle || inGenres || inFranchise;
+      });
+    }
 
-  if (filteredData.length === 0) {
+    // Sort
+    result = [...result].sort((a, b) => {
+      switch (sortBy) {
+        case 'last_added':
+          // Media.created_at DESC — newest item added first
+          return new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime();
+        case 'first_added':
+          // Media.created_at ASC — oldest item added first
+          return new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime();
+        case 'az':
+          return (a.title ?? '').localeCompare(b.title ?? '');
+        case 'za':
+          return (b.title ?? '').localeCompare(a.title ?? '');
+        case 'last_updated':
+        default:
+          // UserTracking.updated_at DESC — matches the default DB order
+          return new Date(b.updated_at ?? 0).getTime() - new Date(a.updated_at ?? 0).getTime();
+      }
+    });
+
+    return result;
+  }, [data, activeTab, activeStatus, searchQuery, sortBy]);
+
+  const displayedItems = processedData.slice(0, displayCount);
+  const hasMore = displayCount < processedData.length;
+
+  if (processedData.length === 0) {
+    const isSearching = searchQuery.trim().length > 0;
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
         <div className="w-20 h-20 rounded-full bg-surface-container flex items-center justify-center mb-6 border border-outline-variant/20">
-          <span className="material-symbols-outlined text-3xl text-text-muted">folder_off</span>
+          <span className="material-symbols-outlined text-3xl text-text-muted">
+            {isSearching ? 'search_off' : 'folder_off'}
+          </span>
         </div>
-        <h3 className="text-lg font-bold text-text-high mb-2">No entries found</h3>
+        <h3 className="text-lg font-bold text-text-high mb-2">
+          {isSearching ? `No results for "${searchQuery}"` : 'No entries found'}
+        </h3>
         <p className="text-sm text-text-muted">
-          Try changing your filters or add new media from the Discover page.
+          {isSearching
+            ? 'Try a different title, genre, or franchise name.'
+            : 'Try changing your filters or add new media from the Discover page.'}
         </p>
       </div>
     );

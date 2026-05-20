@@ -11,6 +11,8 @@ export const Library = () => {
   const [activeTab, setActiveTab] = useState<MediaType>('ALL');
   const [activeStatus, setActiveStatus] = useState<MediaStatus | 'ALL'>('ALL');
   const [count, setCount] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('last_added');
 
   useEffect(() => {
     getMediaCount().then(setCount).catch(console.error);
@@ -20,15 +22,22 @@ export const Library = () => {
     <MainLayout>
       <LibraryHeader count={count} />
       
-      <LibraryFilters activeTab={activeTab} 
+      <LibraryFilters 
+        activeTab={activeTab} 
         setActiveTab={setActiveTab} 
         activeStatus={activeStatus} 
         setActiveStatus={setActiveStatus} 
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
       />
 
       <LibraryGrid 
         activeTab={activeTab}
         activeStatus={activeStatus}
+        searchQuery={searchQuery}
+        sortBy={sortBy}
       />
     </MainLayout>
   );
