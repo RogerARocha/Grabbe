@@ -10,6 +10,7 @@ import { Discover } from './pages/Discover';
 import { Settings } from './pages/Settings';
 import { initDb } from './lib/db';
 import { ImportProvider } from './contexts/ImportContext';
+import { ToastProvider } from './contexts/ToastContext';
 
 /**
  * Main application entry point.
@@ -26,7 +27,8 @@ function App() {
 
   return (
     <ImportProvider>
-      <BrowserRouter>
+      <ToastProvider>
+        <BrowserRouter>
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/library" element={<Library />} />
@@ -48,6 +50,7 @@ function App() {
         <Route path="/books" element={<ComingSoon feature="books" />} />
       </Routes>
     </BrowserRouter>
+      </ToastProvider>
     </ImportProvider>
   );
 }

@@ -70,6 +70,20 @@ export const EvaluationModal = ({
     }
   }, [isOpen, initialStatus, initialScore, initialProgress, media, initialStartDate, initialEndDate, initialReviewText]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const isAddMode = mode === 'add';
@@ -160,8 +174,18 @@ export const EvaluationModal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-[420px] bg-surface rounded-[12px] p-6 bloom-shadow flex flex-col gap-6 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div 
+        onClick={onClose}
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200"
+      />
+      
+      {/* Modal Card */}
+      <div 
+        onClick={(e) => e.stopPropagation()} 
+        className="relative w-[420px] bg-surface rounded-[12px] p-6 bloom-shadow flex flex-col gap-6 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto z-10"
+      >
         
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-text-high tracking-tight">{title}</h2>

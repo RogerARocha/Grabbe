@@ -12,6 +12,8 @@ import { CastSection } from '../components/media-details/CastSection';
 import { AlternativeTitles } from '../components/media-details/AlternativeTitles';
 import { getTrackingByExternalId, removeTrackingByExternalId, saveTracking, startRewatch, getMediaByExternalId, linkMediaToRealId, unlinkMedia } from '../lib/db';
 import { ConsumptionTimeline } from '../components/media-details/ConsumptionTimeline';
+import { useToast } from '../contexts/ToastContext';
+import { ConfirmationModal } from '../components/modals/ConfirmationModal';
 
 const getPublisherLabel = (type?: string) => {
   switch (type) {
@@ -63,6 +65,22 @@ export const MediaDetails = () => {
   const [modalMode, setModalMode] = useState<'add' | 'update'>('add');
   const [media, setMedia] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { showToast } = useToast();
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmLabel: string;
+    type: 'danger' | 'warning' | 'info';
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    confirmLabel: 'Confirm',
+    type: 'info',
+    onConfirm: () => {}
+  });
 
   const [isInLibrary, setIsInLibrary] = useState(false);
   const [tracking, setTracking] = useState<any>({
@@ -161,13 +179,21 @@ export const MediaDetails = () => {
     setIsModalOpen(true);
   };
 
-  const handleRemoveClick = async () => {
-    if (window.confirm('Are you sure you want to remove this from your library?')) {
-      if (externalId && sourceApi) {
-        await removeTrackingByExternalId(externalId, sourceApi);
-        refreshTracking();
+  const handleRemoveClick = () => {
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Remove from Library',
+      message: 'Are you sure you want to remove this from your library? This will permanently delete all tracking progress, history, and review entries associated with this media.',
+      confirmLabel: 'Remove from Library',
+      type: 'danger',
+      onConfirm: async () => {
+        if (externalId && sourceApi) {
+          await removeTrackingByExternalId(externalId, sourceApi);
+          refreshTracking();
+        }
+        setConfirmConfig(prev => ({ ...prev, isOpen: false }));
       }
-    }
+    });
   };
 
   /**
@@ -256,21 +282,31 @@ export const MediaDetails = () => {
       window.location.reload(); // Ensure everything is fully refreshed, as the library cache might be stale
     } catch (err) {
       console.error("Link failed", err);
-      alert("Failed to link media. Check console.");
+      showToast("Failed to link media. Check console for details.", "error");
       setIsSearching(false);
     }
   };
 
   const handleUnlink = async () => {
-    if (!tracking.mediaId || !window.confirm("Are you sure you want to unlink this media? It will clear the metadata and allow you to search again.")) return;
-    try {
-      const newExternalId = await unlinkMedia(tracking.mediaId);
-      navigate(`/media/${newExternalId}?source=${sourceApi}&type=${media.type}`, { replace: true });
-      window.location.reload();
-    } catch (err) {
-      console.error("Unlink failed", err);
-      alert("Failed to unlink media.");
-    }
+    if (!tracking.mediaId) return;
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Unlink Metadata',
+      message: 'Are you sure you want to unlink this media? This will clear the online details and allow you to search and link a different item manually.',
+      confirmLabel: 'Unlink Media',
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          const newExternalId = await unlinkMedia(tracking.mediaId!);
+          navigate(`/media/${newExternalId}?source=${sourceApi}&type=${media.type}`, { replace: true });
+          window.location.reload();
+        } catch (err) {
+          console.error("Unlink failed", err);
+          showToast("Failed to unlink media.", "error");
+        }
+        setConfirmConfig(prev => ({ ...prev, isOpen: false }));
+      }
+    });
   };
 
   const detailItems = [
@@ -296,7 +332,7 @@ export const MediaDetails = () => {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-12 items-start">
           <div className="md:col-span-5 lg:col-span-4 flex flex-col gap-6">
             {isBasicImport ? (
-              <div className="aspect-[2/3] rounded-lg overflow-hidden bloom-shadow transition-all duration-300 bg-surface-elevated flex items-center justify-center">
+              <div className="aspect-2/3 rounded-lg overflow-hidden bloom-shadow transition-all duration-300 bg-surface-elevated flex items-center justify-center">
                 <span className="material-symbols-outlined text-6xl text-text-muted opacity-30">image</span>
               </div>
             ) : (
@@ -362,7 +398,7 @@ export const MediaDetails = () => {
                   </div>
                   
                   {showDropdown && searchResults.length > 0 && (
-                    <div className="absolute top-[100%] left-0 w-full mt-2 bg-surface rounded-lg border border-outline-variant/30 overflow-hidden z-50 max-h-[240px] overflow-y-auto bloom-shadow">
+                    <div className="absolute top-full left-0 w-full mt-2 bg-surface rounded-lg border border-outline-variant/30 overflow-hidden z-50 max-h-60 overflow-y-auto bloom-shadow">
                       {searchResults.map((res) => (
                         <div 
                           key={res.externalId} 
@@ -433,6 +469,15 @@ export const MediaDetails = () => {
         initialStartDate={tracking.startDate}
         initialEndDate={tracking.endDate}
         initialReviewText={tracking.reviewText}
+      />
+      <ConfirmationModal
+        isOpen={confirmConfig.isOpen}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        confirmLabel={confirmConfig.confirmLabel}
+        type={confirmConfig.type}
+        onConfirm={confirmConfig.onConfirm}
+        onCancel={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
       />
     </MainLayout>
   );

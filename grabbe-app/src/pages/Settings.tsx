@@ -5,9 +5,11 @@ import { useImportProgress } from '../contexts/ImportContext';
 import { exportLibraryData } from '../lib/db';
 import { openPath } from '@tauri-apps/plugin-opener';
 import { downloadDir, join } from '@tauri-apps/api/path';
+import { useToast } from '../contexts/ToastContext';
 
 export const Settings = () => {
   const { isImporting, setIsImporting, setProgress } = useImportProgress();
+  const { showToast } = useToast();
   const [downloadedFile, setDownloadedFile] = useState<string | null>(null);
   const [showNotification, setShowNotification] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -26,10 +28,10 @@ export const Settings = () => {
         setProgress({ current, total });
       });
 
-      alert('Import completed successfully!');
+      showToast('Import completed successfully!', 'success');
     } catch (error) {
       console.error('Import failed:', error);
-      alert('Error during import. Check console.');
+      showToast('Error during import. Check console for details.', 'error');
     } finally {
       setIsImporting(false);
       setProgress({ current: 0, total: 0 });
@@ -52,10 +54,10 @@ export const Settings = () => {
         setProgress({ current, total });
       });
 
-      alert('Backup restored successfully!');
+      showToast('Backup restored successfully!', 'success');
     } catch (error: any) {
       console.error('Backup restore failed:', error);
-      alert(`Error during restore: ${error.message || error}`);
+      showToast(`Error during restore: ${error.message || error}`, 'error');
     } finally {
       setIsImporting(false);
       setProgress({ current: 0, total: 0 });
@@ -81,18 +83,16 @@ export const Settings = () => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      // Trigger the gorgeous Chrome-like download completion notification
       setDownloadedFile(fileName);
       setShowNotification(true);
       setHasExported(true);
 
-      // Cooldown timer: Re-enable the export button after 5 seconds
       setTimeout(() => {
         setHasExported(false);
       }, 5000);
     } catch (error) {
       console.error('Export failed:', error);
-      alert('Error exporting library data.');
+      showToast('Error exporting library data.', 'error');
     } finally {
       setIsExporting(false);
     }
