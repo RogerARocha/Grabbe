@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { RankingRow } from './RankingRow';
+import { useRankingStore } from '../../store/rankingStore';
 
 interface RankingListProps {
   items: any[];
@@ -8,8 +9,7 @@ interface RankingListProps {
 }
 
 export const RankingList = ({ items, isLoading, onOpenModal }: RankingListProps) => {
-  const [nameSort, setNameSort] = useState<'asc' | 'desc'>('asc');
-  const [scoreSort, setScoreSort] = useState<'desc' | 'asc'>('desc');
+  const { nameSort, scoreSort, setNameSort, setScoreSort } = useRankingStore();
 
   const sortedItems = useMemo(() => {
     return [...items].sort((a, b) => {

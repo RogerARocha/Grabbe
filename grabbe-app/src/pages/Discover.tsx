@@ -1,29 +1,33 @@
-import { useState, useRef, useEffect } from 'react';
+import { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '../components/layout/MainLayout';
 import { MediaCard } from '../components/shared/MediaCard';
 import { MediaType } from '../components/shared/types';
 import { TypeFilters } from '../components/shared/TypeFilters';
-import { DiscoverResult } from '../components/discover/data';
 import { SkeletonCard, EmptyState, IdleState } from '../components/discover/DiscoverStates';
+import { useDiscoverStore } from '../store/discoverStore';
 
 /**
  * Discovery page allowing users to search across multiple external APIs.
  * Integrates an idle state, loading skeleton, and an empty results state.
  */
 export const Discover = () => {
-  const [query, setQuery] = useState('');
-  const [activeType, setActiveType] = useState<MediaType>('ALL');
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false);
-  const [results, setResults] = useState<DiscoverResult[]>([]);
+  const {
+    searchQuery: query,
+    searchResults: results,
+    isSearching: isLoading,
+    hasSearched,
+    activeType,
+    setSearchQuery: setQuery,
+    setSearchResults: setResults,
+    setIsSearching: setIsLoading,
+    setHasSearched,
+    setActiveType,
+  } = useDiscoverStore();
+
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
 
   /**
    * Executes the external API search.

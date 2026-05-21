@@ -5,9 +5,10 @@ import { RankingList } from '../components/ranking/RankingList';
 import { getRankedItems, getTrackingForMedia } from '../lib/db';
 import type { MediaType } from '../components/shared/types';
 import { EvaluationModal } from '../components/modals/EvaluationModal';
+import { useRankingStore } from '../store/rankingStore';
 
 export const Ranking = () => {
-  const [activeTab, setActiveTab] = useState<MediaType>('ALL');
+  const { activeTab, setActiveTab } = useRankingStore();
   const [items, setItems] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   

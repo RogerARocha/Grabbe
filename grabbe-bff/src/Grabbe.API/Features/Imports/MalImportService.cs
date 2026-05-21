@@ -42,7 +42,7 @@ public class MalImportService
         return importedList;
     }
 
-    private static string ParseMalDate(string dateStr)
+    private static string? ParseMalDate(string? dateStr)
     {
         if (string.IsNullOrWhiteSpace(dateStr) || dateStr.Contains("0000")) return null;
         return dateStr;
