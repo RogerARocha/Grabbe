@@ -1,10 +1,4 @@
-function formatDate(raw: string | null | undefined): string {
-  if (!raw) return '—';
-  const d = new Date(raw);
-  return isNaN(d.getTime())
-    ? raw
-    : d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-}
+import { formatPartialDate } from '../shared/PartialDateInput';
 
 function ordinal(n: number): string {
   const s = ['th', 'st', 'nd', 'rd'];
@@ -155,11 +149,11 @@ export const ConsumptionTimeline = ({
 
                 {/* Date range */}
                 <div className="flex items-center gap-1.5 text-[11px] text-text-muted font-medium">
-                  <span>{formatDate(s.start_date)}</span>
+                  <span>{formatPartialDate(s.start_date)}</span>
                   {s.finish_date && (
                     <>
                       <span className="text-outline-variant/60">→</span>
-                      <span>{formatDate(s.finish_date)}</span>
+                      <span>{formatPartialDate(s.finish_date)}</span>
                     </>
                   )}
                   {!s.finish_date && s.is_active && (

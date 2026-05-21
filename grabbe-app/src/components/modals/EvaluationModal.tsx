@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { upsertMedia, saveTracking } from '../../lib/db';
+import { PartialDateInput, parsePartialDate, partialDateToInt } from '../shared/PartialDateInput';
 
 export type EvaluationModalMode = 'add' | 'update';
 
@@ -61,8 +62,8 @@ export const EvaluationModal = ({
       setTotalProgress(media?.totalProgressUnits || 0);
       setReviewText(initialReviewText || '');
       
-      setStartDate(initialStartDate ? initialStartDate.split('T')[0] : '');
-      setEndDate(initialEndDate ? initialEndDate.split('T')[0] : '');
+      setStartDate(parsePartialDate(initialStartDate));
+      setEndDate(parsePartialDate(initialEndDate));
       
       setSearchQuery('');
       setSearchResults([]);
@@ -154,6 +155,29 @@ export const EvaluationModal = ({
     }
   };
 
+/**
+   * Extracts the release year from the currently selected media, used as the
+   * minimum year constraint for start and end dates.
+   */
+  const rawReleaseDate = selectedMedia?.releaseDate || selectedMedia?.release_date;
+  const releaseYear: number | undefined = rawReleaseDate
+    ? (parseInt(String(rawReleaseDate).substring(0, 4), 10) || undefined)
+    : undefined;
+
+  /**
+   * Updates the start date and clears the end date when it would become
+   * chronologically impossible (end before start).
+   */
+  const handleStartDateChange = (val: string) => {
+    setStartDate(val);
+    if (endDate && val.length >= 4 && partialDateToInt(val) > partialDateToInt(endDate)) {
+      setEndDate('');
+    }
+  };
+
+  /** Returns a date string only when at least a 4-digit year is present. */
+  const validDate = (d: string): string | null => (d && d.length >= 4 ? d : null);
+
   /**
    * Saves tracking data to the local SQLite database.
    * Follows a local-first pipeline:
@@ -165,7 +189,10 @@ export const EvaluationModal = ({
       if (selectedMedia) {
         const mediaId = await upsertMedia(selectedMedia);
         const finalTotalProgress = totalProgress || selectedMedia.totalProgressUnits || null;
-        await saveTracking(mediaId, status, selectedScore, progress, finalTotalProgress, reviewText || null, startDate || null, endDate || null);
+        await saveTracking(
+          mediaId, status, selectedScore, progress, finalTotalProgress,
+          reviewText || null, validDate(startDate), validDate(endDate)
+        );
       }
       onClose();
     } catch (e) {
@@ -258,11 +285,12 @@ export const EvaluationModal = ({
                 onChange={(e) => {
                   const newStatus = e.target.value;
                   setStatus(newStatus);
+                  const todayFull = (() => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`; })();
                   if (newStatus === 'COMPLETED') {
                     if (effectiveTotal > 0) setProgress(effectiveTotal);
-                    if (!endDate) setEndDate(new Date().toISOString().split('T')[0]);
+                    if (!endDate) setEndDate(todayFull);
                   } else if (newStatus === 'CONSUMING') {
-                    if (!startDate) setStartDate(new Date().toISOString().split('T')[0]);
+                    if (!startDate) setStartDate(todayFull);
                   }
                 }} 
                 className="w-full bg-background border-none rounded-lg text-sm px-4 py-3 appearance-none focus:ring-2 focus:ring-primary transition-all cursor-pointer text-text-high outline-none">
@@ -289,7 +317,9 @@ export const EvaluationModal = ({
                   setProgress(val);
                   if (effectiveTotal > 0 && val >= effectiveTotal) {
                     setStatus('COMPLETED');
-                    if (!endDate) setEndDate(new Date().toISOString().split('T')[0]);
+                    const n = new Date();
+                    const todayFull = `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
+                    if (!endDate) setEndDate(todayFull);
                   }
                 }}
                 className="flex-1 bg-background border-none rounded-lg text-sm px-4 py-3 focus:ring-2 focus:ring-primary transition-all text-text-high outline-none" 
@@ -299,37 +329,20 @@ export const EvaluationModal = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-2">
-              <div className="flex justify-between items-baseline">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Start Date</label>
-                <button 
-                  onClick={() => setStartDate(new Date().toISOString().split('T')[0])}
-                  className="text-[9px] font-bold text-primary hover:underline uppercase"
-                >Insert Today</button>
-              </div>
-              <input 
-                type="date" 
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full bg-background border-none rounded-lg text-sm px-4 py-3 focus:ring-2 focus:ring-primary transition-all text-text-high outline-none [color-scheme:dark]" 
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <div className="flex justify-between items-baseline">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">End Date</label>
-                <button 
-                  onClick={() => setEndDate(new Date().toISOString().split('T')[0])}
-                  className="text-[9px] font-bold text-primary hover:underline uppercase"
-                >Insert Today</button>
-              </div>
-              <input 
-                type="date" 
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full bg-background border-none rounded-lg text-sm px-4 py-3 focus:ring-2 focus:ring-primary transition-all text-text-high outline-none [color-scheme:dark]" 
-              />
-            </div>
+          <div className="flex flex-col gap-5">
+            <PartialDateInput
+              value={startDate}
+              onChange={handleStartDateChange}
+              label="Start Date"
+              minYear={releaseYear}
+            />
+            <PartialDateInput
+              value={endDate}
+              onChange={setEndDate}
+              label="End Date"
+              minYear={releaseYear}
+              minPartialDate={startDate.length >= 4 ? startDate : undefined}
+            />
           </div>
 
           <div className="flex flex-col gap-2">
