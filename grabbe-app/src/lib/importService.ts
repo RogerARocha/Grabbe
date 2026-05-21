@@ -64,6 +64,7 @@ export async function importMediaFromFile(
         let coverImageUrl = null;
         let releaseDate = null;
         let description = null;
+        let formattedConsumptionMetric = null;
 
         try {
             const searchResponse = await fetch(
@@ -81,6 +82,20 @@ export async function importMediaFromFile(
                         coverImageUrl   = firstResult.coverImageUrl ?? null;
                         releaseDate     = firstResult.releaseDate   ?? null;
                         description     = firstResult.description   ?? null;
+                        
+                        try {
+                            const detailsResponse = await fetch(`http://localhost:5244/api/v1/media/${sourceApi}/${firstResult.type}/${externalId}`);
+                            if (detailsResponse.ok) {
+                                const detailsBody = await detailsResponse.json();
+                                if (detailsBody.data) {
+                                    formattedConsumptionMetric = detailsBody.data.formattedConsumptionMetric ?? null;
+                                    description = detailsBody.data.description ?? description;
+                                    coverImageUrl = detailsBody.data.coverImageUrl ?? coverImageUrl;
+                                }
+                            }
+                        } catch (e) {
+                            console.warn(`[import] Could not fetch deep details for "${item.title}"`);
+                        }
                     } else {
                         console.warn(
                             `[import] Title mismatch — imported: "${item.title}", search returned: "${firstResult.title}". Keeping placeholder ID.`
@@ -100,6 +115,7 @@ export async function importMediaFromFile(
             description,
             coverImageUrl,
             releaseDate,
+            formattedConsumptionMetric,
             genres: []
         };
 
@@ -146,6 +162,25 @@ export async function importBackupData(
     for (const item of items) {
         const { media, tracking, ranking, sessions, history } = item;
 
+        let metric = media.consumption_metric || null;
+        let didFetch = false;
+
+        // Backfill missing metric for older backups
+        if (!metric && media.source_api && media.external_id && !media.external_id.startsWith('imported_')) {
+            try {
+                const detailsResponse = await fetch(`http://localhost:5244/api/v1/media/${media.source_api}/${media.type}/${media.external_id}`);
+                if (detailsResponse.ok) {
+                    const detailsBody = await detailsResponse.json();
+                    if (detailsBody.data) {
+                        metric = detailsBody.data.formattedConsumptionMetric ?? null;
+                    }
+                }
+                didFetch = true;
+            } catch (e) {
+                console.warn(`[backup-import] Could not fetch deep details for "${media.title}"`);
+            }
+        }
+
         // 1. Resolve and Upsert Media structure cleanly
         const mediaToUpsert = {
             externalId: media.external_id,
@@ -155,6 +190,7 @@ export async function importBackupData(
             description: media.description,
             coverImageUrl: media.cover_image_path,
             releaseDate: media.release_date,
+            formattedConsumptionMetric: metric,
             genres: media.genres || []
         };
         const mediaId = await upsertMedia(mediaToUpsert);
@@ -252,8 +288,12 @@ export async function importBackupData(
         if (onProgress) {
             onProgress(count, items.length);
         }
-        
-        // Add minor scheduling buffer to prevent thread block in Tauri select queues
-        await new Promise(r => setTimeout(r, 50));
+        // Add minor scheduling buffer to prevent thread block in Tauri select queues,
+        // or a larger delay if we hit the BFF API to respect rate limits.
+        if (didFetch) {
+            await new Promise(r => setTimeout(r, 250));
+        } else {
+            await new Promise(r => setTimeout(r, 50));
+        }
     }
 }

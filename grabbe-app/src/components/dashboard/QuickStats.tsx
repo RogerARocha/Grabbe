@@ -1,5 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 
+import { calculateInvestedMinutes, formatTotalHours } from '../../lib/timeMetrics';
+
 /**
  * Displays aggregate statistics for the user's library.
  */
@@ -13,10 +15,13 @@ export const QuickStats = ({ items = [] }: { items?: any[] }) => {
 
   const masterpieces = items.filter(i => i.score === 10).length;
 
-  // TODO: We don't have accurate hours watched yet without tracking runtime per item precisely,
-  // so we'll just show completed count for now or mock the hours based on completed items.
   const completedCount = items.filter(i => i.status === 'COMPLETED').length;
-  const estimatedHours = completedCount * 2; // rough mock
+  
+  const totalMinutes = items.reduce((acc, item) => {
+    return acc + calculateInvestedMinutes(item.type, item.consumption_metric, item.progress || 0);
+  }, 0);
+  
+  const estimatedHoursString = formatTotalHours(totalMinutes);
 
   return (
     <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
@@ -34,9 +39,9 @@ export const QuickStats = ({ items = [] }: { items?: any[] }) => {
         onClick={() => navigate('/analytics')}
         className="bg-surface p-6 rounded-xl border-l-4 border-tertiary bloom-shadow cursor-pointer hover:bg-surface-container transition-colors group"
       >
-        <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-1 group-hover:text-tertiary transition-colors">Estimated Hours</p>
+        <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-1 group-hover:text-tertiary transition-colors">Estimated Time</p>
         <div className="flex items-baseline gap-2">
-          <span className="text-4xl font-bold">{estimatedHours}</span>
+          <span className="text-4xl font-bold">{estimatedHoursString}</span>
           <span className="text-[12px] text-tertiary font-bold">{completedCount} items completed</span>
         </div>
       </div>

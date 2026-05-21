@@ -33,6 +33,7 @@ export async function initDb() {
         release_date DATE,
         franchise TEXT,
         genres TEXT,
+        consumption_metric TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
   `);
@@ -96,6 +97,14 @@ export async function initDb() {
       ON Media(external_id, source_api);
   `);
 
+  // Migration for adding consumption_metric to existing databases
+  try {
+    await db.execute("ALTER TABLE Media ADD COLUMN consumption_metric TEXT;");
+    console.log("Migration: Added consumption_metric column to Media table.");
+  } catch (e) {
+    // Column already exists, ignore
+  }
+
   console.log("Database initialized and migrations ran successfully.");
 }
 
@@ -113,7 +122,27 @@ export async function upsertMedia(media: any) {
     [media.externalId, media.sourceApi]
   );
   if (existingResult && existingResult.length > 0) {
-    return existingResult[0].id;
+    const existingId = existingResult[0].id;
+    await db.execute(
+      `UPDATE Media SET 
+        title = $1, 
+        description = COALESCE($2, description), 
+        cover_image_path = COALESCE($3, cover_image_path), 
+        release_date = COALESCE($4, release_date), 
+        genres = COALESCE($5, genres), 
+        consumption_metric = COALESCE($6, consumption_metric)
+       WHERE id = $7`,
+      [
+        media.title,
+        media.description || null,
+        media.coverImageUrl || null,
+        media.releaseDate || null,
+        media.genres ? JSON.stringify(media.genres) : null,
+        media.formattedConsumptionMetric || null,
+        existingId
+      ]
+    );
+    return existingId;
   }
 
   // --- Fallback lookup: title + type (only for unresolved placeholder imports) ---
@@ -133,8 +162,8 @@ export async function upsertMedia(media: any) {
   // --- Insert: INSERT OR IGNORE respects the DB-level unique index atomically ---
   const mediaId = uuidv4();
   await db.execute(
-    `INSERT OR IGNORE INTO Media (id, external_id, source_api, type, title, description, cover_image_path, release_date, genres)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+    `INSERT OR IGNORE INTO Media (id, external_id, source_api, type, title, description, cover_image_path, release_date, genres, consumption_metric)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
     [
       mediaId,
       media.externalId,
@@ -144,7 +173,8 @@ export async function upsertMedia(media: any) {
       media.description,
       media.coverImageUrl,
       media.releaseDate,
-      JSON.stringify(media.genres)
+      JSON.stringify(media.genres),
+      media.formattedConsumptionMetric || null
     ]
   );
 
