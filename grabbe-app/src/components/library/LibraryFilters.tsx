@@ -1,5 +1,6 @@
 import { MediaType, MediaStatus } from '../shared/types';
 import { TypeFilters } from '../shared/TypeFilters';
+import { formatStatusLabel } from '../../lib/statusUtils';
 
 interface LibraryFiltersProps {
   activeTab: MediaType;
@@ -47,7 +48,7 @@ export const LibraryFilters = ({
                     : 'bg-surface-container text-text-muted border border-transparent hover:bg-surface-container-highest hover:text-text-high'
                   }`}
               >
-                {status === 'ALL' ? 'ALL STATUS' : status}
+                {status === 'ALL' ? 'ALL STATUS' : formatStatusLabel(status, activeTab === 'ALL' ? undefined : activeTab).toUpperCase()}
               </button>
             );
           })}

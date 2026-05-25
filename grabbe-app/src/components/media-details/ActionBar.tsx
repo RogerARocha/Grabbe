@@ -1,13 +1,4 @@
-/**
- * Maps internal status keys to user-facing display labels for the status badge button.
- */
-const statusMap: Record<string, string> = {
-  'PLANNED': 'Planned',
-  'CONSUMING': 'Watching/Reading',
-  'COMPLETED': 'Completed',
-  'DROPPED': 'Dropped',
-  'ON_HOLD': 'On Hold'
-};
+import { formatStatusLabel } from '../../lib/statusUtils';
 
 /**
  * Returns the context-aware label for the rewatch action button based on media type.
@@ -64,7 +55,7 @@ export const ActionBar = ({
         >
           <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
           <span className="text-sm font-bold text-primary">
-            {status ? (statusMap[status] || status) : 'Watching'}
+            {status ? formatStatusLabel(status, mediaType) : formatStatusLabel('CONSUMING', mediaType)}
           </span>
           <span className="material-symbols-outlined text-primary text-lg">expand_more</span>
         </button>

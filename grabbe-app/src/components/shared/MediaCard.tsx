@@ -1,5 +1,6 @@
 import React from 'react';
 import type { MediaStatus, MediaType } from './types';
+import { formatStatusLabel } from '../../lib/statusUtils';
 
 export type ThemeColor = 'primary' | 'secondary' | 'tertiary' | 'warning' | 'neutral';
 
@@ -178,7 +179,7 @@ export const MediaCard = ({
         {image ? <img className="w-full h-full object-cover" alt={title} src={image} /> : <ImageFallback />}
         <div className="absolute top-3 left-3">
           <span className={`px-2 py-1 text-[10px] font-bold tracking-wider rounded-full backdrop-blur-md border ${THEME_STYLES[statusColor]}`}>
-            {status}
+            {formatStatusLabel(status, typeBadge).toUpperCase()}
           </span>
         </div>
       </div>

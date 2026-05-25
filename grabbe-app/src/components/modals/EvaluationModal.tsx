@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { upsertMedia, saveTracking } from '../../lib/db';
 import { PartialDateInput, parsePartialDate, partialDateToInt } from '../shared/PartialDateInput';
+import { formatStatusLabel } from '../../lib/statusUtils';
 
 export type EvaluationModalMode = 'add' | 'update';
 
@@ -294,11 +295,11 @@ export const EvaluationModal = ({
                   }
                 }} 
                 className="w-full bg-background border-none rounded-lg text-sm px-4 py-3 appearance-none focus:ring-2 focus:ring-primary transition-all cursor-pointer text-text-high outline-none">
-                <option value="CONSUMING">Currently Watching / Reading</option>
+                <option value="CONSUMING">{formatStatusLabel('CONSUMING', selectedMedia?.type)}</option>
                 <option value="COMPLETED">Completed</option>
                 <option value="ON HOLD">On Hold</option>
                 <option value="DROPPED">Dropped</option>
-                <option value="PLANNED">Plan to Watch</option>
+                <option value="PLANNED">{formatStatusLabel('PLANNED', selectedMedia?.type)}</option>
               </select>
               <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted">expand_more</span>
             </div>
