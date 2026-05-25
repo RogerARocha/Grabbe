@@ -14,7 +14,7 @@ public record IgdbGameResponse(
     [property: JsonPropertyName("alternative_names")] List<IgdbAlternativeName>? AlternativeNames
 );
 
-public record IgdbCover([property: JsonPropertyName("image_id")] string ImageId);
+public record IgdbCover([property: JsonPropertyName("url")] string Url);
 public record IgdbGenre([property: JsonPropertyName("name")] string Name);
 public record IgdbAlternativeName([property: JsonPropertyName("name")] string Name);
 

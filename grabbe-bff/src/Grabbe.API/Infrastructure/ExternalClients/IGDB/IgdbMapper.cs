@@ -13,7 +13,7 @@ public static class IgdbMapper
             Type = "GAME",
             Title = igdbGame.Name ?? "Unknown Title",
             Description = igdbGame.Summary,
-            CoverImageUrl = BuildCoverUrl(igdbGame.Cover?.ImageId),
+            CoverImageUrl = BuildCoverUrl(igdbGame.Cover?.Url),
             ReleaseDate = ConvertUnixToDateString(igdbGame.FirstReleaseDate),
             Genres = igdbGame.Genres?.Select(g => g.Name).ToList() ?? new List<string>(),
             OriginalLanguage = null,
@@ -26,10 +26,11 @@ public static class IgdbMapper
         };
     }
 
-    private static string? BuildCoverUrl(string? imageId)
+    private static string? BuildCoverUrl(string? url)
     {
-        if (string.IsNullOrWhiteSpace(imageId)) return null;
-        return $"https://images.igdb.com/igdb/image/upload/t_cover_big/{imageId}.jpg";
+        if (string.IsNullOrWhiteSpace(url)) return null;
+        if (url.StartsWith("//")) url = "https:" + url;
+        return url.Replace("t_thumb", "t_cover_big");
     }
 
     private static string? ConvertUnixToDateString(long? unixTimestamp)

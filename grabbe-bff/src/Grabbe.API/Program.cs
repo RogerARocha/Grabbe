@@ -49,6 +49,8 @@ builder.Services.AddHttpClient<GoogleBooksClient>(client =>
 builder.Services.AddTransient<IMediaProviderClient>(sp => sp.GetRequiredService<TmdbClient>());
 builder.Services.AddTransient<IMediaProviderClient>(sp => sp.GetRequiredService<JikanClient>());
 builder.Services.AddTransient<IMediaProviderClient>(sp => sp.GetRequiredService<GoogleBooksClient>());
+builder.Services.AddTransient<IMediaProviderClient>(sp => sp.GetRequiredService<IgdbClient>());
+builder.Services.AddHttpClient<IgdbClient>();
 
 builder.Services.AddCors(options =>
 {

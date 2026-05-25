@@ -10,7 +10,10 @@ public class IgdbClient : IMediaProviderClient
 {
     private readonly HttpClient _httpClient;
     private readonly string _clientId;
-    private readonly string _accessToken;
+    private readonly string _clientSecret;
+    private static string? _accessToken;
+    private static DateTime _tokenExpiration = DateTime.MinValue;
+    private static readonly SemaphoreSlim _tokenSemaphore = new SemaphoreSlim(1, 1);
 
     public string ProviderName => "IGDB";
     public string[] SupportedTypes => new[] { "GAME" };
@@ -21,7 +24,47 @@ public class IgdbClient : IMediaProviderClient
         _httpClient.BaseAddress = new Uri("https://api.igdb.com/v4/");
         
         _clientId = config["IGDB:ClientId"] ?? throw new ArgumentNullException("IGDB:ClientId");
-        _accessToken = config["IGDB:AccessToken"] ?? throw new ArgumentNullException("IGDB:AccessToken");
+        _clientSecret = config["IGDB:ClientSecret"] ?? throw new ArgumentNullException("IGDB:ClientSecret");
+    }
+
+    private async Task EnsureAccessTokenAsync()
+    {
+        if (!string.IsNullOrEmpty(_accessToken) && DateTime.UtcNow < _tokenExpiration)
+        {
+            return;
+        }
+
+        await _tokenSemaphore.WaitAsync();
+        try
+        {
+            if (!string.IsNullOrEmpty(_accessToken) && DateTime.UtcNow < _tokenExpiration)
+            {
+                return;
+            }
+
+            var requestParams = new Dictionary<string, string>
+            {
+                { "client_id", _clientId },
+                { "client_secret", _clientSecret },
+                { "grant_type", "client_credentials" }
+            };
+
+            var requestContent = new FormUrlEncodedContent(requestParams);
+            var response = await _httpClient.PostAsync("https://id.twitch.tv/oauth2/token", requestContent);
+            
+            response.EnsureSuccessStatusCode();
+
+            var contentStream = await response.Content.ReadAsStreamAsync();
+            var tokenDoc = await JsonDocument.ParseAsync(contentStream);
+            
+            _accessToken = tokenDoc.RootElement.GetProperty("access_token").GetString();
+            int expiresIn = tokenDoc.RootElement.GetProperty("expires_in").GetInt32();
+            _tokenExpiration = DateTime.UtcNow.AddSeconds(expiresIn - 300);
+        }
+        finally
+        {
+            _tokenSemaphore.Release();
+        }
     }
 
     public async Task<IEnumerable<GrabbeMediaDTO>> SearchAsync(string query, string type)
@@ -32,7 +75,7 @@ public class IgdbClient : IMediaProviderClient
         var apicalypseQuery = $@"
             search ""{query}"";
             fields name, summary, first_release_date, 
-                   cover.image_id, genres.name, rating, alternative_names.name,
+                   cover.url, genres.name, rating, alternative_names.name,
                    involved_companies.developer, involved_companies.publisher, involved_companies.company.name;
             limit 12;
         ";
@@ -52,7 +95,7 @@ public class IgdbClient : IMediaProviderClient
 
         var apicalypseQuery = $@"
             fields name, summary, first_release_date, 
-                   cover.image_id, genres.name, rating, alternative_names.name,
+                   cover.url, genres.name, rating, alternative_names.name,
                    involved_companies.developer, involved_companies.publisher, involved_companies.company.name;
             where id = {id};
         ";
@@ -67,6 +110,8 @@ public class IgdbClient : IMediaProviderClient
     // ── Helper centralizado para as chamadas HTTP ──
     private async Task<List<IgdbGameResponse>?> ExecuteIgdbQueryAsync(string query)
     {
+        await EnsureAccessTokenAsync();
+
         var request = new HttpRequestMessage(HttpMethod.Post, "games")
         {
             Content = new StringContent(query, Encoding.UTF8, "text/plain")
