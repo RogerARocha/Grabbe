@@ -598,7 +598,7 @@ The following patterns should **never** have a comment:
 
 ### **Phase 2: Identity, Engagement, and Statistics**
 
-* [ ] Search history.
+* [x] Search history.
 * [ ] Analytics Dashboard.
 * [ ] Consumption Timeline.
 * [ ] Commands Palette
@@ -606,7 +606,7 @@ The following patterns should **never** have a comment:
 * [ ] Grabbe Recap (Story Export).
 * [ ] Manual data Export/Import.
 * [ ] Themes choices.
-* [ ] Add new providers.
+* [x] Add new providers.
 
 ### **Phase 3: Cloud and Ecosystem**
 
