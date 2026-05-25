@@ -20,7 +20,7 @@ public static class IgdbMapper
             CommunityScore = igdbGame.Rating.HasValue ? Math.Round(igdbGame.Rating.Value / 10.0, 1) : null,
             PublisherOrStudio = ExtractMainStudio(igdbGame.InvolvedCompanies),
             FormattedConsumptionMetric = null,
-            TotalProgressUnits = null,
+            TotalProgressUnits = 1,
             AlternativeTitles = igdbGame.AlternativeNames?.Select(a => a.Name).ToList() ?? new List<string>(),
             KeyPeople = new List<MediaPersonDTO>() 
         };

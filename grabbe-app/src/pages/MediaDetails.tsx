@@ -214,7 +214,7 @@ export const MediaDetails = () => {
   const handleQuickProgress = async () => {
     if (!isInLibrary || !tracking) return;
 
-    const effectiveTotal = media.type === 'MOVIE' ? 1 : (tracking.totalProgress || 0);
+    const effectiveTotal = tracking.totalProgress || 0;
     const newProgress = (tracking.currentProgress || 0) + 1;
     if (effectiveTotal > 0 && newProgress > effectiveTotal) return;
 

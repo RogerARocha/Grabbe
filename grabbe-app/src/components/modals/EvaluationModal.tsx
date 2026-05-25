@@ -92,7 +92,7 @@ export const EvaluationModal = ({
   const title = isAddMode ? 'Add to Library' : 'Update Progress';
   const confirmText = isAddMode ? 'Add Media' : 'Save Changes';
 
-  const effectiveTotal = selectedMedia?.type === 'MOVIE' ? 1 : totalProgress;
+  const effectiveTotal = totalProgress;
 
   const scores = [
     { value: 10, label: 'Masterpiece', colorClass: 'prismatic-text-blue prismatic-text-blue-hover', bgHoverClass: 'hover:bg-error/10' },

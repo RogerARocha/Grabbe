@@ -34,7 +34,7 @@ public static class TmdbMapper
             CommunityScore = media.VoteAverage.HasValue
                 ? Math.Round(media.VoteAverage.Value, 1)
                 : null,
-            TotalProgressUnits = null,
+            TotalProgressUnits = type == "SERIES" ? null : 1,
             PublisherOrStudio = null,
             FormattedConsumptionMetric = null
         };
@@ -70,7 +70,7 @@ public static class TmdbMapper
             FormattedConsumptionMetric = isSeries
                 ? FormatEpisodeRunTime(media.EpisodeRunTime)
                 : FormatMovieRuntime(media.Runtime),
-            TotalProgressUnits = isSeries ? media.NumberOfEpisodes : null,
+            TotalProgressUnits = isSeries ? media.NumberOfEpisodes : 1,
             AlternativeTitles = ExtractAlternativeTitles(media.AlternativeTitlesWrapper),
             KeyPeople = ExtractKeyPeople(media.Credits)
         };

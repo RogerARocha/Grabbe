@@ -68,7 +68,7 @@ export const RankingList = ({ items, isLoading, onOpenModal }: RankingListProps)
           
           <div 
             className="flex-1 flex items-center gap-2 cursor-pointer hover:text-text-base transition-colors select-none"
-            onClick={() => setNameSort(prev => prev === 'asc' ? 'desc' : 'asc')}
+            onClick={() => setNameSort((prev: 'asc' | 'desc') => prev === 'asc' ? 'desc' : 'asc')}
           >
             Name
             <span className="bg-surface-container-high text-text-base px-2 py-0.5 rounded text-[10px]">
@@ -79,7 +79,7 @@ export const RankingList = ({ items, isLoading, onOpenModal }: RankingListProps)
           <div className="flex items-center gap-12 shrink-0 px-4">
             <div 
               className="flex items-center justify-center gap-2 w-16 cursor-pointer hover:text-text-base transition-colors select-none"
-              onClick={() => setScoreSort(prev => prev === 'desc' ? 'asc' : 'desc')}
+              onClick={() => setScoreSort((prev: 'asc' | 'desc') => prev === 'desc' ? 'asc' : 'desc')}
             >
               Score
               <span className="bg-surface-container-high text-text-base px-2 py-0.5 rounded text-[10px]">

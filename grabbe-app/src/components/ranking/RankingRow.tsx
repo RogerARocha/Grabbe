@@ -90,7 +90,7 @@ export const RankingRow = ({ item, onOpenModal }: RankingRowProps) => {
           <div className="flex flex-col items-center justify-center w-24">
             <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-1">Progress</span>
             <span className="text-sm font-bold text-text-base">
-              {item.type === 'MOVIE' && item.status === 'COMPLETED' ? '1 / 1' : `${item.progress} / ${item.total_progress || '?'}`}
+              {`${item.progress} / ${item.total_progress || '?'}`}
             </span>
           </div>
         </div>
