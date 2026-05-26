@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '../components/layout/MainLayout';
 import { MediaCard } from '../components/shared/MediaCard';
@@ -6,6 +6,7 @@ import { MediaType } from '../components/shared/types';
 import { TypeFilters } from '../components/shared/TypeFilters';
 import { SkeletonCard, EmptyState, IdleState } from '../components/discover/DiscoverStates';
 import { useDiscoverStore } from '../store/discoverStore';
+import { Pagination } from '../components/shared/Pagination';
 
 /**
  * Discovery page allowing users to search across multiple external APIs.
@@ -18,11 +19,13 @@ export const Discover = () => {
     isSearching: isLoading,
     hasSearched,
     activeType,
+    currentPage,
     setSearchQuery: setQuery,
     setSearchResults: setResults,
     setIsSearching: setIsLoading,
     setHasSearched,
     setActiveType,
+    setCurrentPage,
   } = useDiscoverStore();
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -42,6 +45,7 @@ export const Discover = () => {
 
     setIsLoading(true);
     setHasSearched(true);
+    setCurrentPage(1);
 
     try {
       const typeParam = type !== 'ALL' ? `&type=${type}` : '';
@@ -60,14 +64,20 @@ export const Discover = () => {
   const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setQuery(val);
+    setCurrentPage(1);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => runSearch(val, activeType), 400);
   };
 
   const handleTypeChange = (type: MediaType) => {
     setActiveType(type);
+    setCurrentPage(1);
     if (query.trim()) runSearch(query, type);
   };
+
+  const ITEMS_PER_PAGE = 12;
+  const totalPages = Math.ceil(results.length / ITEMS_PER_PAGE);
+  const displayedResults = results.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   return (
     <MainLayout>
@@ -112,32 +122,37 @@ export const Discover = () => {
         <>
           <div className="flex items-center justify-between mb-6">
             <p className="text-[11px] font-bold text-text-muted uppercase tracking-widest">
-              {results.length} result{results.length !== 1 ? 's' : ''} for <span className="text-primary ml-1">"{query}"</span>
+              Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, results.length)} of {results.length} result{results.length !== 1 ? 's' : ''} for <span className="text-primary ml-1">"{query}"</span>
             </p>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-            {results.map((result) => {
-    const subtitleParts = [];
-    if (result.releaseDate) subtitleParts.push(result.releaseDate);
-    if (result.formattedConsumptionMetric) subtitleParts.push(result.formattedConsumptionMetric);
-    const subtitle = subtitleParts.join(' • ');
+            {displayedResults.map((result) => {
+              const subtitleParts = [];
+              if (result.releaseDate) subtitleParts.push(result.releaseDate);
+              if (result.formattedConsumptionMetric) subtitleParts.push(result.formattedConsumptionMetric);
+              const subtitle = subtitleParts.join(' • ');
 
-    return (
-      <MediaCard 
-        key={result.externalId}
-        variant="discover"
-        title={result.title}
-        subtitle={subtitle}
-        image={result.coverImageUrl}
-        typeBadge={result.type}
-        onClick={() => navigate(`/media/${result.externalId}?source=${result.sourceApi}&type=${result.type}`, { state: { from: 'Discover', path: '/discover' } })}
-        onAddClick={() => {
-          console.log('Adicionando ao banco local SQLite:', result.title);
-        }}
-      />
-    );
-  })}
+              return (
+                <MediaCard 
+                  key={result.externalId}
+                  variant="discover"
+                  title={result.title}
+                  subtitle={subtitle}
+                  image={result.coverImageUrl}
+                  typeBadge={result.type}
+                  onClick={() => navigate(`/media/${result.externalId}?source=${result.sourceApi}&type=${result.type}`, { state: { from: 'Discover', path: '/discover' } })}
+                  onAddClick={() => {
+                    console.log('Adicionando ao banco local SQLite:', result.title);
+                  }}
+                />
+              );
+            })}
           </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
         </>
       )}
     </MainLayout>

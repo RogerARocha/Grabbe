@@ -8,11 +8,13 @@ interface DiscoverState {
   isSearching: boolean;
   hasSearched: boolean;
   activeType: MediaType;
+  currentPage: number;
   setSearchQuery: (query: string) => void;
   setSearchResults: (results: DiscoverResult[]) => void;
   setIsSearching: (isSearching: boolean) => void;
   setHasSearched: (hasSearched: boolean) => void;
   setActiveType: (type: MediaType) => void;
+  setCurrentPage: (page: number) => void;
 }
 
 export const useDiscoverStore = create<DiscoverState>((set) => ({
@@ -21,9 +23,11 @@ export const useDiscoverStore = create<DiscoverState>((set) => ({
   isSearching: false,
   hasSearched: false,
   activeType: 'ALL',
-  setSearchQuery: (query) => set({ searchQuery: query }),
-  setSearchResults: (results) => set({ searchResults: results }),
-  setIsSearching: (isSearching) => set({ isSearching }),
+  currentPage: 1,
+  setSearchQuery: (query) => set({ searchQuery: query, currentPage: 1 }),
+  setSearchResults: (searchResults) => set({ searchResults, currentPage: 1 }),
+  setIsSearching: (isSearching) => set(isSearching ? { isSearching, currentPage: 1 } : { isSearching }),
   setHasSearched: (hasSearched) => set({ hasSearched }),
-  setActiveType: (activeType) => set({ activeType }),
+  setActiveType: (activeType) => set({ activeType, currentPage: 1 }),
+  setCurrentPage: (currentPage) => set({ currentPage }),
 }));

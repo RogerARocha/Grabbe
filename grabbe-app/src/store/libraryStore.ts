@@ -6,10 +6,12 @@ interface LibraryState {
   activeStatus: MediaStatus | 'ALL';
   searchQuery: string;
   sortBy: string;
+  currentPage: number;
   setActiveTab: (tab: MediaType) => void;
   setActiveStatus: (status: MediaStatus | 'ALL') => void;
   setSearchQuery: (query: string) => void;
   setSortBy: (sort: string) => void;
+  setCurrentPage: (page: number) => void;
 }
 
 export const useLibraryStore = create<LibraryState>((set) => ({
@@ -17,8 +19,10 @@ export const useLibraryStore = create<LibraryState>((set) => ({
   activeStatus: 'ALL',
   searchQuery: '',
   sortBy: 'last_added',
-  setActiveTab: (activeTab) => set({ activeTab }),
-  setActiveStatus: (activeStatus) => set({ activeStatus }),
-  setSearchQuery: (searchQuery) => set({ searchQuery }),
-  setSortBy: (sortBy) => set({ sortBy }),
+  currentPage: 1,
+  setActiveTab: (activeTab) => set({ activeTab, currentPage: 1 }),
+  setActiveStatus: (activeStatus) => set({ activeStatus, currentPage: 1 }),
+  setSearchQuery: (searchQuery) => set({ searchQuery, currentPage: 1 }),
+  setSortBy: (sortBy) => set({ sortBy, currentPage: 1 }),
+  setCurrentPage: (currentPage) => set({ currentPage }),
 }));

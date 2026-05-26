@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { getLibraryItems } from '../../lib/db';
 import { MediaCard } from '../shared/MediaCard';
 import type { MediaStatus, MediaType } from '../shared/types';
-
+import { Pagination } from '../shared/Pagination';
+import { useLibraryStore } from '../../store/libraryStore';
 
 interface LibraryGridProps {
   activeTab: MediaType;
@@ -18,22 +19,16 @@ interface LibraryGridProps {
  * search across title/genre/franchise fields, and multi-mode sorting.
  */
 export const LibraryGrid = ({ activeTab, activeStatus, searchQuery, sortBy }: LibraryGridProps) => {
-  const [displayCount, setDisplayCount] = useState(12);
+  const { currentPage, setCurrentPage } = useLibraryStore();
   const [data, setData] = useState<any[]>([]);
   const navigate = useNavigate();
+  const ITEMS_PER_PAGE = 12;
 
   useEffect(() => {
     getLibraryItems().then(items => {
       setData(items || []);
     });
-    // Reset pagination when filters change
-    setDisplayCount(12);
   }, [activeTab, activeStatus]);
-
-  // Also reset pagination on search/sort change
-  useEffect(() => {
-    setDisplayCount(12);
-  }, [searchQuery, sortBy]);
 
   /**
    * O(N) cross-filtering, search, and sort pipeline.
@@ -71,6 +66,11 @@ export const LibraryGrid = ({ activeTab, activeStatus, searchQuery, sortBy }: Li
           return (a.title ?? '').localeCompare(b.title ?? '');
         case 'za':
           return (b.title ?? '').localeCompare(a.title ?? '');
+        case 'last_finished': {
+          const dateA = a.finish_date ? new Date(a.finish_date.includes(' ') ? a.finish_date.replace(' ', 'T') + 'Z' : a.finish_date).getTime() : 0;
+          const dateB = b.finish_date ? new Date(b.finish_date.includes(' ') ? b.finish_date.replace(' ', 'T') + 'Z' : b.finish_date).getTime() : 0;
+          return dateB - dateA;
+        }
         case 'last_updated':
         default:
           // UserTracking.updated_at DESC — matches the default DB order
@@ -81,8 +81,8 @@ export const LibraryGrid = ({ activeTab, activeStatus, searchQuery, sortBy }: Li
     return result;
   }, [data, activeTab, activeStatus, searchQuery, sortBy]);
 
-  const displayedItems = processedData.slice(0, displayCount);
-  const hasMore = displayCount < processedData.length;
+  const totalPages = Math.ceil(processedData.length / ITEMS_PER_PAGE);
+  const displayedItems = processedData.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   if (processedData.length === 0) {
     const isSearching = searchQuery.trim().length > 0;
@@ -129,17 +129,11 @@ export const LibraryGrid = ({ activeTab, activeStatus, searchQuery, sortBy }: Li
         })}
       </div>
       
-      {hasMore && (
-        <div className="mt-20 flex justify-center">
-          <button 
-            onClick={() => setDisplayCount(prev => prev + 12)}
-            className="flex items-center gap-2 px-8 py-4 bg-surface-container-high rounded-lg text-sm font-bold tracking-widest uppercase hover:bg-primary hover:text-on-primary transition-all duration-300 group text-text-high"
-          >
-            Load More Entries
-            <span className="material-symbols-outlined group-hover:translate-y-1 transition-transform">expand_more</span>
-          </button>
-        </div>
-      )}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+      />
     </>
   );
 };
