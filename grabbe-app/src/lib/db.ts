@@ -538,10 +538,44 @@ export async function getMediaByExternalId(externalId: string, sourceApi: string
  */
 export async function linkMediaToRealId(mediaId: string, newExternalId: string, newSourceApi: string, newType: string, newTitle: string, newCoverUrl: string | null) {
     const db = await getDb();
-    await db.execute(
-        "UPDATE Media SET external_id = $1, source_api = $2, type = $3, title = $4, cover_image_path = $5 WHERE id = $6",
-        [newExternalId, newSourceApi, newType, newTitle, newCoverUrl, mediaId]
+
+    // Check if another Media row already has the new external_id and source_api
+    const existing = await db.select<any[]>(
+        "SELECT id FROM Media WHERE external_id = $1 AND source_api = $2 LIMIT 1",
+        [newExternalId, newSourceApi]
     );
+
+    if (existing && existing.length > 0) {
+        const realMediaId = existing[0].id;
+
+        // 1. Handle UserTracking unique/duplicate constraint
+        const trackingExists = await db.select<any[]>(
+            "SELECT id FROM UserTracking WHERE media_id = $1 LIMIT 1",
+            [realMediaId]
+        );
+        if (trackingExists && trackingExists.length > 0) {
+            const oldTrackingId = trackingExists[0].id;
+            await db.execute("DELETE FROM ConsumptionSession WHERE tracking_id = $1", [oldTrackingId]);
+            await db.execute("DELETE FROM TrackingHistory WHERE tracking_id = $1", [oldTrackingId]);
+            await db.execute("DELETE FROM UserTracking WHERE id = $1", [oldTrackingId]);
+        }
+
+        // 2. Handle Ranking unique constraint
+        await db.execute("DELETE FROM Ranking WHERE media_id = $1", [realMediaId]);
+
+        // 3. Re-link current tracking & ranking to point to the existing real media record
+        await db.execute("UPDATE UserTracking SET media_id = $1 WHERE media_id = $2", [realMediaId, mediaId]);
+        await db.execute("UPDATE Ranking SET media_id = $1 WHERE media_id = $2", [realMediaId, mediaId]);
+
+        // 4. Delete the dummy media row from cache since it's no longer referenced
+        await db.execute("DELETE FROM Media WHERE id = $1", [mediaId]);
+    } else {
+        // Safe to update the dummy media row in place
+        await db.execute(
+            "UPDATE Media SET external_id = $1, source_api = $2, type = $3, title = $4, cover_image_path = $5 WHERE id = $6",
+            [newExternalId, newSourceApi, newType, newTitle, newCoverUrl, mediaId]
+        );
+    }
 }
 
 /**

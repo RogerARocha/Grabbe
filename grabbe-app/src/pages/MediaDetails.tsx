@@ -154,8 +154,49 @@ export const MediaDetails = () => {
     refreshTracking();
   }, [externalId, sourceApi, isModalOpen]);
 
+  const fromLabel = location.state?.from || 'Library';
+  const fromPath = location.state?.path || '/library';
+
   if (isLoading) return <MainLayout><div className="flex items-center justify-center min-h-[50vh]"><div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" /></div></MainLayout>;
-  if (!media) return <MainLayout><div className="flex items-center justify-center min-h-[50vh] text-text-muted">Failed to load media</div></MainLayout>;
+  
+  if (!media) {
+    return (
+      <MainLayout>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] max-w-md mx-auto text-center px-4 animate-in fade-in duration-300">
+          <div className="w-20 h-20 rounded-full bg-error/10 flex items-center justify-center mb-6 border border-error/20 relative group">
+            <div className="absolute inset-0 rounded-full bg-error/20 blur-md opacity-50 group-hover:opacity-100 transition-opacity duration-300"></div>
+            <span className="material-symbols-outlined text-4xl text-error relative z-10 animate-pulse">
+              sentiment_very_dissatisfied
+            </span>
+          </div>
+          
+          <h2 className="text-3xl font-black text-text-high tracking-tight mb-3">
+            Oops! Content Unavailable
+          </h2>
+          <p className="text-sm text-text-muted leading-relaxed mb-8">
+            We couldn't retrieve the details for this media. The online source API might be temporarily down, or this item may have been removed.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full justify-center">
+            <button
+              onClick={() => navigate(fromPath)}
+              className="w-full sm:w-auto px-6 py-3 bg-primary text-on-primary text-sm font-bold rounded-xl transition-all active:scale-95 hover:brightness-110 bloom-shadow flex items-center justify-center gap-2 cursor-pointer select-none"
+            >
+              <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+              Back to {fromLabel}
+            </button>
+            <button
+              onClick={() => navigate('/discover')}
+              className="w-full sm:w-auto px-6 py-3 bg-surface-container border border-outline-variant/20 hover:bg-surface-container-high text-text-high text-sm font-semibold rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer select-none"
+            >
+              <span className="material-symbols-outlined text-[18px]">travel_explore</span>
+              Discover New
+            </button>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
 
   const extras = {
     runtime: media.formattedConsumptionMetric,
@@ -316,8 +357,7 @@ export const MediaDetails = () => {
     ...(media.releaseDate ? [{ label: 'Release', value: media.releaseDate }] : []),
   ];
 
-  const fromLabel = location.state?.from || 'Library';
-  const fromPath = location.state?.path || '/library';
+
   
   const isBasicImport = !media.coverImageUrl || externalId?.startsWith('imported_');
 
