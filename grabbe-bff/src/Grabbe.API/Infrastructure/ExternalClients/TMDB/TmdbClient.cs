@@ -53,6 +53,16 @@ public class TmdbClient : IMediaProviderClient
     /// <inheritdoc/>
     public async Task<GrabbeMediaDTO?> GetDetailsAsync(string externalId, string type)
     {
+        return await RetryHelper.ExecuteWithRetryAsync(
+            async () => await FetchDetailsAsync(externalId, type),
+            maxRetries: 3,
+            delayMilliseconds: 1000,
+            shouldRetry: ex => ex is ExternalProviderException pEx && (pEx.StatusCode == null || pEx.StatusCode == System.Net.HttpStatusCode.TooManyRequests || (int)pEx.StatusCode >= 500)
+        );
+    }
+
+    private async Task<GrabbeMediaDTO?> FetchDetailsAsync(string externalId, string type)
+    {
         try
         {
             var endpoint = type == "SERIES" ? $"tv/{externalId}" : $"movie/{externalId}";
@@ -60,11 +70,20 @@ public class TmdbClient : IMediaProviderClient
             var response = await _httpClient.GetFromJsonAsync<TmdbDetailResponse>(
                 $"{endpoint}?language=en&append_to_response=credits,alternative_titles");
 
-            return response?.ToUniversalDto(type);
+            if (response == null)
+            {
+                throw new ExternalProviderException(ProviderName, null, "TMDB returned an empty details payload.");
+            }
+
+            return response.ToUniversalDto(type);
         }
-        catch (HttpRequestException)
+        catch (HttpRequestException ex)
         {
-            return null;
+            if (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return null;
+            }
+            throw new ExternalProviderException(ProviderName, ex.StatusCode, "TMDB request failed.", ex);
         }
     }
 }

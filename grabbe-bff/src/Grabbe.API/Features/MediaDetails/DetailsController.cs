@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Grabbe.API.Infrastructure.ExternalClients;
 
 namespace Grabbe.API.Features.MediaDetails;
 
@@ -24,13 +26,43 @@ public class MediaController : ControllerBase
     [HttpGet("{sourceApi}/{type}/{id}")]
     public async Task<IActionResult> GetDetails(string sourceApi, string type, string id)
     {
-        var result = await _detailsService.GetMediaDetailsAsync(sourceApi, type, id);
-
-        if (result == null)
+        try
         {
-            return NotFound(new { Error = "Media not found or provider is invalid." });
-        }
+            var result = await _detailsService.GetMediaDetailsAsync(sourceApi, type, id);
 
-        return Ok(new { Data = result });
+            if (result == null)
+            {
+                return NotFound(new { Error = "Media not found or provider is invalid." });
+            }
+
+            return Ok(new { Data = result });
+        }
+        catch (ExternalProviderException ex)
+        {
+            var statusCode = ex.StatusCode switch
+            {
+                System.Net.HttpStatusCode.TooManyRequests => StatusCodes.Status429TooManyRequests,
+                System.Net.HttpStatusCode.InternalServerError => StatusCodes.Status502BadGateway,
+                System.Net.HttpStatusCode.BadGateway => StatusCodes.Status502BadGateway,
+                System.Net.HttpStatusCode.ServiceUnavailable => StatusCodes.Status503ServiceUnavailable,
+                System.Net.HttpStatusCode.GatewayTimeout => StatusCodes.Status504GatewayTimeout,
+                _ => StatusCodes.Status502BadGateway
+            };
+
+            return StatusCode(statusCode, new
+            {
+                Error = ex.Message,
+                Provider = ex.ProviderName,
+                Details = "External provider error occurred. You can retry the request later."
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                Error = "An unexpected error occurred while fetching media details.",
+                Details = ex.Message
+            });
+        }
     }
 }

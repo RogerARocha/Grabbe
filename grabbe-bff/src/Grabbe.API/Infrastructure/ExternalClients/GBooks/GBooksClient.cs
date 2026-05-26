@@ -52,6 +52,16 @@ public class GoogleBooksClient : IMediaProviderClient
     /// <inheritdoc/>
     public async Task<GrabbeMediaDTO?> GetDetailsAsync(string externalId, string type)
     {
+        return await RetryHelper.ExecuteWithRetryAsync(
+            async () => await FetchDetailsAsync(externalId),
+            maxRetries: 3,
+            delayMilliseconds: 1000,
+            shouldRetry: ex => ex is ExternalProviderException pEx && (pEx.StatusCode == null || pEx.StatusCode == System.Net.HttpStatusCode.TooManyRequests || (int)pEx.StatusCode >= 500)
+        );
+    }
+
+    private async Task<GrabbeMediaDTO?> FetchDetailsAsync(string externalId)
+    {
         try
         {
             var endpoint = $"volumes/{Uri.EscapeDataString(externalId)}?key={_apiKey}";
@@ -62,9 +72,13 @@ public class GoogleBooksClient : IMediaProviderClient
 
             return item.ToUniversalDto();
         }
-        catch (HttpRequestException)
+        catch (HttpRequestException ex)
         {
-            return null;
+            if (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return null;
+            }
+            throw new ExternalProviderException(ProviderName, ex.StatusCode, "Google Books request failed.", ex);
         }
     }
 }

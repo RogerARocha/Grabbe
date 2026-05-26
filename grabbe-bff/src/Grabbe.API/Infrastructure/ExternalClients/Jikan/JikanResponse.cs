@@ -6,12 +6,36 @@ public class JikanSearchResponse
 {
     [JsonPropertyName("data")]
     public List<JikanAnimeData>? Data { get; set; }
+
+    [JsonPropertyName("status")]
+    public int? Status { get; set; }
+
+    [JsonPropertyName("type")]
+    public string? Type { get; set; }
+
+    [JsonPropertyName("message")]
+    public string? Message { get; set; }
+
+    [JsonPropertyName("error")]
+    public string? Error { get; set; }
 }
 
 public class JikanDetailResponse
 {
     [JsonPropertyName("data")]
     public JikanAnimeData? Data { get; set; }
+
+    [JsonPropertyName("status")]
+    public int? Status { get; set; }
+
+    [JsonPropertyName("type")]
+    public string? Type { get; set; }
+
+    [JsonPropertyName("message")]
+    public string? Message { get; set; }
+
+    [JsonPropertyName("error")]
+    public string? Error { get; set; }
 }
 
 public class JikanAnimeData

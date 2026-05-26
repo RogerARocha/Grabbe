@@ -1,6 +1,7 @@
 using Grabbe.API.Domain.DTOs;
 using Grabbe.API.Infrastructure.ExternalClients.Jikan;
-using System.Net.Http.Json;
+using System.Net;
+using System.Text.Json;
 
 namespace Grabbe.API.Infrastructure.ExternalClients;
 
@@ -26,19 +27,25 @@ public class JikanClient : IMediaProviderClient
     /// <inheritdoc/>
     public async Task<IEnumerable<GrabbeMediaDTO>> SearchAsync(string query, string type)
     {
+        var isManga = type == "MANGA";
+        var endpoint = isManga ? "manga" : "anime";
+        var url = $"{endpoint}?q={Uri.EscapeDataString(query)}";
+
         try
         {
-            var isManga = type == "MANGA";
-            var endpoint = isManga ? "manga" : "anime";
-
-            var response = await _httpClient.GetFromJsonAsync<JikanSearchResponse>(
-                $"{endpoint}?q={Uri.EscapeDataString(query)}");
-
-            if (response?.Data == null) return Array.Empty<GrabbeMediaDTO>();
-
-            return response.Data.Select(item => item.ToUniversalDto(isManga));
+            return await RetryHelper.ExecuteWithRetryAsync(
+                async () => await FetchSearchAsync(url, isManga),
+                maxRetries: 3,
+                delayMilliseconds: 1000,
+                shouldRetry: IsTransientFailure
+            );
         }
-        catch (HttpRequestException)
+        catch (ExternalProviderException)
+        {
+            // For searches, we gracefully return empty results rather than failing the whole flow
+            return Array.Empty<GrabbeMediaDTO>();
+        }
+        catch (Exception)
         {
             return Array.Empty<GrabbeMediaDTO>();
         }
@@ -47,18 +54,131 @@ public class JikanClient : IMediaProviderClient
     /// <inheritdoc/>
     public async Task<GrabbeMediaDTO?> GetDetailsAsync(string externalId, string type)
     {
+        var isManga = type == "MANGA";
+        var endpoint = isManga ? $"manga/{externalId}" : $"anime/{externalId}";
+
+        return await RetryHelper.ExecuteWithRetryAsync(
+            async () => await FetchDetailsAsync(endpoint, isManga),
+            maxRetries: 3,
+            delayMilliseconds: 1000,
+            shouldRetry: IsTransientFailure
+        );
+    }
+
+    private async Task<IEnumerable<GrabbeMediaDTO>> FetchSearchAsync(string url, bool isManga)
+    {
+        HttpResponseMessage response;
         try
         {
-            var isManga = type == "MANGA";
-            var endpoint = isManga ? $"manga/{externalId}" : $"anime/{externalId}";
-
-            var response = await _httpClient.GetFromJsonAsync<JikanDetailResponse>(endpoint);
-
-            return response?.Data?.ToUniversalDto(isManga);
+            response = await _httpClient.GetAsync(url);
         }
-        catch (HttpRequestException)
+        catch (HttpRequestException ex)
+        {
+            throw new ExternalProviderException(ProviderName, null, "Failed to connect to the Jikan API server.", ex);
+        }
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            return Array.Empty<GrabbeMediaDTO>();
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new ExternalProviderException(ProviderName, response.StatusCode, $"Jikan search request failed with status {response.StatusCode}.");
+        }
+
+        var content = await response.Content.ReadAsStringAsync();
+        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        JikanSearchResponse? searchResponse;
+
+        try
+        {
+            searchResponse = JsonSerializer.Deserialize<JikanSearchResponse>(content, options);
+        }
+        catch (JsonException ex)
+        {
+            throw new ExternalProviderException(ProviderName, response.StatusCode, "Invalid JSON payload returned from Jikan search.", ex);
+        }
+
+        if (searchResponse != null)
+        {
+            if (searchResponse.Status.HasValue && searchResponse.Status.Value != 200 && searchResponse.Status.Value != 201)
+            {
+                var statusCode = (HttpStatusCode)searchResponse.Status.Value;
+                var errorMsg = searchResponse.Message ?? searchResponse.Error ?? "Jikan internal search API error";
+                throw new ExternalProviderException(ProviderName, statusCode, $"Upstream search error inside JSON body: {errorMsg}");
+            }
+        }
+
+        if (searchResponse?.Data == null)
+        {
+            return Array.Empty<GrabbeMediaDTO>();
+        }
+
+        return searchResponse.Data.Select(item => item.ToUniversalDto(isManga));
+    }
+
+    private async Task<GrabbeMediaDTO?> FetchDetailsAsync(string url, bool isManga)
+    {
+        HttpResponseMessage response;
+        try
+        {
+            response = await _httpClient.GetAsync(url);
+        }
+        catch (HttpRequestException ex)
+        {
+            throw new ExternalProviderException(ProviderName, null, "Failed to connect to the Jikan API server.", ex);
+        }
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
         {
             return null;
         }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new ExternalProviderException(ProviderName, response.StatusCode, $"Jikan detail request failed with status {response.StatusCode}.");
+        }
+
+        var content = await response.Content.ReadAsStringAsync();
+        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        JikanDetailResponse? detailResponse;
+
+        try
+        {
+            detailResponse = JsonSerializer.Deserialize<JikanDetailResponse>(content, options);
+        }
+        catch (JsonException ex)
+        {
+            throw new ExternalProviderException(ProviderName, response.StatusCode, "Invalid JSON payload returned from Jikan detail.", ex);
+        }
+
+        if (detailResponse != null)
+        {
+            if (detailResponse.Status.HasValue && detailResponse.Status.Value != 200 && detailResponse.Status.Value != 201)
+            {
+                var statusCode = (HttpStatusCode)detailResponse.Status.Value;
+                var errorMsg = detailResponse.Message ?? detailResponse.Error ?? "Jikan internal detail API error";
+                throw new ExternalProviderException(ProviderName, statusCode, $"Upstream detail error inside JSON body: {errorMsg}");
+            }
+        }
+
+        if (detailResponse?.Data == null)
+        {
+            throw new ExternalProviderException(ProviderName, response.StatusCode, "Jikan returned an empty details payload without error details.");
+        }
+
+        return detailResponse.Data.ToUniversalDto(isManga);
+    }
+
+    private static bool IsTransientFailure(Exception ex)
+    {
+        if (ex is ExternalProviderException providerEx)
+        {
+            return providerEx.StatusCode == null ||
+                   providerEx.StatusCode == HttpStatusCode.TooManyRequests ||
+                   ((int)providerEx.StatusCode >= 500 && (int)providerEx.StatusCode <= 599);
+        }
+        return false;
     }
 }

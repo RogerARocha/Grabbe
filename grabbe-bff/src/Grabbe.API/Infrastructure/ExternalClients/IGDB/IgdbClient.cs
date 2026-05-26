@@ -100,11 +100,17 @@ public class IgdbClient : IMediaProviderClient
             where id = {id};
         ";
 
-        var games = await ExecuteIgdbQueryAsync(apicalypseQuery);
-        
-        var game = games?.FirstOrDefault();
-        
-        return game != null ? IgdbMapper.ToUniversalDto(game) : null;
+        return await RetryHelper.ExecuteWithRetryAsync(
+            async () =>
+            {
+                var games = await ExecuteIgdbQueryAsync(apicalypseQuery);
+                var game = games?.FirstOrDefault();
+                return game != null ? IgdbMapper.ToUniversalDto(game) : null;
+            },
+            maxRetries: 3,
+            delayMilliseconds: 1000,
+            shouldRetry: ex => ex is ExternalProviderException pEx && (pEx.StatusCode == null || pEx.StatusCode == System.Net.HttpStatusCode.TooManyRequests || (int)pEx.StatusCode >= 500)
+        );
     }
 
     // ── Helper centralizado para as chamadas HTTP ──
@@ -120,15 +126,33 @@ public class IgdbClient : IMediaProviderClient
         request.Headers.Add("Client-ID", _clientId);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken);
 
-        var response = await _httpClient.SendAsync(request);
+        HttpResponseMessage response;
+        try
+        {
+            response = await _httpClient.SendAsync(request);
+        }
+        catch (HttpRequestException ex)
+        {
+            throw new ExternalProviderException(ProviderName, null, "Failed to connect to the IGDB API server.", ex);
+        }
         
         if (!response.IsSuccessStatusCode)
         {
-            // Logar o erro aqui se necessário
-            return null;
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return null;
+            }
+            throw new ExternalProviderException(ProviderName, response.StatusCode, $"IGDB request failed with status code {response.StatusCode}.");
         }
 
         var contentStream = await response.Content.ReadAsStreamAsync();
-        return await JsonSerializer.DeserializeAsync<List<IgdbGameResponse>>(contentStream);
+        try
+        {
+            return await JsonSerializer.DeserializeAsync<List<IgdbGameResponse>>(contentStream);
+        }
+        catch (JsonException ex)
+        {
+            throw new ExternalProviderException(ProviderName, response.StatusCode, "Invalid JSON payload returned from IGDB.", ex);
+        }
     }
 }
