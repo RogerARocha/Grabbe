@@ -115,7 +115,9 @@ public class JikanClient : IMediaProviderClient
             return Array.Empty<GrabbeMediaDTO>();
         }
 
-        return searchResponse.Data.Select(item => item.ToUniversalDto(isManga));
+        return searchResponse.Data
+            .Where(item => !IsExplicit(item))
+            .Select(item => item.ToUniversalDto(isManga));
     }
 
     private async Task<GrabbeMediaDTO?> FetchDetailsAsync(string url, bool isManga)
@@ -168,6 +170,11 @@ public class JikanClient : IMediaProviderClient
             throw new ExternalProviderException(ProviderName, response.StatusCode, "Jikan returned an empty details payload without error details.");
         }
 
+        if (IsExplicit(detailResponse.Data))
+        {
+            return null; // Excluded explicit content
+        }
+
         return detailResponse.Data.ToUniversalDto(isManga);
     }
 
@@ -180,5 +187,15 @@ public class JikanClient : IMediaProviderClient
                    ((int)providerEx.StatusCode >= 500 && (int)providerEx.StatusCode <= 599);
         }
         return false;
+    }
+
+    private static bool IsExplicit(JikanAnimeData item)
+    {
+        if (item.Genres == null) return false;
+        return item.Genres.Any(g => 
+            g.Name.Contains("hentai", StringComparison.OrdinalIgnoreCase) || 
+            g.Name.Contains("pornograph", StringComparison.OrdinalIgnoreCase) ||
+            g.Name.Contains("erotica", StringComparison.OrdinalIgnoreCase)
+        );
     }
 }

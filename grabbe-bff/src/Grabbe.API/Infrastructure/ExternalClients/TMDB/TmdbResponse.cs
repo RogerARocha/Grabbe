@@ -39,6 +39,9 @@ public class TmdbResult
 
     [JsonPropertyName("vote_average")]
     public double? VoteAverage { get; set; }
+
+    [JsonPropertyName("adult")]
+    public bool Adult { get; set; }
 }
 
 

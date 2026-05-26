@@ -41,6 +41,7 @@ public class TmdbClient : IMediaProviderClient
             // Exclude Japanese-language animation (genre 16) from TMDB results.
             // These are anime titles that would be duplicated by the dedicated Jikan client.
             return response.Results
+                .Where(media => !media.Adult) // Exclude adult content
                 .Where(media => !(media.OriginalLanguage == "ja" && media.GenreIds.Contains(16)))
                 .Select(media => media.ToSearchDto(type));
         }
@@ -73,6 +74,11 @@ public class TmdbClient : IMediaProviderClient
             if (response == null)
             {
                 throw new ExternalProviderException(ProviderName, null, "TMDB returned an empty details payload.");
+            }
+
+            if (response.Adult)
+            {
+                return null; // Excluded adult content
             }
 
             return response.ToUniversalDto(type);
