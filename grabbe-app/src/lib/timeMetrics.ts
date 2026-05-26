@@ -94,3 +94,54 @@ export function formatTotalHours(totalMinutes: number): string {
   
   return `${hours}h ${mins}m`;
 }
+
+/**
+ * Uses the Largest Remainder Method with a minimum constraint of 1%.
+ */
+export function calculateAdjustedPercentages(counts: number[]): number[] {
+  const total = counts.reduce((sum, val) => sum + val, 0);
+  if (total === 0) {
+    return counts.map(() => 0);
+  }
+
+  // Give minimum 1% to all non-zero categories
+  const initialAllocated: number[] = counts.map(c => (c > 0 ? 1 : 0));
+  const sumAllocated = initialAllocated.reduce((sum, val) => sum + val, 0);
+
+  if (sumAllocated >= 100) {
+    return initialAllocated;
+  }
+
+  const remaining = 100 - sumAllocated;
+
+  // Compute proportional raw floats
+  const rawFloats = counts.map((c, i) => {
+    if (c === 0) return 0;
+    return initialAllocated[i] + (c / total) * remaining;
+  });
+
+  const floorValues = rawFloats.map(Math.floor);
+  const sumFloor = floorValues.reduce((sum, val) => sum + val, 0);
+  const difference = 100 - sumFloor;
+
+  const remainders = rawFloats.map((val, i) => ({
+    index: i,
+    remainder: val - floorValues[i],
+    hasValue: counts[i] > 0
+  }));
+
+  remainders.sort((a, b) => {
+    if (!a.hasValue) return 1;
+    if (!b.hasValue) return -1;
+    return b.remainder - a.remainder;
+  });
+ 
+  for (let i = 0; i < difference; i++) {
+    const item = remainders[i];
+    if (item && item.hasValue) {
+      floorValues[item.index] += 1;
+    }
+  }
+
+  return floorValues;
+}

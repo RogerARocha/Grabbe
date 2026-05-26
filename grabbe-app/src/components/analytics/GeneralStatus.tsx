@@ -1,17 +1,26 @@
+import { calculateAdjustedPercentages } from '../../lib/timeMetrics';
+
 export const GeneralStatus = ({ items = [] }: { items: any[] }) => {
   const totalMedia = items.length;
-  const totalWithStatus = items.length || 1;
   const countCompleted = items.filter(i => i.status === 'COMPLETED').length;
   const countWatching = items.filter(i => i.status === 'CONSUMING').length;
   const countPlanned = items.filter(i => i.status === 'PLANNED').length;
   const countOnHold = items.filter(i => i.status === 'ON HOLD').length;
   const countDropped = items.filter(i => i.status === 'DROPPED').length;
 
-  const pctCompleted = Math.round((countCompleted / totalWithStatus) * 100);
-  const pctWatching = Math.round((countWatching / totalWithStatus) * 100);
-  const pctPlanned = Math.round((countPlanned / totalWithStatus) * 100);
-  const pctOnHold = Math.round((countOnHold / totalWithStatus) * 100);
-  const pctDropped = Math.round((countDropped / totalWithStatus) * 100);
+  const [
+    pctCompleted,
+    pctWatching,
+    pctPlanned,
+    pctOnHold,
+    pctDropped
+  ] = calculateAdjustedPercentages([
+    countCompleted,
+    countWatching,
+    countPlanned,
+    countOnHold,
+    countDropped
+  ]);
 
   // Donut chart logic (conic gradient)
   let currentStop = 0;
