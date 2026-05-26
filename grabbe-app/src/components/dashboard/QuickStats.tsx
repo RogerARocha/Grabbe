@@ -2,16 +2,15 @@ import { useNavigate } from 'react-router-dom';
 
 import { calculateInvestedMinutes, formatTotalHours } from '../../lib/timeMetrics';
 
-/**
- * Displays aggregate statistics for the user's library.
- */
 export const QuickStats = ({ items = [] }: { items?: any[] }) => {
   const navigate = useNavigate();
   const totalMedia = items.length;
-  const oneWeekAgo = new Date();
-  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+  const startOfWeek = new Date();
+  const day = startOfWeek.getDay();
+  startOfWeek.setDate(startOfWeek.getDate() - day);
+  startOfWeek.setHours(0, 0, 0, 0);
   
-  const newThisWeek = items.filter(i => i.created_at && new Date(i.created_at) >= oneWeekAgo).length;
+  const newThisWeek = items.filter(i => i.created_at && new Date(i.created_at) >= startOfWeek).length;
 
   const masterpieces = items.filter(i => i.score === 10).length;
 
@@ -32,7 +31,11 @@ export const QuickStats = ({ items = [] }: { items?: any[] }) => {
         <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-1 group-hover:text-primary transition-colors">Total Media</p>
         <div className="flex items-baseline gap-2">
           <span className="text-4xl font-bold">{totalMedia}</span>
-          <span className="text-[12px] text-secondary font-bold">+{newThisWeek} added this week</span>
+          {newThisWeek > 0 ? (
+            <span className="text-[12px] text-secondary font-bold">+{newThisWeek} added this week</span>
+          ) : (
+            <span className="text-[12px] text-text-muted">No new items this week</span>
+          )}
         </div>
       </div>
       <div 
