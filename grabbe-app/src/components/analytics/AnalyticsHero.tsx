@@ -10,10 +10,17 @@ export const AnalyticsHero = ({ items = [] }: { items: any[] }) => {
   const oneMonthAgo = new Date();
   oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
 
+  const parseSafeDate = (val: any): Date => {
+    if (val instanceof Date) return val;
+    if (typeof val === 'number') return new Date(val);
+    const str = String(val || '');
+    return new Date(str.includes(' ') ? str.replace(' ', 'T') + 'Z' : str);
+  };
+
   const thisMonthMinutes = items
     .filter(i => {
       if (!i.finish_date) return false;
-      const parsedDate = new Date(i.finish_date.includes(' ') ? i.finish_date.replace(' ', 'T') + 'Z' : i.finish_date);
+      const parsedDate = parseSafeDate(i.finish_date);
       return parsedDate >= oneMonthAgo;
     })
     .reduce((acc, item) => {

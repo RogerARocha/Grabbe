@@ -80,6 +80,7 @@ export const LibraryFilters = ({
               <option value="last_added">Last Added</option>
               <option value="last_updated">Last Updated</option>
               <option value="last_finished">Last Finished</option>
+              <option value="first_finished">First Finished</option>
               <option value="first_added">First Added</option>
               <option value="az">Alphabetical (A - Z)</option>
               <option value="za">Alphabetical (Z - A)</option>

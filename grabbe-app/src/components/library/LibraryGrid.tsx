@@ -67,9 +67,38 @@ export const LibraryGrid = ({ activeTab, activeStatus, searchQuery, sortBy }: Li
         case 'za':
           return (b.title ?? '').localeCompare(a.title ?? '');
         case 'last_finished': {
-          const dateA = a.finish_date ? new Date(a.finish_date.includes(' ') ? a.finish_date.replace(' ', 'T') + 'Z' : a.finish_date).getTime() : 0;
-          const dateB = b.finish_date ? new Date(b.finish_date.includes(' ') ? b.finish_date.replace(' ', 'T') + 'Z' : b.finish_date).getTime() : 0;
-          return dateB - dateA;
+          const parseSafeTime = (val: any): number => {
+            if (!val) return 0;
+            if (val instanceof Date) return val.getTime();
+            if (typeof val === 'number') return val;
+            const str = String(val);
+            return new Date(str.includes(' ') ? str.replace(' ', 'T') + 'Z' : str).getTime();
+          };
+          const dateA = parseSafeTime(a.finish_date);
+          const dateB = parseSafeTime(b.finish_date);
+
+          if (dateA === 0 && dateB === 0) return 0;
+          if (dateA === 0) return 1; // push a to bottom
+          if (dateB === 0) return -1; // push b to bottom
+
+          return dateB - dateA; // newest first
+        }
+        case 'first_finished': {
+          const parseSafeTime = (val: any): number => {
+            if (!val) return 0;
+            if (val instanceof Date) return val.getTime();
+            if (typeof val === 'number') return val;
+            const str = String(val);
+            return new Date(str.includes(' ') ? str.replace(' ', 'T') + 'Z' : str).getTime();
+          };
+          const dateA = parseSafeTime(a.finish_date);
+          const dateB = parseSafeTime(b.finish_date);
+
+          if (dateA === 0 && dateB === 0) return 0;
+          if (dateA === 0) return 1; // push a to bottom
+          if (dateB === 0) return -1; // push b to bottom
+
+          return dateA - dateB; // oldest first
         }
         case 'last_updated':
         default:
