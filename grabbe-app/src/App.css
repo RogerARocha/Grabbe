@@ -65,7 +65,7 @@ textarea,
   }
 
   .prismatic-text-blue {
-    background-image: linear-gradient(to right, #014770, #26618c, #6497b1, #14274c, #014770);
+    background-image: linear-gradient(to right, #014770, #26618c, #6497b1, #014770);
     background-size: 200% auto;
     background-clip: text;
     -webkit-background-clip: text;
@@ -84,6 +84,13 @@ textarea,
     background-image: linear-gradient(to bottom, #014770, #26618c, #6497b1, #14274c, #014770);
     background-size: auto 200%;
     animation: prismatic-animate-vertical 4s linear infinite;
+    transition: all 0.3s ease;
+  }
+
+  .prismatic-bg-blue-horizontal {
+    background-image: linear-gradient(to right, #014770, #26618c, #6497b1, #14274c, #014770);
+    background-size: 200% auto;
+    animation: prismatic-animate 4s linear infinite;
     transition: all 0.3s ease;
   }
 

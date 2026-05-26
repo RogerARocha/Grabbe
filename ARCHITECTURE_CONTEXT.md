@@ -604,7 +604,7 @@ The following patterns should **never** have a comment:
 * [ ] Commands Palette
 * [ ] Unified Profile Card with exportable Banner.
 * [ ] Grabbe Recap (Story Export).
-* [ ] Manual data Export/Import.
+* [x] Manual data Export/Import.
 * [ ] Themes choices.
 * [x] Add new providers.
 

@@ -8,6 +8,7 @@ import './App.css';
 import { ComingSoon } from './pages/ComingSoon';
 import { Discover } from './pages/Discover';
 import { Settings } from './pages/Settings';
+import { Analytics } from './pages/Analytics';
 import { initDb } from './lib/db';
 import { ImportProvider } from './contexts/ImportContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -37,7 +38,7 @@ function App() {
         <Route path="/discover" element={<Discover />} />
 
         {/* Views currently in development (Coming Soon) */}
-        <Route path="/analytics" element={<ComingSoon feature="analytics" />} />
+        <Route path="/analytics" element={<Analytics />} />
         <Route path="/community" element={<ComingSoon feature="community" />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/profile" element={<ComingSoon feature="profile" />} />

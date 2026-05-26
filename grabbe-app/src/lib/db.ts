@@ -283,8 +283,9 @@ export async function saveTracking(
 export async function getLibraryItems() {
   const db = await getDb();
   return await db.select<any[]>(`
-    SELECT m.*, ut.status, ut.progress, ut.total_progress, ut.review_text, r.score 
-    FROM Media m 
+    SELECT m.*, ut.status, ut.progress, ut.total_progress, ut.review_text, r.score, ut.updated_at,
+           (SELECT MAX(finish_date) FROM ConsumptionSession cs WHERE cs.tracking_id = ut.id) as finish_date
+    FROM Media m
     INNER JOIN UserTracking ut ON m.id = ut.media_id
     LEFT JOIN Ranking r ON m.id = r.media_id
     ORDER BY ut.updated_at DESC
@@ -301,7 +302,8 @@ export async function getLibraryItems() {
 export async function getRankedItems(mediaType?: string) {
   const db = await getDb();
   let query = `
-    SELECT m.*, ut.status, ut.progress, ut.total_progress, ut.review_text, r.score 
+    SELECT m.*, ut.status, ut.progress, ut.total_progress, ut.review_text, r.score, ut.updated_at,
+           (SELECT MAX(finish_date) FROM ConsumptionSession cs WHERE cs.tracking_id = ut.id) as finish_date
     FROM Media m 
     INNER JOIN UserTracking ut ON m.id = ut.media_id
     INNER JOIN Ranking r ON m.id = r.media_id
