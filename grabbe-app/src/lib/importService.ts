@@ -65,6 +65,14 @@ export async function importMediaFromFile(
         let releaseDate = null;
         let description = null;
         let formattedConsumptionMetric = null;
+        let releaseYear = null;
+        let communityScore = null;
+        let publisherOrStudio = null;
+        let originalLanguage = null;
+        let alternativeTitles = [] as string[];
+        let keyPeople = [] as any[];
+        let genres = [] as string[];
+        let totalProgressUnits = item.totalProgressUnits;
 
         try {
             const searchResponse = await fetch(
@@ -88,9 +96,21 @@ export async function importMediaFromFile(
                             if (detailsResponse.ok) {
                                 const detailsBody = await detailsResponse.json();
                                 if (detailsBody.data) {
-                                    formattedConsumptionMetric = detailsBody.data.formattedConsumptionMetric ?? null;
-                                    description = detailsBody.data.description ?? description;
-                                    coverImageUrl = detailsBody.data.coverImageUrl ?? coverImageUrl;
+                                    const d = detailsBody.data;
+                                    formattedConsumptionMetric = d.formattedConsumptionMetric ?? null;
+                                    description = d.description ?? description;
+                                    coverImageUrl = d.coverImageUrl ?? coverImageUrl;
+                                    releaseDate = d.releaseDate ?? releaseDate;
+                                    releaseYear = d.releaseYear ?? null;
+                                    communityScore = d.communityScore ?? null;
+                                    publisherOrStudio = d.publisherOrStudio ?? null;
+                                    originalLanguage = d.originalLanguage ?? null;
+                                    alternativeTitles = d.alternativeTitles ?? [];
+                                    keyPeople = d.keyPeople ?? [];
+                                    genres = d.genres ?? [];
+                                    if (d.totalProgressUnits !== undefined && d.totalProgressUnits !== null) {
+                                        totalProgressUnits = d.totalProgressUnits;
+                                    }
                                 }
                             }
                         } catch (e) {
@@ -98,7 +118,7 @@ export async function importMediaFromFile(
                         }
                     } else {
                         console.warn(
-                            `[import] Title mismatch — imported: "${item.title}", search returned: "${firstResult.title}". Keeping placeholder ID.`
+                             `[import] Title mismatch — imported: "${item.title}", search returned: "${firstResult.title}". Keeping placeholder ID.`
                         );
                     }
                 }
@@ -116,7 +136,14 @@ export async function importMediaFromFile(
             coverImageUrl,
             releaseDate,
             formattedConsumptionMetric,
-            genres: []
+            genres,
+            releaseYear,
+            communityScore,
+            publisherOrStudio,
+            originalLanguage,
+            alternativeTitles,
+            keyPeople,
+            totalProgressUnits
         };
 
         const mediaId = await upsertMedia(media);
@@ -125,7 +152,7 @@ export async function importMediaFromFile(
             item.status,
             item.score > 0 ? item.score : null,
             item.progress,
-            item.totalProgressUnits,
+            totalProgressUnits,
             null,
             item.startDate,
             item.endDate
@@ -191,7 +218,14 @@ export async function importBackupData(
             coverImageUrl: media.cover_image_path,
             releaseDate: media.release_date,
             formattedConsumptionMetric: metric,
-            genres: media.genres || []
+            genres: media.genres || [],
+            releaseYear: media.release_year || null,
+            communityScore: media.community_score || null,
+            publisherOrStudio: media.publisher_or_studio || null,
+            originalLanguage: media.original_language || null,
+            alternativeTitles: media.alternative_titles || [],
+            keyPeople: media.key_people || [],
+            totalProgressUnits: media.total_progress_units || null
         };
         const mediaId = await upsertMedia(mediaToUpsert);
 

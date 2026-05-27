@@ -10,7 +10,7 @@ import { ActionBar } from '../components/media-details/ActionBar';
 import { DetailsGrid } from '../components/media-details/DetailsGrid';
 import { CastSection } from '../components/media-details/CastSection';
 import { AlternativeTitles } from '../components/media-details/AlternativeTitles';
-import { getTrackingByExternalId, removeTrackingByExternalId, saveTracking, startRewatch, getMediaByExternalId, linkMediaToRealId, unlinkMedia } from '../lib/db';
+import { getTrackingByExternalId, removeTrackingByExternalId, saveTracking, startRewatch, getMediaByExternalId, linkMediaToRealId, unlinkMedia, upsertMedia } from '../lib/db';
 import { ConsumptionTimeline } from '../components/media-details/ConsumptionTimeline';
 import { useToast } from '../contexts/ToastContext';
 import { ConfirmationModal } from '../components/modals/ConfirmationModal';
@@ -128,26 +128,83 @@ export const MediaDetails = () => {
   useEffect(() => {
     if (!externalId || !sourceApi || !type) return;
 
+    let active = true;
     setIsLoading(true);
-    fetch(`http://localhost:5244/api/v1/media/${sourceApi}/${type}/${externalId}`)
-      .then(res => {
-        if (!res.ok) throw new Error('Failed to load from BFF');
-        return res.json();
-      })
-      .then(res => {
-        if (!res.data) throw new Error('Empty data from BFF');
-        setMedia(res.data);
-        setTracking((prev: any) => ({ ...prev, totalProgress: res.data.totalProgressUnits || 0 }));
-        setIsLoading(false);
-      })
-      .catch(async err => {
-        console.warn('BFF fallback triggered:', err);
-        const localMedia = await getMediaByExternalId(externalId, sourceApi);
-        if (localMedia) {
+
+    async function loadMedia() {
+      try {
+        // 1. Try to load from local SQLite first
+        const localMedia = await getMediaByExternalId(externalId!, sourceApi!);
+        if (localMedia && active) {
+          console.log('Loaded media details local-first:', localMedia);
           setMedia(localMedia);
+          setTracking((prev: any) => ({ ...prev, totalProgress: localMedia.totalProgressUnits || 0 }));
+          
+          // Check if this is a real external media (not a dummy import) and is missing rich details
+          const isPlaceholder = externalId?.startsWith('imported_') ?? false;
+          const isMissingRichDetails = !localMedia.description || 
+                                       !localMedia.releaseYear || 
+                                       !localMedia.publisherOrStudio || 
+                                       (!localMedia.keyPeople || localMedia.keyPeople.length === 0);
+
+          if (!isPlaceholder && isMissingRichDetails) {
+            console.log('Local media is missing rich details, fetching from BFF in background to enrich...');
+            // Don't block loading state, set it to false so the user can interact immediately
+            setIsLoading(false);
+            
+            // Silently fetch from BFF in the background
+            try {
+              const res = await fetch(`http://localhost:5244/api/v1/media/${sourceApi}/${type}/${externalId}`);
+              if (res.ok) {
+                const body = await res.json();
+                if (body.data && active) {
+                  console.log('Background enrichment fetched successfully:', body.data);
+                  setMedia(body.data);
+                  setTracking((prev: any) => ({ ...prev, totalProgress: body.data.totalProgressUnits || 0 }));
+                  
+                  // Asynchronously save/upsert the enriched details to the local DB for future instant offline loads
+                  await upsertMedia(body.data);
+                }
+              }
+            } catch (enrichErr) {
+              console.warn('Background enrichment failed:', enrichErr);
+            }
+          } else {
+            setIsLoading(false);
+          }
+          return;
         }
-        setIsLoading(false);
-      });
+      } catch (dbErr) {
+        console.warn('Failed to load local media details from DB, falling back to BFF:', dbErr);
+      }
+
+      if (!active) return;
+
+      // 2. If not found locally, fetch from BFF
+      try {
+        const res = await fetch(`http://localhost:5244/api/v1/media/${sourceApi}/${type}/${externalId}`);
+        if (!res.ok) throw new Error('Failed to load from BFF');
+        const body = await res.json();
+        if (!body.data) throw new Error('Empty data from BFF');
+        
+        if (active) {
+          setMedia(body.data);
+          setTracking((prev: any) => ({ ...prev, totalProgress: body.data.totalProgressUnits || 0 }));
+          setIsLoading(false);
+        }
+      } catch (bffErr) {
+        console.warn('BFF request failed:', bffErr);
+        if (active) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadMedia();
+
+    return () => {
+      active = false;
+    };
   }, [externalId, sourceApi, type]);
 
   useEffect(() => {
@@ -208,7 +265,9 @@ export const MediaDetails = () => {
     cast: media.keyPeople || []
   };
 
-  const year = media.releaseDate ? parseInt(media.releaseDate.split('-')[0], 10) : null;
+  const year = media.releaseYear
+    ? parseInt(String(media.releaseYear), 10)
+    : (media.releaseDate ? parseInt(String(media.releaseDate).split('-')[0], 10) : null);
 
   const handleAddClick = () => {
     setModalMode('add');

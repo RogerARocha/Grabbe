@@ -34,6 +34,13 @@ export async function initDb() {
         franchise TEXT,
         genres TEXT,
         consumption_metric TEXT,
+        release_year TEXT,
+        community_score REAL,
+        publisher_or_studio TEXT,
+        original_language TEXT,
+        alternative_titles TEXT,
+        key_people TEXT,
+        total_progress_units INTEGER,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
   `);
@@ -105,6 +112,26 @@ export async function initDb() {
     // Column already exists, ignore
   }
 
+  // Migrations for local-first rich metadata caching
+  const newColumns = [
+    { name: "release_year", type: "TEXT" },
+    { name: "community_score", type: "REAL" },
+    { name: "publisher_or_studio", type: "TEXT" },
+    { name: "original_language", type: "TEXT" },
+    { name: "alternative_titles", type: "TEXT" },
+    { name: "key_people", type: "TEXT" },
+    { name: "total_progress_units", type: "INTEGER" }
+  ];
+
+  for (const col of newColumns) {
+    try {
+      await db.execute(`ALTER TABLE Media ADD COLUMN ${col.name} ${col.type};`);
+      console.log(`Migration: Added ${col.name} column to Media table.`);
+    } catch (e) {
+      // Column already exists, ignore
+    }
+  }
+
   console.log("Database initialized and migrations ran successfully.");
 }
 
@@ -130,8 +157,15 @@ export async function upsertMedia(media: any) {
         cover_image_path = COALESCE($3, cover_image_path), 
         release_date = COALESCE($4, release_date), 
         genres = COALESCE($5, genres), 
-        consumption_metric = COALESCE($6, consumption_metric)
-       WHERE id = $7`,
+        consumption_metric = COALESCE($6, consumption_metric),
+        release_year = COALESCE($7, release_year),
+        community_score = COALESCE($8, community_score),
+        publisher_or_studio = COALESCE($9, publisher_or_studio),
+        original_language = COALESCE($10, original_language),
+        alternative_titles = COALESCE($11, alternative_titles),
+        key_people = COALESCE($12, key_people),
+        total_progress_units = COALESCE($13, total_progress_units)
+       WHERE id = $14`,
       [
         media.title,
         media.description || null,
@@ -139,6 +173,13 @@ export async function upsertMedia(media: any) {
         media.releaseDate || null,
         media.genres ? JSON.stringify(media.genres) : null,
         media.formattedConsumptionMetric || null,
+        media.releaseYear || (media.releaseDate ? String(media.releaseDate).split('-')[0] : null) || null,
+        media.communityScore !== undefined && media.communityScore !== null ? media.communityScore : null,
+        media.publisherOrStudio || null,
+        media.originalLanguage || null,
+        media.alternativeTitles ? JSON.stringify(media.alternativeTitles) : null,
+        media.keyPeople ? JSON.stringify(media.keyPeople) : null,
+        media.totalProgressUnits !== undefined && media.totalProgressUnits !== null ? media.totalProgressUnits : null,
         existingId
       ]
     );
@@ -162,8 +203,8 @@ export async function upsertMedia(media: any) {
   // --- Insert: INSERT OR IGNORE respects the DB-level unique index atomically ---
   const mediaId = uuidv4();
   await db.execute(
-    `INSERT OR IGNORE INTO Media (id, external_id, source_api, type, title, description, cover_image_path, release_date, genres, consumption_metric)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+    `INSERT OR IGNORE INTO Media (id, external_id, source_api, type, title, description, cover_image_path, release_date, genres, consumption_metric, release_year, community_score, publisher_or_studio, original_language, alternative_titles, key_people, total_progress_units)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`,
     [
       mediaId,
       media.externalId,
@@ -174,7 +215,14 @@ export async function upsertMedia(media: any) {
       media.coverImageUrl,
       media.releaseDate,
       JSON.stringify(media.genres),
-      media.formattedConsumptionMetric || null
+      media.formattedConsumptionMetric || null,
+      media.releaseYear || (media.releaseDate ? String(media.releaseDate).split('-')[0] : null) || null,
+      media.communityScore !== undefined && media.communityScore !== null ? media.communityScore : null,
+      media.publisherOrStudio || null,
+      media.originalLanguage || null,
+      media.alternativeTitles ? JSON.stringify(media.alternativeTitles) : null,
+      media.keyPeople ? JSON.stringify(media.keyPeople) : null,
+      media.totalProgressUnits !== undefined && media.totalProgressUnits !== null ? media.totalProgressUnits : null
     ]
   );
 
@@ -528,7 +576,15 @@ export async function getMediaByExternalId(externalId: string, sourceApi: string
         description: media[0].description,
         coverImageUrl: media[0].cover_image_path,
         releaseDate: media[0].release_date,
+        releaseYear: media[0].release_year,
         genres: media[0].genres ? JSON.parse(media[0].genres) : [],
+        communityScore: media[0].community_score,
+        publisherOrStudio: media[0].publisher_or_studio,
+        originalLanguage: media[0].original_language,
+        formattedConsumptionMetric: media[0].consumption_metric,
+        totalProgressUnits: media[0].total_progress_units,
+        alternativeTitles: media[0].alternative_titles ? JSON.parse(media[0].alternative_titles) : [],
+        keyPeople: media[0].key_people ? JSON.parse(media[0].key_people) : []
     };
 }
 
@@ -668,7 +724,15 @@ export async function exportLibraryData() {
         description: m.description,
         cover_image_path: m.cover_image_path,
         release_date: m.release_date,
-        genres: m.genres ? JSON.parse(m.genres) : []
+        genres: m.genres ? JSON.parse(m.genres) : [],
+        consumption_metric: m.consumption_metric,
+        release_year: m.release_year,
+        community_score: m.community_score,
+        publisher_or_studio: m.publisher_or_studio,
+        original_language: m.original_language,
+        alternative_titles: m.alternative_titles ? JSON.parse(m.alternative_titles) : [],
+        key_people: m.key_people ? JSON.parse(m.key_people) : [],
+        total_progress_units: m.total_progress_units
       },
       tracking: {
         status: t.status,

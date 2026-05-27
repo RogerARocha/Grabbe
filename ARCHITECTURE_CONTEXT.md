@@ -599,8 +599,8 @@ The following patterns should **never** have a comment:
 ### **Phase 2: Identity, Engagement, and Statistics**
 
 * [x] Search history.
-* [ ] Analytics Dashboard.
-* [ ] Consumption Timeline.
+* [x] Analytics Dashboard.
+* [x] Consumption Timeline.
 * [ ] Commands Palette
 * [ ] Unified Profile Card with exportable Banner.
 * [ ] Grabbe Recap (Story Export).
