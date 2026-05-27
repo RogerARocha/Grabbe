@@ -3,7 +3,6 @@ import { MainLayout } from '../components/layout/MainLayout';
 import { TypeFilters } from '../components/shared/TypeFilters';
 import { RankingList } from '../components/ranking/RankingList';
 import { getRankedItems, getTrackingForMedia } from '../lib/db';
-import type { MediaType } from '../components/shared/types';
 import { EvaluationModal } from '../components/modals/EvaluationModal';
 import { useRankingStore } from '../store/rankingStore';
 

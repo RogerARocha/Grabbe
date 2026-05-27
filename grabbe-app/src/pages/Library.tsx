@@ -4,7 +4,6 @@ import { LibraryFilters } from '../components/library/LibraryFilters';
 import { LibraryGrid } from '../components/library/LibraryGrid';
 import { useState, useEffect } from 'react';
 import { getMediaCount } from '../lib/db';
-import type { MediaStatus, MediaType } from '../components/shared/types';
 import { useLibraryStore } from '../store/libraryStore';
 
 export const Library = () => {

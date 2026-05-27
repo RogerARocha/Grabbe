@@ -208,7 +208,7 @@ export const MediaDetails = () => {
     cast: media.keyPeople || []
   };
 
-  const year = media.releaseDate ? new Date(media.releaseDate).getFullYear() : null;
+  const year = media.releaseDate ? parseInt(media.releaseDate.split('-')[0], 10) : null;
 
   const handleAddClick = () => {
     setModalMode('add');
