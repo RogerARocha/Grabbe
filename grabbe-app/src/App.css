@@ -138,3 +138,19 @@ textarea,
 ::-webkit-scrollbar-thumb:hover {
   background-color: rgba(255, 255, 255, 0.2); 
 }
+
+/* Recharts Focus Outline Reset */
+.recharts-responsive-container:focus,
+.recharts-wrapper:focus,
+.recharts-surface:focus,
+.recharts-legend-wrapper:focus,
+path:focus,
+rect:focus,
+svg:focus,
+.recharts-wrapper *:focus,
+.recharts-wrapper *:active,
+.recharts-wrapper *:hover {
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}

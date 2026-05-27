@@ -1,18 +1,37 @@
 import { useState, useEffect } from 'react';
 import { MainLayout } from '../components/layout/MainLayout';
-import { getLibraryItems } from '../lib/db';
+import { getLibraryItems, getConsumptionSessions } from '../lib/db';
 import { AnalyticsHero } from '../components/analytics/AnalyticsHero';
 import { CategoryGrid } from '../components/analytics/CategoryGrid';
 import { CriticalTaste } from '../components/analytics/CriticalTaste';
 import { GeneralStatus } from '../components/analytics/GeneralStatus';
-import { TimelinePlaceholder } from '../components/analytics/TimelinePlaceholder';
+import { ConsumptionTimeline } from '../components/analytics/ConsumptionTimeline';
+import { calculateInvestedMinutes } from '../lib/timeMetrics';
 
 export const Analytics = () => {
   const [items, setItems] = useState<any[]>([]);
+  const [sessions, setSessions] = useState<any[]>([]);
 
   useEffect(() => {
     getLibraryItems().then((all) => {
       if (all) setItems(all);
+    });
+
+    getConsumptionSessions().then((rawSessions) => {
+      if (rawSessions) {
+        const mapped = rawSessions.map(s => {
+          const minutes = calculateInvestedMinutes(s.type, s.consumption_metric, s.progress || 0);
+          return {
+            start_date: s.start_date,
+            finish_date: s.finish_date,
+            total_hours: minutes / 60,
+            media_id: s.media_id,
+            title: s.title,
+            type: s.type
+          };
+        });
+        setSessions(mapped);
+      }
     });
   }, []);
 
@@ -38,7 +57,7 @@ export const Analytics = () => {
         </div>
 
         {/* Consuming Timeline Space */}
-        <TimelinePlaceholder />
+        <ConsumptionTimeline sessions={sessions} />
       </div>
     </MainLayout>
   );

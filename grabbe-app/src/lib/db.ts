@@ -693,3 +693,17 @@ export async function exportLibraryData() {
     items
   };
 }
+
+/**
+ * Retrieves all finished consumption sessions with associated media details.
+ */
+export async function getConsumptionSessions() {
+  const db = await getDb();
+  return await db.select<any[]>(`
+    SELECT cs.start_date, cs.finish_date, m.id as media_id, m.title, m.type, m.consumption_metric, ut.progress
+    FROM ConsumptionSession cs
+    INNER JOIN UserTracking ut ON cs.tracking_id = ut.id
+    INNER JOIN Media m ON ut.media_id = m.id
+    WHERE cs.finish_date IS NOT NULL
+  `);
+}
