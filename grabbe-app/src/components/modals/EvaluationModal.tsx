@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
-import { upsertMedia, saveTracking } from '../../lib/db';
-import { PartialDateInput, parsePartialDate, partialDateToInt } from '../shared/PartialDateInput';
+import { useEffect } from 'react';
+import { PartialDateInput } from '../shared/PartialDateInput';
 import { formatStatusLabel } from '../../lib/statusUtils';
+import { useMediaSearch } from '../../hooks/useMediaSearch';
+import { useEvaluationForm } from '../../hooks/useEvaluationForm';
 
 export type EvaluationModalMode = 'add' | 'update';
 
@@ -12,7 +13,7 @@ interface EvaluationModalProps {
   initialMediaName?: string;
   media?: any;
   initialStatus?: string;
-  initialScore?: number;
+  initialScore?: number | null;
   initialProgress?: number;
   initialStartDate?: string;
   initialEndDate?: string;
@@ -36,41 +37,58 @@ export const EvaluationModal = ({
   initialEndDate,
   initialReviewText
 }: EvaluationModalProps) => {
-  const [isScoreOpen, setIsScoreOpen] = useState(false);
-  const [selectedScore, setSelectedScore] = useState<number | null>(null);
-  const [status, setStatus] = useState('CONSUMING');
-  const [progress, setProgress] = useState(0);
-  const [totalProgress, setTotalProgress] = useState(0);
-  const [reviewText, setReviewText] = useState('');
-  
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [selectedMedia, setSelectedMedia] = useState<any>(null);
-  
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
 
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const {
+    searchQuery,
+    setSearchQuery,
+    searchResults,
+    isSearching,
+    setIsSearching,
+    showDropdown,
+    setShowDropdown,
+    handleQueryChange,
+    clearSearch
+  } = useMediaSearch();
+
+  const {
+    isScoreOpen,
+    setIsScoreOpen,
+    selectedScore,
+    setSelectedScore,
+    status,
+    setStatus,
+    progress,
+    setProgress,
+    reviewText,
+    setReviewText,
+    selectedMedia,
+    setSelectedMedia,
+    startDate,
+    setStartDate,
+    endDate,
+    setEndDate,
+    effectiveTotal,
+    releaseYear,
+    handleStartDateChange,
+    handleSave,
+    setTotalProgress
+  } = useEvaluationForm({
+    isOpen,
+    onClose,
+    media,
+    initialStatus,
+    initialScore,
+    initialProgress,
+    initialStartDate,
+    initialEndDate,
+    initialReviewText
+  });
 
   useEffect(() => {
     if (isOpen) {
-      setSelectedMedia(media || null);
-      setStatus(initialStatus || 'CONSUMING');
-      setSelectedScore(initialScore || null);
-      setProgress(initialProgress || 0);
-      setTotalProgress(media?.totalProgressUnits || 0);
-      setReviewText(initialReviewText || '');
-      
-      setStartDate(parsePartialDate(initialStartDate));
-      setEndDate(parsePartialDate(initialEndDate));
-      
-      setSearchQuery('');
-      setSearchResults([]);
-      setShowDropdown(false);
+      clearSearch();
     }
-  }, [isOpen, initialStatus, initialScore, initialProgress, media, initialStartDate, initialEndDate, initialReviewText]);
+  }, [isOpen]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -93,8 +111,6 @@ export const EvaluationModal = ({
   const title = isAddMode ? 'Add to Library' : 'Update Progress';
   const confirmText = isAddMode ? 'Add Media' : 'Save Changes';
 
-  const effectiveTotal = totalProgress;
-
   const scores = [
     { value: 10, label: 'Masterpiece', colorClass: 'prismatic-text-blue prismatic-text-blue-hover', bgHoverClass: 'hover:bg-error/10' },
     { value: 9, label: 'Great', colorClass: 'text-primary', bgHoverClass: 'hover:bg-primary/10' },
@@ -108,37 +124,6 @@ export const EvaluationModal = ({
     { value: 1, label: 'Appalling', colorClass: 'text-error', bgHoverClass: 'hover:bg-error/10' },
   ];
 
-  /**
-   * Performs an external API search for media.
-   * This is debounced via handleQueryChange to prevent excessive API calls.
-   */
-  const runSearch = async (q: string) => {
-    if (!q.trim()) {
-      setSearchResults([]);
-      return;
-    }
-    setIsSearching(true);
-    try {
-      const response = await fetch(`http://localhost:5244/api/v1/search?query=${encodeURIComponent(q)}&page=1`);
-      if (!response.ok) throw new Error('Search failed');
-      const data = await response.json();
-      setSearchResults(data.data || []);
-      setShowDropdown(true);
-    } catch (error) {
-      console.error('Failed to search:', error);
-      setSearchResults([]);
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setSearchQuery(val);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => runSearch(val), 400);
-  };
-
   const handleSelectResult = async (result: any) => {
     setSearchQuery(result.title);
     setShowDropdown(false);
@@ -148,6 +133,7 @@ export const EvaluationModal = ({
       if (!response.ok) throw new Error('Failed to fetch details');
       const data = await response.json();
       setSelectedMedia(data.data);
+      setProgress(0);
       setTotalProgress(data.data.totalProgressUnits || 0);
     } catch (e) {
       console.error('Failed to fetch media details', e);
@@ -156,50 +142,6 @@ export const EvaluationModal = ({
     }
   };
 
-/**
-   * Extracts the release year from the currently selected media, used as the
-   * minimum year constraint for start and end dates.
-   */
-  const rawReleaseDate = selectedMedia?.releaseDate || selectedMedia?.release_date;
-  const releaseYear: number | undefined = rawReleaseDate
-    ? (parseInt(String(rawReleaseDate).substring(0, 4), 10) || undefined)
-    : undefined;
-
-  /**
-   * Updates the start date and clears the end date when it would become
-   * chronologically impossible (end before start).
-   */
-  const handleStartDateChange = (val: string) => {
-    setStartDate(val);
-    if (endDate && val.length >= 4 && partialDateToInt(val) > partialDateToInt(endDate)) {
-      setEndDate('');
-    }
-  };
-
-  /** Returns a date string only when at least a 4-digit year is present. */
-  const validDate = (d: string): string | null => (d && d.length >= 4 ? d : null);
-
-  /**
-   * Saves tracking data to the local SQLite database.
-   * Follows a local-first pipeline:
-   * 1. Upserts the core media definition.
-   * 2. Synchronizes tracking progress, session dates, and user ranking.
-   */
-  const handleSave = async () => {
-    try {
-      if (selectedMedia) {
-        const mediaId = await upsertMedia(selectedMedia);
-        const finalTotalProgress = totalProgress || selectedMedia.totalProgressUnits || null;
-        await saveTracking(
-          mediaId, status, selectedScore, progress, finalTotalProgress,
-          reviewText || null, validDate(startDate), validDate(endDate)
-        );
-      }
-      onClose();
-    } catch (e) {
-      console.error("Failed to save media tracking", e);
-    }
-  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

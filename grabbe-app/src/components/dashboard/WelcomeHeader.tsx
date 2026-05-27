@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { calculateInvestedMinutes } from '../../lib/timeMetrics';
 
 export const WelcomeHeader = ({ items = [] }: { items?: any[] }) => {
   const [randomMessage, setRandomMessage] = useState('');
@@ -11,7 +12,10 @@ export const WelcomeHeader = ({ items = [] }: { items?: any[] }) => {
     const masterpieces = items.filter(i => i.score === 10).length;
     
     const completedCount = items.filter(i => i.status === 'COMPLETED').length;
-    const estimatedHours = completedCount * 2; // rough mock
+    const totalMinutes = items.reduce((acc, item) => {
+      return acc + calculateInvestedMinutes(item.type, item.consumption_metric, item.progress || 0);
+    }, 0);
+    const estimatedHours = Math.round(totalMinutes / 60);
     
     const plannedCount = items.filter(i => i.status === 'PLANNED').length;
     const droppedCount = items.filter(i => i.status === 'DROPPED').length;
@@ -50,7 +54,7 @@ export const WelcomeHeader = ({ items = [] }: { items?: any[] }) => {
   return (
     <section className="mb-12">
       <h1 className="text-5xl font-extrabold tracking-tighter mb-2">
-        Welcome Back, <span className="prismatic-text">Alex.</span>
+        Welcome Back, <span className="prismatic-text">Roger.</span>
       </h1>
       <p className="text-text-muted max-w-2xl h-6">
         {randomMessage}

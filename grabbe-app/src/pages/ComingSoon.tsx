@@ -34,7 +34,7 @@ export function ComingSoon({ feature = 'analytics' }: ComingSoonProps) {
         {/* Core Content */}
         <FeatureContent config={config} />
 
-        <div className="w-full h-px bg-gradient-to-r from-transparent via-outline-variant/40 to-transparent my-10" />
+        <div className="w-full h-px bg-linear-to-r from-transparent via-outline-variant/40 to-transparent my-10" />
 
         {/* Call to Action Buttons */}
         <div className="flex items-center gap-4 w-full justify-center flex-wrap">

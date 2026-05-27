@@ -1,4 +1,4 @@
-import { upsertMedia, saveTracking, getDb } from './db';
+import { upsertMedia, saveTracking, importBackupItem } from './db';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
@@ -184,10 +184,9 @@ export async function importBackupData(
 
     const items = backupData.items;
     let count = 0;
-    const db = await getDb();
 
     for (const item of items) {
-        const { media, tracking, ranking, sessions, history } = item;
+        const { media } = item;
 
         let metric = media.consumption_metric || null;
         let didFetch = false;
@@ -208,115 +207,17 @@ export async function importBackupData(
             }
         }
 
-        // 1. Resolve and Upsert Media structure cleanly
-        const mediaToUpsert = {
-            externalId: media.external_id,
-            sourceApi: media.source_api,
-            type: media.type,
-            title: media.title,
-            description: media.description,
-            coverImageUrl: media.cover_image_path,
-            releaseDate: media.release_date,
-            formattedConsumptionMetric: metric,
-            genres: media.genres || [],
-            releaseYear: media.release_year || null,
-            communityScore: media.community_score || null,
-            publisherOrStudio: media.publisher_or_studio || null,
-            originalLanguage: media.original_language || null,
-            alternativeTitles: media.alternative_titles || [],
-            keyPeople: media.key_people || [],
-            totalProgressUnits: media.total_progress_units || null
-        };
-        const mediaId = await upsertMedia(mediaToUpsert);
-
-        // 2. Resolve tracking record, respecting unique media associations
-        const existingTrack = await db.select<any[]>(
-            "SELECT id FROM UserTracking WHERE media_id = $1 LIMIT 1",
-            [mediaId]
-        );
-
-        let trackingId: string;
-        if (existingTrack && existingTrack.length > 0) {
-            trackingId = existingTrack[0].id;
-            await db.execute(
-                "UPDATE UserTracking SET status = $1, progress = $2, total_progress = $3, rewatch_count = $4, review_text = $5, updated_at = $6 WHERE id = $7",
-                [
-                    tracking.status,
-                    tracking.progress,
-                    tracking.total_progress,
-                    tracking.rewatch_count,
-                    tracking.review_text,
-                    tracking.updated_at || new Date().toISOString(),
-                    trackingId
-                ]
-            );
-        } else {
-            trackingId = uuidv4();
-            await db.execute(
-                "INSERT INTO UserTracking (id, media_id, status, progress, total_progress, rewatch_count, review_text, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
-                [
-                    trackingId,
-                    mediaId,
-                    tracking.status,
-                    tracking.progress,
-                    tracking.total_progress,
-                    tracking.rewatch_count,
-                    tracking.review_text,
-                    tracking.updated_at || new Date().toISOString()
-                ]
-            );
-        }
-
-        // 3. Resolve and overwrite live Ranking evaluations
-        if (ranking) {
-            const existingRanking = await db.select<any[]>(
-                "SELECT id FROM Ranking WHERE media_id = $1 LIMIT 1",
-                [mediaId]
-            );
-            if (existingRanking && existingRanking.length > 0) {
-                await db.execute(
-                    "UPDATE Ranking SET score = $1, review_text = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3",
-                    [ranking.score, ranking.review_text, existingRanking[0].id]
-                );
-            } else {
-                await db.execute(
-                    "INSERT INTO Ranking (id, media_id, score, review_text) VALUES ($1, $2, $3, $4)",
-                    [uuidv4(), mediaId, ranking.score, ranking.review_text]
-                );
+        // Construct complete relational item to save
+        const itemToSave = {
+            ...item,
+            media: {
+                ...item.media,
+                consumption_metric: metric
             }
-        }
+        };
 
-        // 4. Overwrite historical Consumption Sessions safely
-        await db.execute("DELETE FROM ConsumptionSession WHERE tracking_id = $1", [trackingId]);
-        for (const session of sessions) {
-            await db.execute(
-                "INSERT INTO ConsumptionSession (id, tracking_id, session_number, start_date, finish_date, is_active) VALUES ($1, $2, $3, $4, $5, $6)",
-                [
-                    uuidv4(),
-                    trackingId,
-                    session.session_number,
-                    session.start_date,
-                    session.finish_date,
-                    session.is_active
-                ]
-            );
-        }
-
-        // 5. Overwrite Tracking History entries safely
-        await db.execute("DELETE FROM TrackingHistory WHERE tracking_id = $1", [trackingId]);
-        for (const hist of history) {
-            await db.execute(
-                "INSERT INTO TrackingHistory (id, tracking_id, event_type, previous_value, new_value, event_date) VALUES ($1, $2, $3, $4, $5, $6)",
-                [
-                    uuidv4(),
-                    trackingId,
-                    hist.event_type,
-                    hist.previous_value,
-                    hist.new_value,
-                    hist.event_date
-                ]
-            );
-        }
+        // Delegate entire database write transactional logic to the db layer
+        await importBackupItem(itemToSave);
 
         count++;
         if (onProgress) {

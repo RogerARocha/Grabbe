@@ -18,7 +18,7 @@ export const Sidebar = () => {
 
   return (
     <>
-      <aside className="fixed left-0 top-0 h-full w-[260px] bg-surface flex flex-col pt-[72px] pb-8 px-4 z-40 bloom-shadow">
+      <aside className="fixed left-0 top-0 h-full w-65 bg-surface flex flex-col pt-18 pb-8 px-4 z-40 bloom-shadow">
         {/* Navigation */}
         <nav className="flex-1 space-y-2">
           {navItems.map((item) => {

@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+import { isYearOnly, parseDate } from '../../lib/dateUtils';
 
 interface MediaSession {
   start_date: string;
@@ -71,22 +72,6 @@ const CustomTooltip = ({ active, payload, label, hoveredBarId }: any) => {
 
 export const ConsumptionTimeline = ({ sessions = [] }: { sessions: MediaSession[] }) => {
   const [hoveredBarId, setHoveredBarId] = useState<string | null>(null);
-
-  const isYearOnly = (dStr: any) => {
-    if (!dStr) return true;
-    if (dStr instanceof Date) return false;
-    if (typeof dStr === 'number') return false;
-    const str = String(dStr);
-    return /^\d{4}$/.test(str.trim());
-  };
-
-  const parseDate = (dStr: any) => {
-    if (dStr instanceof Date) return dStr;
-    if (typeof dStr === 'number') return new Date(dStr);
-    const str = String(dStr || '');
-    const normalized = str.includes(' ') ? str.replace(' ', 'T') + 'Z' : str;
-    return new Date(normalized);
-  };
 
   // Normalize sessions so that if start_date is missing, it defaults to finish_date
   const normalizedSessions = useMemo(() => {

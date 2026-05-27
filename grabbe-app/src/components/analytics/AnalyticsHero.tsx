@@ -46,7 +46,7 @@ export const AnalyticsHero = ({ items = [] }: { items: any[] }) => {
             <span className="material-symbols-outlined text-secondary">trending_up</span>
           </div>
           <div>
-            <p className="text-sm font-bold text-text-muted">This Month</p>
+            <p className="text-sm font-bold text-text-muted">Finished this Month</p>
             <p className="text-xl font-bold text-text-high">+{formatTotalHours(thisMonthMinutes)}</p>
           </div>
         </div>

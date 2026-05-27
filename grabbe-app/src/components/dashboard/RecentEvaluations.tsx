@@ -50,7 +50,7 @@ export const RecentEvaluations = ({ items = [] }: { items?: any[] }) => {
                     src={item1.cover_image_path}
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center min-h-[200px]">
+                  <div className="w-full h-full flex items-center justify-center min-h-50">
                     <span className="material-symbols-outlined text-text-muted text-4xl">image</span>
                   </div>
                 )}

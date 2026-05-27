@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import { MainLayout } from '../components/layout/MainLayout';
 import { Breadcrumbs } from '../components/shared/Breadcrumbs';
@@ -10,38 +10,13 @@ import { ActionBar } from '../components/media-details/ActionBar';
 import { DetailsGrid } from '../components/media-details/DetailsGrid';
 import { CastSection } from '../components/media-details/CastSection';
 import { AlternativeTitles } from '../components/media-details/AlternativeTitles';
-import { getTrackingByExternalId, removeTrackingByExternalId, saveTracking, startRewatch, getMediaByExternalId, linkMediaToRealId, unlinkMedia, upsertMedia } from '../lib/db';
+import { getMediaByExternalId, upsertMedia } from '../lib/db';
 import { ConsumptionTimeline } from '../components/media-details/ConsumptionTimeline';
 import { useToast } from '../contexts/ToastContext';
 import { ConfirmationModal } from '../components/modals/ConfirmationModal';
-
-const getPublisherLabel = (type?: string) => {
-  switch (type) {
-    case 'BOOK':
-    case 'MANGA':
-      return 'Publisher';
-    case 'GAME':
-      return 'Developer / Publisher';
-    case 'SERIES':
-      return 'Network';
-    case 'ANIME':
-    case 'MOVIE':
-    default:
-      return 'Studio';
-  }
-};
-
-const getTypeLabel = (type?: string) => {
-  switch (type) {
-    case 'SERIES': return 'TV Series';
-    case 'MOVIE': return 'Film';
-    case 'ANIME': return 'Anime';
-    case 'MANGA': return 'Manga';
-    case 'BOOK': return 'Book';
-    case 'GAME': return 'Game';
-    default: return type ? type.charAt(0).toUpperCase() + type.slice(1).toLowerCase() : 'Unknown';
-  }
-};
+import { useMediaSearch } from '../hooks/useMediaSearch';
+import { useMediaTracking } from '../hooks/useMediaTracking';
+import { getPublisherLabel, getTypeLabel } from '../lib/mediaUtils';
 
 /**
  * Detailed view for a specific media item. 
@@ -55,75 +30,42 @@ export const MediaDetails = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<'add' | 'update'>('add');
   const [media, setMedia] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { showToast } = useToast();
-  const [confirmConfig, setConfirmConfig] = useState<{
-    isOpen: boolean;
-    title: string;
-    message: string;
-    confirmLabel: string;
-    type: 'danger' | 'warning' | 'info';
-    onConfirm: () => void;
-  }>({
-    isOpen: false,
-    title: '',
-    message: '',
-    confirmLabel: 'Confirm',
-    type: 'info',
-    onConfirm: () => {}
-  });
 
-  const [isInLibrary, setIsInLibrary] = useState(false);
-  const [tracking, setTracking] = useState<any>({
-    status: 'PLANNED',
-    currentProgress: 0,
-    totalProgress: 0,
-    progressLabel: '',
-    userScore: undefined,
-    startDate: undefined,
-    endDate: undefined,
-    reviewText: '',
-    rewatchCount: 0,
-    trackingId: undefined,
-    mediaId: undefined,
-    sessions: [],
-    historyEvents: []
-  });
+  const {
+    searchQuery,
+    searchResults,
+    isSearching,
+    showDropdown,
+    setShowDropdown,
+    handleQueryChange
+  } = useMediaSearch();
 
-  const refreshTracking = async () => {
-    if (!externalId || !sourceApi) return;
-    const data = await getTrackingByExternalId(externalId, sourceApi);
-    if (data) {
-      setIsInLibrary(true);
-      setTracking((prev: any) => ({
-        ...prev,
-        status: data.status,
-        currentProgress: data.progress || 0,
-        totalProgress: data.total_progress || prev.totalProgress,
-        // Prefer the Ranking.review_text (authoritative) over UserTracking.review_text.
-        userScore: data.score,
-        reviewText: data.reviewTextFromRanking || data.review_text || '',
-        startDate: data.startDate,
-        endDate: data.endDate,
-        rewatchCount: data.rewatch_count ?? 0,
-        trackingId: data.id,
-        mediaId: data.media_id,
-        sessions: data.sessions || [],
-        historyEvents: data.historyEvents || []
-      }));
-    } else {
-      setIsInLibrary(false);
-    }
-  };
+  const {
+    isModalOpen,
+    setIsModalOpen,
+    modalMode,
+    isInLibrary,
+    tracking,
+    setTracking,
+    confirmConfig,
+    setConfirmConfig,
+    handleAddClick,
+    handleUpdateClick,
+    handleRemoveClick,
+    handleRewatchClick,
+    handleQuickProgress,
+    handleSelectResult,
+    handleUnlink
+  } = useMediaTracking({
+    externalId,
+    sourceApi,
+    type,
+    showToast,
+    navigate
+  });
 
   useEffect(() => {
     if (!externalId || !sourceApi || !type) return;
@@ -149,10 +91,8 @@ export const MediaDetails = () => {
 
           if (!isPlaceholder && isMissingRichDetails) {
             console.log('Local media is missing rich details, fetching from BFF in background to enrich...');
-            // Don't block loading state, set it to false so the user can interact immediately
             setIsLoading(false);
             
-            // Silently fetch from BFF in the background
             try {
               const res = await fetch(`http://localhost:5244/api/v1/media/${sourceApi}/${type}/${externalId}`);
               if (res.ok) {
@@ -161,8 +101,6 @@ export const MediaDetails = () => {
                   console.log('Background enrichment fetched successfully:', body.data);
                   setMedia(body.data);
                   setTracking((prev: any) => ({ ...prev, totalProgress: body.data.totalProgressUnits || 0 }));
-                  
-                  // Asynchronously save/upsert the enriched details to the local DB for future instant offline loads
                   await upsertMedia(body.data);
                 }
               }
@@ -206,10 +144,6 @@ export const MediaDetails = () => {
       active = false;
     };
   }, [externalId, sourceApi, type]);
-
-  useEffect(() => {
-    refreshTracking();
-  }, [externalId, sourceApi, isModalOpen]);
 
   const fromLabel = location.state?.from || 'Library';
   const fromPath = location.state?.path || '/library';
@@ -269,146 +203,6 @@ export const MediaDetails = () => {
     ? parseInt(String(media.releaseYear), 10)
     : (media.releaseDate ? parseInt(String(media.releaseDate).split('-')[0], 10) : null);
 
-  const handleAddClick = () => {
-    setModalMode('add');
-    setIsModalOpen(true);
-  };
-
-  const handleUpdateClick = () => {
-    setModalMode('update');
-    setIsModalOpen(true);
-  };
-
-  const handleRemoveClick = () => {
-    setConfirmConfig({
-      isOpen: true,
-      title: 'Remove from Library',
-      message: 'Are you sure you want to remove this from your library? This will permanently delete all tracking progress, history, and review entries associated with this media.',
-      confirmLabel: 'Remove from Library',
-      type: 'danger',
-      onConfirm: async () => {
-        if (externalId && sourceApi) {
-          await removeTrackingByExternalId(externalId, sourceApi);
-          refreshTracking();
-        }
-        setConfirmConfig(prev => ({ ...prev, isOpen: false }));
-      }
-    });
-  };
-
-  /**
-   * Initiates a new rewatch/reread/replay session.
-   * Archives the evaluation (score + review) into TrackingHistory as SESSION_COMPLETED,
-   * clears the live Ranking entry, then opens a fresh ConsumptionSession.
-   */
-  const handleRewatchClick = async () => {
-    if (!tracking.trackingId || !tracking.mediaId) return;
-    await startRewatch(tracking.trackingId, tracking.mediaId);
-    refreshTracking();
-  };
-
-  /**
-   * Increments progress. 
-   * Automatically transitions status to CONSUMING if starting, or COMPLETED if reaching the end.
-   */
-  const handleQuickProgress = async () => {
-    if (!isInLibrary || !tracking) return;
-
-    const effectiveTotal = tracking.totalProgress || 0;
-    const newProgress = (tracking.currentProgress || 0) + 1;
-    if (effectiveTotal > 0 && newProgress > effectiveTotal) return;
-
-    const data = await getTrackingByExternalId(externalId!, sourceApi!);
-    if (data) {
-      let newStatus = data.status;
-      let newStartDate = data.startDate;
-      let newEndDate = data.endDate;
-
-      if (newStatus === 'PLANNED' || newStatus === 'DROPPED' || newStatus === 'ON HOLD') {
-        newStatus = 'CONSUMING';
-        if (!newStartDate) {
-          newStartDate = new Date().toISOString();
-        }
-      }
-
-      if (effectiveTotal > 0 && newProgress >= effectiveTotal) {
-        newStatus = 'COMPLETED';
-        if (!newEndDate) {
-          newEndDate = new Date().toISOString();
-        }
-      }
-
-      await saveTracking(data.media_id, newStatus, data.score, newProgress, data.total_progress, data.review_text, newStartDate, newEndDate);
-      refreshTracking();
-    }
-  };
-
-  const runSearch = async (q: string) => {
-    if (!q.trim()) {
-      setSearchResults([]);
-      return;
-    }
-    setIsSearching(true);
-    try {
-      const response = await fetch(`http://localhost:5244/api/v1/search?query=${encodeURIComponent(q)}&page=1`);
-      if (!response.ok) throw new Error('Search failed');
-      const data = await response.json();
-      setSearchResults(data.data || []);
-      setShowDropdown(true);
-    } catch (error) {
-      console.error('Failed to search:', error);
-      setSearchResults([]);
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setSearchQuery(val);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => runSearch(val), 400);
-  };
-
-  const handleSelectResult = async (result: any) => {
-    if (!tracking.mediaId) return;
-    setSearchQuery(result.title);
-    setShowDropdown(false);
-    setIsSearching(true);
-    try {
-      await linkMediaToRealId(tracking.mediaId, result.externalId, result.sourceApi, result.type, result.title, result.coverImageUrl || null);
-      // Replace current URL with new valid URL to refresh the whole page
-      navigate(`/media/${result.externalId}?source=${result.sourceApi}&type=${result.type}`, { replace: true });
-      window.location.reload(); // Ensure everything is fully refreshed, as the library cache might be stale
-    } catch (err) {
-      console.error("Link failed", err);
-      showToast("Failed to link media. Check console for details.", "error");
-      setIsSearching(false);
-    }
-  };
-
-  const handleUnlink = async () => {
-    if (!tracking.mediaId) return;
-    setConfirmConfig({
-      isOpen: true,
-      title: 'Unlink Metadata',
-      message: 'Are you sure you want to unlink this media? This will clear the online details and allow you to search and link a different item manually.',
-      confirmLabel: 'Unlink Media',
-      type: 'danger',
-      onConfirm: async () => {
-        try {
-          const newExternalId = await unlinkMedia(tracking.mediaId!);
-          navigate(`/media/${newExternalId}?source=${sourceApi}&type=${media.type}`, { replace: true });
-          window.location.reload();
-        } catch (err) {
-          console.error("Unlink failed", err);
-          showToast("Failed to unlink media.", "error");
-        }
-        setConfirmConfig(prev => ({ ...prev, isOpen: false }));
-      }
-    });
-  };
-
   const detailItems = [
     ...(extras.studio ? [{ label: getPublisherLabel(media.type), value: extras.studio }] : []),
     ...(extras.originalLanguage ? [{ label: 'Original Language', value: extras.originalLanguage }] : []),
@@ -416,8 +210,6 @@ export const MediaDetails = () => {
     ...(media.releaseDate ? [{ label: 'Release', value: media.releaseDate }] : []),
   ];
 
-
-  
   const isBasicImport = !media.coverImageUrl || externalId?.startsWith('imported_');
 
   return (

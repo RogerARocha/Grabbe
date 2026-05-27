@@ -32,7 +32,7 @@ export function FeatureContent({ config }: FeatureContentProps) {
         {config.description}
       </p>
 
-      <div className="w-full h-px bg-gradient-to-r from-transparent via-outline-variant/40 to-transparent mb-10" />
+      <div className="w-full h-px bg-linear-to-r from-transparent via-outline-variant/40 to-transparent mb-10" />
 
       {/* Planned features */}
       <div className="w-full text-left">
