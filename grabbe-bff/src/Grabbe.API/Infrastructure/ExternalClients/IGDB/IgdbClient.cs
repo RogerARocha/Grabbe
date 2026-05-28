@@ -69,7 +69,7 @@ public class IgdbClient : IMediaProviderClient
 
     public async Task<IEnumerable<GrabbeMediaDTO>> SearchAsync(string query, string type)
     {
-        if (!SupportedTypes.Contains(type, StringComparer.OrdinalIgnoreCase))
+        if (!string.IsNullOrEmpty(type) && !SupportedTypes.Contains(type, StringComparer.OrdinalIgnoreCase))
             return Enumerable.Empty<GrabbeMediaDTO>();
 
         var apicalypseQuery = $@"
@@ -90,7 +90,7 @@ public class IgdbClient : IMediaProviderClient
 
     public async Task<GrabbeMediaDTO?> GetDetailsAsync(string externalId, string type)
     {
-        if (!SupportedTypes.Contains(type, StringComparer.OrdinalIgnoreCase) || !int.TryParse(externalId, out int id))
+        if ((!string.IsNullOrEmpty(type) && !SupportedTypes.Contains(type, StringComparer.OrdinalIgnoreCase)) || !int.TryParse(externalId, out int id))
             return null;
 
         var apicalypseQuery = $@"
