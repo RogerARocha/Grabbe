@@ -4,6 +4,7 @@ interface ProgressTrackerProps {
   label: string;
   mediaType?: string;
   onUpdate?: () => void;
+  consumptionMetric?: string | null;
 }
 
 /**
@@ -11,9 +12,17 @@ interface ProgressTrackerProps {
  * For MOVIE type, `totalProgress` from the BFF is null/0 (no episodes), so the component
  * treats it as 1 (binary: 0 = unwatched, 1 = watched) to avoid a bare '?' display.
  */
-export const ProgressTracker = ({ currentProgress, totalProgress, label, onUpdate }: ProgressTrackerProps) => {
+export const ProgressTracker = ({ 
+  currentProgress, 
+  totalProgress, 
+  label, 
+  mediaType, 
+  onUpdate,
+  consumptionMetric 
+}: ProgressTrackerProps) => {
   const effectiveTotal = totalProgress || 0;
   const percent = Math.min(Math.round((currentProgress / (effectiveTotal || 1)) * 100), 100);
+  const isGame = mediaType?.toUpperCase() === 'GAME';
 
   return (
     <div className="mt-6 bg-surface rounded-lg p-5 border border-outline-variant/10">
@@ -45,6 +54,18 @@ export const ProgressTracker = ({ currentProgress, totalProgress, label, onUpdat
         )}
       </div>
       <p className="text-[11px] text-text-muted mt-3 font-medium opacity-70">{label}</p>
+
+      {isGame && consumptionMetric && (
+        <div className="mt-4 pt-4 border-t border-outline-variant/10 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-text-muted">
+            <span className="material-symbols-outlined text-base text-secondary">sports_esports</span>
+            <span className="text-xs font-medium">Logged Playtime</span>
+          </div>
+          <span className="text-xs font-black text-secondary uppercase tracking-wider">
+            {consumptionMetric.replace('h', '')} hours
+          </span>
+        </div>
+      )}
     </div>
   );
 };

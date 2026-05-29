@@ -71,7 +71,9 @@ export const EvaluationModal = ({
     releaseYear,
     handleStartDateChange,
     handleSave,
-    setTotalProgress
+    setTotalProgress,
+    hoursSpent,
+    setHoursSpent
   } = useEvaluationForm({
     isOpen,
     onClose,
@@ -142,6 +144,7 @@ export const EvaluationModal = ({
     }
   };
 
+  const mediaType = (selectedMedia?.type || media?.type || '').toUpperCase();
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -163,7 +166,7 @@ export const EvaluationModal = ({
             <span className="material-symbols-outlined">close</span>
           </button>
         </div>
-
+ 
         <div className="flex flex-col gap-5">
           
           {showSearch ? (
@@ -219,7 +222,7 @@ export const EvaluationModal = ({
               </div>
             </div>
           )}
-
+ 
           <div className="flex flex-col gap-2">
             <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Status</label>
             <div className="relative">
@@ -246,31 +249,52 @@ export const EvaluationModal = ({
               <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted">expand_more</span>
             </div>
           </div>
-
-          <div className="flex flex-col gap-2">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Progress / Episode</label>
-            <div className="flex items-center gap-3">
-              <input 
-                type="number" 
-                value={progress}
-                min={0}
-                max={effectiveTotal > 0 ? effectiveTotal : undefined}
-                onChange={(e) => {
-                  const val = Math.min(Number(e.target.value), effectiveTotal > 0 ? effectiveTotal : Infinity);
-                  setProgress(val);
-                  if (effectiveTotal > 0 && val >= effectiveTotal) {
-                    setStatus('COMPLETED');
-                    const n = new Date();
-                    const todayFull = `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
-                    if (!endDate) setEndDate(todayFull);
-                  }
-                }}
-                className="flex-1 bg-background border-none rounded-lg text-sm px-4 py-3 focus:ring-2 focus:ring-primary transition-all text-text-high outline-none" 
-                placeholder="0" 
-              />
-              <span className="text-text-muted font-medium text-sm">/ {effectiveTotal || '?'}</span>
+ 
+          {mediaType === 'GAME' ? (
+            <div className="flex flex-col gap-2">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Hours Spent</label>
+              <div className="flex items-center gap-3">
+                <input 
+                  type="text" 
+                  value={hoursSpent}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '' || /^\d*[.,]?\d*$/.test(val)) {
+                      setHoursSpent(val);
+                    }
+                  }}
+                  className="flex-1 bg-background border-none rounded-lg text-sm px-4 py-3 focus:ring-2 focus:ring-primary transition-all text-text-high outline-none" 
+                  placeholder="e.g. 15" 
+                />
+                <span className="text-text-muted font-medium text-sm">hours</span>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Progress / Episode</label>
+              <div className="flex items-center gap-3">
+                <input 
+                  type="number" 
+                  value={progress}
+                  min={0}
+                  max={effectiveTotal > 0 ? effectiveTotal : undefined}
+                  onChange={(e) => {
+                    const val = Math.min(Number(e.target.value), effectiveTotal > 0 ? effectiveTotal : Infinity);
+                    setProgress(val);
+                    if (effectiveTotal > 0 && val >= effectiveTotal) {
+                      setStatus('COMPLETED');
+                      const n = new Date();
+                      const todayFull = `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
+                      if (!endDate) setEndDate(todayFull);
+                    }
+                  }}
+                  className="flex-1 bg-background border-none rounded-lg text-sm px-4 py-3 focus:ring-2 focus:ring-primary transition-all text-text-high outline-none" 
+                  placeholder="0" 
+                />
+                <span className="text-text-muted font-medium text-sm">/ {effectiveTotal || '?'}</span>
+              </div>
+            </div>
+          )}
 
           <div className="flex flex-col gap-5">
             <PartialDateInput
@@ -285,6 +309,8 @@ export const EvaluationModal = ({
               label="End Date"
               minYear={releaseYear}
               minPartialDate={startDate.length >= 4 ? startDate : undefined}
+              onCopyFrom={startDate ? () => setEndDate(startDate) : undefined}
+              copyFromLabel="Copy Start"
             />
           </div>
 

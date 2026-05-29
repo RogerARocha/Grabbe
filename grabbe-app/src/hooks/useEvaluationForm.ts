@@ -34,6 +34,7 @@ export function useEvaluationForm({
   const [selectedMedia, setSelectedMedia] = useState<any>(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [hoursSpent, setHoursSpent] = useState<string>('');
 
   useEffect(() => {
     if (isOpen) {
@@ -46,6 +47,14 @@ export function useEvaluationForm({
       
       setStartDate(parsePartialDate(initialStartDate));
       setEndDate(parsePartialDate(initialEndDate));
+
+      const metric = media?.consumption_metric || media?.formattedConsumptionMetric || '';
+      const match = String(metric).toLowerCase().match(/(\d+(?:[.,]\d+)?)\s*h/);
+      if (match) {
+        setHoursSpent(match[1]);
+      } else {
+        setHoursSpent('');
+      }
     }
   }, [isOpen, initialStatus, initialScore, initialProgress, media, initialStartDate, initialEndDate, initialReviewText]);
 
@@ -68,10 +77,22 @@ export function useEvaluationForm({
   const handleSave = async () => {
     try {
       if (selectedMedia) {
-        const mediaId = await upsertMedia(selectedMedia);
+        const isGame = (selectedMedia.type || '').toUpperCase() === 'GAME';
+        const normalizedHours = String(hoursSpent).trim().replace(',', '.');
+        const updatedMedia = {
+          ...selectedMedia,
+          formattedConsumptionMetric: isGame && normalizedHours ? `${normalizedHours}h` : (selectedMedia.formattedConsumptionMetric || selectedMedia.consumption_metric || null)
+        };
+        const mediaId = await upsertMedia(updatedMedia);
+        
+        let finalProgress = progress;
+        if (isGame) {
+          finalProgress = status === 'COMPLETED' ? 1 : 0;
+        }
+
         const finalTotalProgress = totalProgress || selectedMedia.totalProgressUnits || null;
         await saveTracking(
-          mediaId, status, selectedScore, progress, finalTotalProgress,
+          mediaId, status, selectedScore, finalProgress, finalTotalProgress,
           reviewText || null, validDate(startDate), validDate(endDate)
         );
       }
@@ -103,6 +124,8 @@ export function useEvaluationForm({
     effectiveTotal,
     releaseYear,
     handleStartDateChange,
-    handleSave
+    handleSave,
+    hoursSpent,
+    setHoursSpent
   };
 }

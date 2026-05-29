@@ -57,14 +57,14 @@ export function calculateInvestedMinutes(
     }
 
     case 'GAME': {
-      const hoursMatch = metricLower.match(/(\d+)\s*h/);
+      const hoursMatch = metricLower.match(/(\d+(?:[.,]\d+)?)\s*h/);
       const minsMatch = metricLower.match(/(\d+)\s*m/);
       
       let minsForGame = 0;
       if (hoursMatch || minsMatch) {
-        const h = hoursMatch ? parseInt(hoursMatch[1], 10) : 0;
+        const h = hoursMatch ? parseFloat(hoursMatch[1].replace(',', '.')) : 0;
         const m = minsMatch ? parseInt(minsMatch[1], 10) : 0;
-        minsForGame = (h * 60) + m;
+        minsForGame = Math.round((h * 60) + m);
       } else {
         minsForGame = formattedMetric ? 0 : (15 * 60);
       }

@@ -67,11 +67,16 @@ export const MediaDetails = () => {
     navigate
   });
 
+  const [lastExternalId, setLastExternalId] = useState<string | null>(null);
+
   useEffect(() => {
     if (!externalId || !sourceApi || !type) return;
 
     let active = true;
-    setIsLoading(true);
+    if (externalId !== lastExternalId) {
+      setIsLoading(true);
+      setLastExternalId(externalId);
+    }
 
     async function loadMedia() {
       try {
@@ -91,7 +96,9 @@ export const MediaDetails = () => {
 
           if (!isPlaceholder && isMissingRichDetails) {
             console.log('Local media is missing rich details, fetching from BFF in background to enrich...');
-            setIsLoading(false);
+            if (externalId !== lastExternalId) {
+              setIsLoading(false);
+            }
             
             try {
               const res = await fetch(`http://localhost:5244/api/v1/media/${sourceApi}/${type}/${externalId}`);
@@ -99,9 +106,14 @@ export const MediaDetails = () => {
                 const body = await res.json();
                 if (body.data && active) {
                   console.log('Background enrichment fetched successfully:', body.data);
-                  setMedia(body.data);
-                  setTracking((prev: any) => ({ ...prev, totalProgress: body.data.totalProgressUnits || 0 }));
-                  await upsertMedia(body.data);
+                  const enriched = {
+                    ...body.data,
+                    id: localMedia.id,
+                    formattedConsumptionMetric: localMedia.formattedConsumptionMetric
+                  };
+                  setMedia(enriched);
+                  setTracking((prev: any) => ({ ...prev, totalProgress: enriched.totalProgressUnits || 0 }));
+                  await upsertMedia(enriched);
                 }
               }
             } catch (enrichErr) {
@@ -143,7 +155,7 @@ export const MediaDetails = () => {
     return () => {
       active = false;
     };
-  }, [externalId, sourceApi, type]);
+  }, [externalId, sourceApi, type, isModalOpen]);
 
   const fromLabel = location.state?.from || 'Library';
   const fromPath = location.state?.path || '/library';
@@ -235,6 +247,7 @@ export const MediaDetails = () => {
                 totalProgress={tracking.totalProgress}
                 label={tracking.progressLabel}
                 mediaType={media.type}
+                consumptionMetric={media.formattedConsumptionMetric || media.consumption_metric}
                 onUpdate={handleQuickProgress}
               />
             )}

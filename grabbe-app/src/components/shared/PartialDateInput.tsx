@@ -30,6 +30,10 @@ interface PartialDateInputProps {
    * Month and day options for earlier years are filtered accordingly.
    */
   minPartialDate?: string;
+  /** Custom action to copy date from another source */
+  onCopyFrom?: () => void;
+  /** Custom label for the copy action button */
+  copyFromLabel?: string;
 }
 
 /**
@@ -52,6 +56,8 @@ export const PartialDateInput: React.FC<PartialDateInputProps> = ({
   label,
   minYear,
   minPartialDate,
+  onCopyFrom,
+  copyFromLabel,
 }) => {
   const parts = (value || '').split('-');
   const yearStr  = parts[0] || '';
@@ -155,6 +161,15 @@ export const PartialDateInput: React.FC<PartialDateInputProps> = ({
             <span className="text-[10px] font-medium text-primary/70 tabular-nums">
               {previewLabel(value)}
             </span>
+          )}
+          {onCopyFrom && (
+            <button
+              type="button"
+              onClick={onCopyFrom}
+              className="text-[9px] font-bold text-primary hover:underline uppercase"
+            >
+              {copyFromLabel || 'Copy Start'}
+            </button>
           )}
           <button
             type="button"
