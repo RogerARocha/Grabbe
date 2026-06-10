@@ -18,22 +18,26 @@ const handleDragStart = async (e: React.MouseEvent) => {
   await getCurrentWindow().startDragging();
 };
 
-export const TopBar = () => {
+export const TopBar = ({ minimal = false }: { minimal?: boolean }) => {
   // const navigation = useNavigate();
 
   return (
-    <header className="fixed top-0 left-0 w-full h-10 bg-surface/80 backdrop-blur-md flex items-center z-50 border-b border-outline-variant/10 select-none">
+    <header className={`fixed top-0 left-0 w-full h-10 flex items-center z-50 select-none ${
+      minimal ? 'bg-transparent border-b-0' : 'bg-surface/80 backdrop-blur-md border-b border-outline-variant/10'
+    }`}>
 
       {/* Logo — draggable zone */}
-      <div
-        className="w-65 shrink-0 flex items-center px-6 h-full"
-        onMouseDown={handleDragStart}
-      >
-        <img src="/app-icon.png" alt="Logo" className="w-10 h-10" />
-        <span className="text-3xl font-black bg-clip-text text-transparent bg-linear-to-r from-primary to-secondary pointer-events-none">
-          Grabbe
-        </span>
-      </div>
+      {!minimal && (
+        <div
+          className="w-65 shrink-0 flex items-center px-6 h-full"
+          onMouseDown={handleDragStart}
+        >
+          <img src="/app-icon.png" alt="Logo" className="w-10 h-10" />
+          <span className="text-3xl font-black bg-clip-text text-transparent bg-linear-to-r from-primary to-secondary pointer-events-none">
+            Grabbe
+          </span>
+        </div>
+      )}
 
       {/* Draggable spacer left of search */}
       <div

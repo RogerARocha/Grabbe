@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { MainLayout } from '../components/layout/MainLayout';
 import { importMediaFromFile, importBackupData } from '../lib/importService';
 import { useImportProgress } from '../contexts/ImportContext';
-import { exportLibraryData, getSetting, setSetting } from '../lib/db';
+import { exportLibraryData, getSetting, setSetting, deleteSetting } from '../lib/db';
 import { openPath } from '@tauri-apps/plugin-opener';
 import { downloadDir, join } from '@tauri-apps/api/path';
 import { useToast } from '../contexts/ToastContext';
@@ -42,6 +42,21 @@ export const Settings = () => {
     } catch (error) {
       console.error('Failed to save credentials:', error);
       showToast('Failed to save credentials. Please check console.', 'error');
+    }
+  };
+
+  const handleClearKeys = async () => {
+    try {
+      await deleteSetting('TMDB_API_KEY');
+      await deleteSetting('IGDB_CLIENT_ID');
+      await deleteSetting('IGDB_CLIENT_SECRET');
+      setTmdbKey('');
+      setIgdbClientId('');
+      setIgdbClientSecret('');
+      showToast('API Credentials cleared successfully!', 'success');
+    } catch (error) {
+      console.error('Failed to clear credentials:', error);
+      showToast('Failed to clear credentials. Please check console.', 'error');
     }
   };
 
@@ -202,7 +217,14 @@ export const Settings = () => {
                 </div>
               </div>
 
-              <div className="flex justify-end pt-2">
+              <div className="flex justify-end pt-2 gap-3">
+                <button 
+                  onClick={handleClearKeys}
+                  className="cursor-pointer bg-error/10 text-error hover:bg-error/20 px-6 py-2 rounded-lg font-bold transition-all flex items-center gap-2 select-none"
+                >
+                  <span className="material-symbols-outlined text-[18px]">delete</span>
+                  Clear Credentials
+                </button>
                 <button 
                   onClick={handleSaveKeys}
                   className="cursor-pointer bg-primary text-on-primary px-6 py-2 rounded-lg font-bold hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 primary-glow shadow-md shadow-primary/20 select-none"

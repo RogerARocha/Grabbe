@@ -1,8 +1,31 @@
 import { useState, useEffect } from 'react';
 import { calculateInvestedMinutes } from '../../lib/timeMetrics';
+import { getSetting } from '../../lib/db';
 
 export const WelcomeHeader = ({ items = [] }: { items?: any[] }) => {
   const [randomMessage, setRandomMessage] = useState('');
+  const [userName, setUserName] = useState('Roger');
+  const [greeting, setGreeting] = useState('Welcome Back');
+
+  useEffect(() => {
+    async function loadName() {
+      const name = await getSetting('USER_NAME');
+      if (name) {
+        setUserName(name);
+      }
+    }
+    loadName();
+
+    const greetings = [
+      'Welcome Back',
+      'Hello',
+      'Glad to see you',
+      'Great to have you here',
+      'Hey there',
+      'Enjoy your media'
+    ];
+    setGreeting(greetings[Math.floor(Math.random() * greetings.length)]);
+  }, []);
 
   useEffect(() => {
     const oneWeekAgo = new Date();
@@ -51,10 +74,24 @@ export const WelcomeHeader = ({ items = [] }: { items?: any[] }) => {
     setRandomMessage(messages[Math.floor(Math.random() * messages.length)]);
   }, [items]);
 
+  const getGreetingText = () => {
+    switch (greeting) {
+      case 'Hello':
+      case 'Hey there':
+        return { prefix: `${greeting}, `, suffix: '!' };
+      case 'Great to have you here':
+        return { prefix: `${greeting}, `, suffix: '!' };
+      default:
+        return { prefix: `${greeting}, `, suffix: '.' };
+    }
+  };
+
+  const { prefix, suffix } = getGreetingText();
+
   return (
     <section className="mb-12">
       <h1 className="text-5xl font-extrabold tracking-tighter mb-2">
-        Welcome Back, <span className="prismatic-text">Roger.</span>
+        {prefix}<span className="prismatic-text">{userName}</span>{suffix}
       </h1>
       <p className="text-text-muted max-w-2xl h-6">
         {randomMessage}
@@ -62,3 +99,4 @@ export const WelcomeHeader = ({ items = [] }: { items?: any[] }) => {
     </section>
   );
 };
+
