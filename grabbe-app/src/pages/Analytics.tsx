@@ -19,17 +19,22 @@ export const Analytics = () => {
 
     getConsumptionSessions().then((rawSessions) => {
       if (rawSessions) {
-        const mapped = rawSessions.map(s => {
-          const minutes = calculateInvestedMinutes(s.type, s.consumption_metric, s.progress || 0);
-          return {
-            start_date: s.start_date,
-            finish_date: s.finish_date,
-            total_hours: minutes / 60,
-            media_id: s.media_id,
-            title: s.title,
-            type: s.type
-          };
-        });
+        const mapped = rawSessions
+          .filter(s => !(s.type === 'MOVIE' && s.status === 'DROPPED'))
+          .map(s => {
+            const isGameCompletedOrDropped = s.type === 'GAME' && (s.status === 'COMPLETED' || s.status === 'DROPPED');
+            const isMovieCompleted = s.type === 'MOVIE' && s.status === 'COMPLETED';
+            const prog = (isGameCompletedOrDropped || isMovieCompleted) ? 1 : (s.progress || 0);
+            const minutes = calculateInvestedMinutes(s.type, s.consumption_metric, prog);
+            return {
+              start_date: s.start_date,
+              finish_date: s.finish_date,
+              total_hours: minutes / 60,
+              media_id: s.media_id,
+              title: s.title,
+              type: s.type
+            };
+          });
         setSessions(mapped);
       }
     });

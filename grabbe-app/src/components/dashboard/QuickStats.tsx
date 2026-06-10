@@ -17,7 +17,10 @@ export const QuickStats = ({ items = [] }: { items?: any[] }) => {
   const completedCount = items.filter(i => i.status === 'COMPLETED').length;
   
   const totalMinutes = items.reduce((acc, item) => {
-    return acc + calculateInvestedMinutes(item.type, item.consumption_metric, item.progress || 0);
+    const isGameCompletedOrDropped = item.type === 'GAME' && (item.status === 'COMPLETED' || item.status === 'DROPPED');
+    const isMovieCompleted = item.type === 'MOVIE' && item.status === 'COMPLETED';
+    const prog = (isGameCompletedOrDropped || isMovieCompleted) ? 1 : (item.progress || 0);
+    return acc + calculateInvestedMinutes(item.type, item.consumption_metric, prog);
   }, 0);
   
   const estimatedHoursString = formatTotalHours(totalMinutes);

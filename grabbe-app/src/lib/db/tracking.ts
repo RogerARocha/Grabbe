@@ -305,7 +305,7 @@ export async function startRewatch(trackingId: string, mediaId: string): Promise
 export async function getConsumptionSessions() {
   const db = await getDb();
   return await db.select<any[]>(`
-    SELECT cs.start_date, cs.finish_date, m.id as media_id, m.title, m.type, m.consumption_metric, ut.progress
+    SELECT cs.start_date, cs.finish_date, m.id as media_id, m.title, m.type, m.consumption_metric, ut.progress, ut.status
     FROM ConsumptionSession cs
     INNER JOIN UserTracking ut ON cs.tracking_id = ut.id
     INNER JOIN Media m ON ut.media_id = m.id

@@ -4,7 +4,10 @@ export const AnalyticsHero = ({ items = [] }: { items: any[] }) => {
   const totalMedia = items.length;
 
   const totalMinutes = items.reduce((acc, item) => {
-    return acc + calculateInvestedMinutes(item.type, item.consumption_metric, item.progress || 0);
+    const isGameCompletedOrDropped = item.type === 'GAME' && (item.status === 'COMPLETED' || item.status === 'DROPPED');
+    const isMovieCompleted = item.type === 'MOVIE' && item.status === 'COMPLETED';
+    const prog = (isGameCompletedOrDropped || isMovieCompleted) ? 1 : (item.progress || 0);
+    return acc + calculateInvestedMinutes(item.type, item.consumption_metric, prog);
   }, 0);
 
   const oneMonthAgo = new Date();
@@ -20,11 +23,15 @@ export const AnalyticsHero = ({ items = [] }: { items: any[] }) => {
   const thisMonthMinutes = items
     .filter(i => {
       if (!i.finish_date) return false;
+      if (i.type === 'MOVIE' && i.status !== 'COMPLETED') return false;
       const parsedDate = parseSafeDate(i.finish_date);
       return parsedDate >= oneMonthAgo;
     })
     .reduce((acc, item) => {
-      return acc + calculateInvestedMinutes(item.type, item.consumption_metric, item.progress || 0);
+      const isGameCompletedOrDropped = item.type === 'GAME' && (item.status === 'COMPLETED' || item.status === 'DROPPED');
+      const isMovieCompleted = item.type === 'MOVIE' && item.status === 'COMPLETED';
+      const prog = (isGameCompletedOrDropped || isMovieCompleted) ? 1 : (item.progress || 0);
+      return acc + calculateInvestedMinutes(item.type, item.consumption_metric, prog);
     }, 0);
 
   return (

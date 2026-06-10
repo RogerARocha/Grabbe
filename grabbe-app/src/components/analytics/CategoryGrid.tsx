@@ -2,21 +2,26 @@ import { calculateInvestedMinutes } from '../../lib/timeMetrics';
 
 export const CategoryGrid = ({ items = [] }: { items: any[] }) => {
   const completedItems = items.filter(i => i.status === 'COMPLETED');
+  const completedOrDroppedItems = items.filter(i => i.status === 'COMPLETED' || i.status === 'DROPPED');
 
   const movies = completedItems.filter(i => i.type === 'MOVIE');
   const moviesMinutes = movies.reduce((acc, item) => acc + calculateInvestedMinutes(item.type, item.consumption_metric, item.progress || 0), 0);
 
-  const series = completedItems.filter(i => i.type === 'SERIES' || i.type === 'ANIME');
+  const series = completedOrDroppedItems.filter(i => i.type === 'SERIES' || i.type === 'ANIME');
   const seriesEpisodes = series.reduce((acc, item) => acc + (item.progress || 0), 0);
   const seriesMinutes = series.reduce((acc, item) => acc + calculateInvestedMinutes(item.type, item.consumption_metric, item.progress || 0), 0);
 
-  const books = completedItems.filter(i => i.type === 'BOOK' || i.type === 'MANGA' || i.type === 'COMIC');
+  const books = completedOrDroppedItems.filter(i => i.type === 'BOOK' || i.type === 'MANGA' || i.type === 'COMIC');
   const booksPages = books.reduce((acc, item) => acc + (item.progress || 0), 0);
-  const booksVolumes = books.length;
+  const booksVolumes = completedItems.filter(i => i.type === 'BOOK' || i.type === 'MANGA' || i.type === 'COMIC').length;
 
-  const games = completedItems.filter(i => i.type === 'GAME');
-  const gamesCompleted = games.length;
-  const gamesMinutes = games.reduce((acc, item) => acc + calculateInvestedMinutes(item.type, item.consumption_metric, item.progress || 0), 0);
+  const gamesCompleted = completedItems.filter(i => i.type === 'GAME').length;
+  const gamesMinutes = completedOrDroppedItems
+    .filter(i => i.type === 'GAME')
+    .reduce((acc, item) => {
+      const prog = (item.status === 'COMPLETED' || item.status === 'DROPPED') ? 1 : (item.progress || 0);
+      return acc + calculateInvestedMinutes(item.type, item.consumption_metric, prog);
+    }, 0);
 
   return (
     <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
