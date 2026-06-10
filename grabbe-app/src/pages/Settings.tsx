@@ -6,6 +6,7 @@ import { exportLibraryData, getSetting, setSetting, deleteSetting } from '../lib
 import { openPath } from '@tauri-apps/plugin-opener';
 import { downloadDir, join } from '@tauri-apps/api/path';
 import { useToast } from '../contexts/ToastContext';
+import { ConfirmationModal } from '../components/modals/ConfirmationModal';
 
 export const Settings = () => {
   const { isImporting, setIsImporting, setProgress } = useImportProgress();
@@ -20,45 +21,88 @@ export const Settings = () => {
   const [igdbClientId, setIgdbClientId] = useState('');
   const [igdbClientSecret, setIgdbClientSecret] = useState('');
 
+  // Initial credentials state for dirty checking
+  const [initialTmdbKey, setInitialTmdbKey] = useState('');
+  const [initialIgdbClientId, setInitialIgdbClientId] = useState('');
+  const [initialIgdbClientSecret, setInitialIgdbClientSecret] = useState('');
+
+  // UI state for Save/Clear actions
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
   // Load existing credentials from SQLite on mount
   useEffect(() => {
     async function loadCredentials() {
       const tmdb = await getSetting('TMDB_API_KEY');
       const client = await getSetting('IGDB_CLIENT_ID');
       const secret = await getSetting('IGDB_CLIENT_SECRET');
-      if (tmdb) setTmdbKey(tmdb);
-      if (client) setIgdbClientId(client);
-      if (secret) setIgdbClientSecret(secret);
+      if (tmdb) {
+        setTmdbKey(tmdb);
+        setInitialTmdbKey(tmdb);
+      }
+      if (client) {
+        setIgdbClientId(client);
+        setInitialIgdbClientId(client);
+      }
+      if (secret) {
+        setIgdbClientSecret(secret);
+        setInitialIgdbClientSecret(secret);
+      }
     }
     loadCredentials();
   }, []);
 
   const handleSaveKeys = async () => {
+    setIsSaving(true);
     try {
-      await setSetting('TMDB_API_KEY', tmdbKey);
-      await setSetting('IGDB_CLIENT_ID', igdbClientId);
-      await setSetting('IGDB_CLIENT_SECRET', igdbClientSecret);
+      await setSetting('TMDB_API_KEY', tmdbKey.trim());
+      await setSetting('IGDB_CLIENT_ID', igdbClientId.trim());
+      await setSetting('IGDB_CLIENT_SECRET', igdbClientSecret.trim());
+      
+      setInitialTmdbKey(tmdbKey.trim());
+      setInitialIgdbClientId(igdbClientId.trim());
+      setInitialIgdbClientSecret(igdbClientSecret.trim());
+      
       showToast('API Credentials saved successfully!', 'success');
     } catch (error) {
       console.error('Failed to save credentials:', error);
       showToast('Failed to save credentials. Please check console.', 'error');
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleClearKeys = async () => {
+    setIsConfirmOpen(false);
     try {
       await deleteSetting('TMDB_API_KEY');
       await deleteSetting('IGDB_CLIENT_ID');
       await deleteSetting('IGDB_CLIENT_SECRET');
+      
       setTmdbKey('');
       setIgdbClientId('');
       setIgdbClientSecret('');
+      
+      setInitialTmdbKey('');
+      setInitialIgdbClientId('');
+      setInitialIgdbClientSecret('');
+      
       showToast('API Credentials cleared successfully!', 'success');
     } catch (error) {
       console.error('Failed to clear credentials:', error);
       showToast('Failed to clear credentials. Please check console.', 'error');
     }
   };
+
+  const isDirty = 
+    tmdbKey.trim() !== initialTmdbKey ||
+    igdbClientId.trim() !== initialIgdbClientId ||
+    igdbClientSecret.trim() !== initialIgdbClientSecret;
+
+  const hasKeys = 
+    tmdbKey.trim() !== '' ||
+    igdbClientId.trim() !== '' ||
+    igdbClientSecret.trim() !== '';
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, provider: 'mal' | 'letterboxd') => {
     const file = e.target.files?.[0];
@@ -172,6 +216,79 @@ export const Settings = () => {
         </header>
 
         <div className="px-8 flex flex-col gap-6 max-w-4xl">
+          {/* Section: Data Import & Backup Restore */}
+          <section className="bg-surface p-6 rounded-2xl border border-white/5 space-y-4 shadow-lg shadow-black/20">
+            <h2 className="text-xl font-bold text-text-high flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary">upload_file</span>
+              Data Import & Restore
+            </h2>
+            <p className="text-text-muted text-sm leading-relaxed">
+              Restore your library from a previously saved Grabbe backup file, or ingest titles from popular services like MyAnimeList (XML) and Letterboxd (CSV).
+            </p>
+            
+            <div className="flex flex-wrap gap-4 mt-4">
+              <label className="cursor-pointer bg-[#2E51A2] text-white px-4 py-2.5 rounded-lg font-bold hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 select-none">
+                <span className="material-symbols-outlined text-[18px]">upload_file</span>
+                Import MyAnimeList
+                <input 
+                  type="file" 
+                  accept=".xml" 
+                  className="hidden" 
+                  onChange={(e) => handleFileChange(e, 'mal')} 
+                  disabled={isImporting}
+                />
+              </label>
+ 
+              <label className="cursor-pointer bg-[#00E054] text-[#14181C] px-4 py-2.5 rounded-lg font-bold hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 select-none">
+                <span className="material-symbols-outlined text-[18px]">upload_file</span>
+                Import Letterboxd
+                <input 
+                  type="file" 
+                  accept=".csv" 
+                  className="hidden" 
+                  onChange={(e) => handleFileChange(e, 'letterboxd')} 
+                  disabled={isImporting}
+                />
+              </label>
+ 
+              <label className="cursor-pointer bg-surface-container border border-outline-variant/20 text-text-high px-4 py-2.5 rounded-lg font-bold hover:bg-surface-container/80 active:scale-95 transition-all flex items-center gap-2 select-none">
+                <span className="material-symbols-outlined text-[18px]">settings_backup_restore</span>
+                Restore Grabbe Backup
+                <input 
+                  type="file" 
+                  accept=".json" 
+                  className="hidden" 
+                  onChange={handleBackupChange} 
+                  disabled={isImporting}
+                />
+              </label>
+            </div>
+          </section>
+ 
+          {/* Section: Data Backup & Export */}
+          <section className="bg-surface p-6 rounded-2xl border border-white/5 space-y-4 shadow-lg shadow-black/20">
+            <h2 className="text-xl font-bold text-text-high flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary">download</span>
+              Library Backup & Export
+            </h2>
+            <p className="text-text-muted text-sm leading-relaxed">
+              Export your entire local library — including all cached media definitions, status tracking, rating history, scores, custom reviews, and chronological consumption timelines — into a standard JSON file.
+            </p>
+            
+            <div className="flex gap-4 mt-4">
+              <button 
+                onClick={handleBackupExport}
+                disabled={isImporting || isExporting || hasExported}
+                className="cursor-pointer bg-primary text-on-primary px-6 py-2.5 rounded-lg font-bold hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 primary-glow shadow-md shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed select-none"
+              >
+                <span className="material-symbols-outlined text-[18px]">
+                  {hasExported ? 'check_circle' : isExporting ? 'hourglass_empty' : 'download'}
+                </span>
+                {hasExported ? 'Library Exported' : isExporting ? 'Exporting...' : 'Export Grabbe Library'}
+              </button>
+            </div>
+          </section>
+
           {/* Section: API Configurations (BYOK) */}
           <section className="bg-surface p-6 rounded-2xl border border-white/5 space-y-4 shadow-lg shadow-black/20">
             <h2 className="text-xl font-bold text-text-high flex items-center gap-2">
@@ -193,7 +310,7 @@ export const Settings = () => {
                   className="w-full bg-background border border-outline-variant/10 rounded-lg text-sm px-4 py-2.5 text-text-high outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all"
                 />
               </div>
-
+ 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-bold uppercase tracking-wider text-text-muted">Twitch/IGDB Client ID</label>
@@ -217,95 +334,40 @@ export const Settings = () => {
                 </div>
               </div>
 
+              <div className="bg-warning/10 border border-warning/20 text-warning text-xs p-3.5 rounded-xl flex gap-2.5 items-start mt-2">
+                <span className="material-symbols-outlined text-[18px] shrink-0 mt-0.5">warning</span>
+                <span>
+                  <strong>Warning:</strong> Clearing your credentials will disconnect the application from global media databases. Manual library entries can still be created, but automatic details lookup, cover art, and casts will be disabled.
+                </span>
+              </div>
+ 
               <div className="flex justify-end pt-2 gap-3">
                 <button 
-                  onClick={handleClearKeys}
-                  className="cursor-pointer bg-error/10 text-error hover:bg-error/20 px-6 py-2 rounded-lg font-bold transition-all flex items-center gap-2 select-none"
+                  onClick={() => setIsConfirmOpen(true)}
+                  disabled={!hasKeys}
+                  className="cursor-pointer bg-error/10 text-error hover:bg-error/20 px-6 py-2 rounded-lg font-bold disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-2 select-none"
                 >
                   <span className="material-symbols-outlined text-[18px]">delete</span>
                   Clear Credentials
                 </button>
                 <button 
                   onClick={handleSaveKeys}
-                  className="cursor-pointer bg-primary text-on-primary px-6 py-2 rounded-lg font-bold hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 primary-glow shadow-md shadow-primary/20 select-none"
+                  disabled={!isDirty || isSaving}
+                  className="cursor-pointer bg-primary text-on-primary px-6 py-2 rounded-lg font-bold hover:brightness-110 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-2 primary-glow shadow-md shadow-primary/20 select-none"
                 >
-                  <span className="material-symbols-outlined text-[18px]">save</span>
-                  Save Credentials
+                  {isSaving ? (
+                    <>
+                      <div className="w-4 h-4 rounded-full border-2 border-on-primary/30 border-t-on-primary animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-[18px]">save</span>
+                      Save Credentials
+                    </>
+                  )}
                 </button>
               </div>
-            </div>
-          </section>
-
-          {/* Section: Data Import & Backup Restore */}
-          <section className="bg-surface p-6 rounded-2xl border border-white/5 space-y-4 shadow-lg shadow-black/20">
-            <h2 className="text-xl font-bold text-text-high flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary">upload_file</span>
-              Data Import & Restore
-            </h2>
-            <p className="text-text-muted text-sm leading-relaxed">
-              Restore your library from a previously saved Grabbe backup file, or ingest titles from popular services like MyAnimeList (XML) and Letterboxd (CSV).
-            </p>
-            
-            <div className="flex flex-wrap gap-4 mt-4">
-              <label className="cursor-pointer bg-[#2E51A2] text-white px-4 py-2.5 rounded-lg font-bold hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 select-none">
-                <span className="material-symbols-outlined text-[18px]">upload_file</span>
-                Import MyAnimeList
-                <input 
-                  type="file" 
-                  accept=".xml" 
-                  className="hidden" 
-                  onChange={(e) => handleFileChange(e, 'mal')} 
-                  disabled={isImporting}
-                />
-              </label>
-
-              <label className="cursor-pointer bg-[#00E054] text-[#14181C] px-4 py-2.5 rounded-lg font-bold hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 select-none">
-                <span className="material-symbols-outlined text-[18px]">upload_file</span>
-                Import Letterboxd
-                <input 
-                  type="file" 
-                  accept=".csv" 
-                  className="hidden" 
-                  onChange={(e) => handleFileChange(e, 'letterboxd')} 
-                  disabled={isImporting}
-                />
-              </label>
-
-              <label className="cursor-pointer bg-surface-container border border-outline-variant/20 text-text-high px-4 py-2.5 rounded-lg font-bold hover:bg-surface-container/80 active:scale-95 transition-all flex items-center gap-2 select-none">
-                <span className="material-symbols-outlined text-[18px]">settings_backup_restore</span>
-                Restore Grabbe Backup
-                <input 
-                  type="file" 
-                  accept=".json" 
-                  className="hidden" 
-                  onChange={handleBackupChange} 
-                  disabled={isImporting}
-                />
-              </label>
-            </div>
-          </section>
-
-          {/* Section: Data Backup & Export */}
-          <section className="bg-surface p-6 rounded-2xl border border-white/5 space-y-4 shadow-lg shadow-black/20">
-            <h2 className="text-xl font-bold text-text-high flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary">download</span>
-              Library Backup & Export
-            </h2>
-            <p className="text-text-muted text-sm leading-relaxed">
-              Export your entire local library — including all cached media definitions, status tracking, rating history, scores, custom reviews, and chronological consumption timelines — into a standard JSON file.
-            </p>
-            
-            <div className="flex gap-4 mt-4">
-              <button 
-                onClick={handleBackupExport}
-                disabled={isImporting || isExporting || hasExported}
-                className="cursor-pointer bg-primary text-on-primary px-6 py-2.5 rounded-lg font-bold hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 primary-glow shadow-md shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed select-none"
-              >
-                <span className="material-symbols-outlined text-[18px]">
-                  {hasExported ? 'check_circle' : isExporting ? 'hourglass_empty' : 'download'}
-                </span>
-                {hasExported ? 'Library Exported' : isExporting ? 'Exporting...' : 'Export Grabbe Library'}
-              </button>
             </div>
           </section>
         </div>
@@ -349,6 +411,17 @@ export const Settings = () => {
           </div>
         </div>
       )}
+
+      <ConfirmationModal
+        isOpen={isConfirmOpen}
+        title="Clear API Credentials?"
+        message="Are you sure you want to clear your API credentials? This will disable metadata fetching and online features until configured again."
+        confirmLabel="Clear Keys"
+        cancelLabel="Keep Keys"
+        type="danger"
+        onConfirm={handleClearKeys}
+        onCancel={() => setIsConfirmOpen(false)}
+      />
     </MainLayout>
   );
 };
