@@ -23,6 +23,7 @@ public class TmdbClient : IMediaProviderClient
     public TmdbClient(HttpClient httpClient, AppSettingsService appSettingsService)
     {
         _httpClient = httpClient;
+        _httpClient.BaseAddress = new Uri("https://api.themoviedb.org/3/");
         _appSettingsService = appSettingsService;
     }
 

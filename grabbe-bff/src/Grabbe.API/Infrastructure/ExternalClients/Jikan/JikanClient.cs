@@ -22,6 +22,7 @@ public class JikanClient : IMediaProviderClient
     public JikanClient(HttpClient httpClient)
     {
         _httpClient = httpClient;
+        _httpClient.BaseAddress = new Uri("https://api.jikan.moe/v4/");
     }
 
     /// <inheritdoc/>

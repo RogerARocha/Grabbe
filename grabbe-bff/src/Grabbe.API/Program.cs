@@ -18,12 +18,6 @@ builder.Configuration.AddEnvironmentVariables();
 
 builder.Services.AddSingleton<Grabbe.API.Infrastructure.Configuration.AppSettingsService>();
 
-builder.Services.Configure<ExternalApiOptions>(options =>
-{
-    options.TmdbApiKey = builder.Configuration["TMDB_API_KEY"] ?? string.Empty;
-    options.GBooksApiKey = builder.Configuration["GBOOKS_API_KEY"] ?? string.Empty;
-});
-
 builder.Services.AddRouting(options => options.LowercaseUrls = true);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -37,18 +31,10 @@ builder.Services.AddScoped<Grabbe.API.Features.MediaSearch.SearchAggregationServ
 builder.Services.AddScoped<Grabbe.API.Features.MediaDetails.DetailsService>();
 builder.Services.AddScoped<MalImportService>();
 builder.Services.AddScoped<LetterboxdImportService>();
-
-builder.Services.AddHttpClient<TmdbClient>(client =>
-{
-    client.BaseAddress = new Uri("https://api.themoviedb.org/3/");
-});
-
-builder.Services.AddHttpClient<JikanClient>(client =>
-{
-    client.BaseAddress = new Uri("https://api.jikan.moe/v4/");
-});
-
+builder.Services.AddHttpClient<TmdbClient>();
+builder.Services.AddHttpClient<JikanClient>();
 builder.Services.AddHttpClient<OpenLibraryClient>();
+builder.Services.AddHttpClient<IgdbClient>();
 
 // Each typed HttpClient is also registered as IMediaProviderClient so the aggregation
 // and details services can resolve all providers via DI without knowing concrete types.
@@ -56,7 +42,6 @@ builder.Services.AddTransient<IMediaProviderClient>(sp => sp.GetRequiredService<
 builder.Services.AddTransient<IMediaProviderClient>(sp => sp.GetRequiredService<JikanClient>());
 builder.Services.AddTransient<IMediaProviderClient>(sp => sp.GetRequiredService<OpenLibraryClient>());
 builder.Services.AddTransient<IMediaProviderClient>(sp => sp.GetRequiredService<IgdbClient>());
-builder.Services.AddHttpClient<IgdbClient>();
 
 builder.Services.AddCors(options =>
 {
