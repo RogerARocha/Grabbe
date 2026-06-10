@@ -12,3 +12,5 @@ export {
 } from './db/tracking';
 export { getRankedItems } from './db/ranking';
 export { exportLibraryData, importBackupItem } from './db/backup';
+export { getSetting, setSetting, deleteSetting } from './db/settings';
+

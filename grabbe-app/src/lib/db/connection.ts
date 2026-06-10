@@ -19,6 +19,13 @@ export async function getDb() {
  */
 export async function initDb() {
   const db = await getDb();
+
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS AppSettings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+    );
+  `);
   
   await db.execute(`
     CREATE TABLE IF NOT EXISTS Media (

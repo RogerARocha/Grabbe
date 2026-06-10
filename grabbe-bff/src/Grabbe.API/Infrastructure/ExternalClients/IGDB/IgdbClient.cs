@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using Grabbe.API.Domain.DTOs;
+using Grabbe.API.Infrastructure.Configuration;
 using Grabbe.API.Infrastructure.ExternalClients.IGDB;
 
 namespace Grabbe.API.Infrastructure.ExternalClients;
@@ -9,8 +10,9 @@ namespace Grabbe.API.Infrastructure.ExternalClients;
 public class IgdbClient : IMediaProviderClient
 {
     private readonly HttpClient _httpClient;
-    private readonly string _clientId;
-    private readonly string _clientSecret;
+    private readonly AppSettingsService _appSettingsService;
+    private string? _clientId;
+    private string? _clientSecret;
     private static string? _accessToken;
     private static DateTime _tokenExpiration = DateTime.MinValue;
     private static readonly SemaphoreSlim _tokenSemaphore = new SemaphoreSlim(1, 1);
@@ -18,17 +20,25 @@ public class IgdbClient : IMediaProviderClient
     public string ProviderName => "IGDB";
     public string[] SupportedTypes => new[] { "GAME" };
 
-    public IgdbClient(HttpClient httpClient, IConfiguration config)
+    public IgdbClient(HttpClient httpClient, AppSettingsService appSettingsService)
     {
         _httpClient = httpClient;
         _httpClient.BaseAddress = new Uri("https://api.igdb.com/v4/");
-        
-        _clientId = config["IGDB:ClientId"] ?? throw new ArgumentNullException("IGDB:ClientId");
-        _clientSecret = config["IGDB:ClientSecret"] ?? throw new ArgumentNullException("IGDB:ClientSecret");
+        _appSettingsService = appSettingsService;
     }
 
     private async Task EnsureAccessTokenAsync()
     {
+        var sqliteClientId = _appSettingsService.GetSetting("IGDB_CLIENT_ID");
+        var sqliteClientSecret = _appSettingsService.GetSetting("IGDB_CLIENT_SECRET");
+
+        if (sqliteClientId != _clientId || sqliteClientSecret != _clientSecret)
+        {
+            _clientId = sqliteClientId;
+            _clientSecret = sqliteClientSecret;
+            _accessToken = null; // Invalidate cache if keys changed
+        }
+
         if (!string.IsNullOrEmpty(_accessToken) && DateTime.UtcNow < _tokenExpiration)
         {
             return;
@@ -40,6 +50,11 @@ public class IgdbClient : IMediaProviderClient
             if (!string.IsNullOrEmpty(_accessToken) && DateTime.UtcNow < _tokenExpiration)
             {
                 return;
+            }
+
+            if (string.IsNullOrEmpty(_clientId) || string.IsNullOrEmpty(_clientSecret))
+            {
+                throw new InvalidOperationException("Twitch / IGDB Client ID or Client Secret is not configured in AppSettings.");
             }
 
             var requestParams = new Dictionary<string, string>

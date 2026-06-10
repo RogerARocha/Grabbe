@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MainLayout } from '../components/layout/MainLayout';
 import { importMediaFromFile, importBackupData } from '../lib/importService';
 import { useImportProgress } from '../contexts/ImportContext';
-import { exportLibraryData } from '../lib/db';
+import { exportLibraryData, getSetting, setSetting } from '../lib/db';
 import { openPath } from '@tauri-apps/plugin-opener';
 import { downloadDir, join } from '@tauri-apps/api/path';
 import { useToast } from '../contexts/ToastContext';
@@ -14,6 +14,36 @@ export const Settings = () => {
   const [showNotification, setShowNotification] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [hasExported, setHasExported] = useState(false);
+
+  // BYOK Credentials state
+  const [tmdbKey, setTmdbKey] = useState('');
+  const [igdbClientId, setIgdbClientId] = useState('');
+  const [igdbClientSecret, setIgdbClientSecret] = useState('');
+
+  // Load existing credentials from SQLite on mount
+  useEffect(() => {
+    async function loadCredentials() {
+      const tmdb = await getSetting('TMDB_API_KEY');
+      const client = await getSetting('IGDB_CLIENT_ID');
+      const secret = await getSetting('IGDB_CLIENT_SECRET');
+      if (tmdb) setTmdbKey(tmdb);
+      if (client) setIgdbClientId(client);
+      if (secret) setIgdbClientSecret(secret);
+    }
+    loadCredentials();
+  }, []);
+
+  const handleSaveKeys = async () => {
+    try {
+      await setSetting('TMDB_API_KEY', tmdbKey);
+      await setSetting('IGDB_CLIENT_ID', igdbClientId);
+      await setSetting('IGDB_CLIENT_SECRET', igdbClientSecret);
+      showToast('API Credentials saved successfully!', 'success');
+    } catch (error) {
+      console.error('Failed to save credentials:', error);
+      showToast('Failed to save credentials. Please check console.', 'error');
+    }
+  };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, provider: 'mal' | 'letterboxd') => {
     const file = e.target.files?.[0];
@@ -127,6 +157,63 @@ export const Settings = () => {
         </header>
 
         <div className="px-8 flex flex-col gap-6 max-w-4xl">
+          {/* Section: API Configurations (BYOK) */}
+          <section className="bg-surface p-6 rounded-2xl border border-white/5 space-y-4 shadow-lg shadow-black/20">
+            <h2 className="text-xl font-bold text-text-high flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary">key</span>
+              API Credentials (BYOK)
+            </h2>
+            <p className="text-text-muted text-sm leading-relaxed">
+              Configure your personal API keys to connect directly to metadata providers. These keys are stored securely in your local SQLite database.
+            </p>
+            
+            <div className="space-y-4 pt-2">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-text-muted">TMDB API Key (Bearer Token)</label>
+                <input 
+                  type="password"
+                  value={tmdbKey}
+                  onChange={(e) => setTmdbKey(e.target.value)}
+                  placeholder="Enter TMDB Bearer Token..."
+                  className="w-full bg-background border border-outline-variant/10 rounded-lg text-sm px-4 py-2.5 text-text-high outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wider text-text-muted">Twitch/IGDB Client ID</label>
+                  <input 
+                    type="text"
+                    value={igdbClientId}
+                    onChange={(e) => setIgdbClientId(e.target.value)}
+                    placeholder="Enter Client ID..."
+                    className="w-full bg-background border border-outline-variant/10 rounded-lg text-sm px-4 py-2.5 text-text-high outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wider text-text-muted">Twitch/IGDB Client Secret</label>
+                  <input 
+                    type="password"
+                    value={igdbClientSecret}
+                    onChange={(e) => setIgdbClientSecret(e.target.value)}
+                    placeholder="Enter Client Secret..."
+                    className="w-full bg-background border border-outline-variant/10 rounded-lg text-sm px-4 py-2.5 text-text-high outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <button 
+                  onClick={handleSaveKeys}
+                  className="cursor-pointer bg-primary text-on-primary px-6 py-2 rounded-lg font-bold hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 primary-glow shadow-md shadow-primary/20 select-none"
+                >
+                  <span className="material-symbols-outlined text-[18px]">save</span>
+                  Save Credentials
+                </button>
+              </div>
+            </div>
+          </section>
+
           {/* Section: Data Import & Backup Restore */}
           <section className="bg-surface p-6 rounded-2xl border border-white/5 space-y-4 shadow-lg shadow-black/20">
             <h2 className="text-xl font-bold text-text-high flex items-center gap-2">

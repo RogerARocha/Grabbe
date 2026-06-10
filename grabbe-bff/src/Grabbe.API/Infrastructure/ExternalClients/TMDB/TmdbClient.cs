@@ -1,6 +1,5 @@
 using Grabbe.API.Domain.DTOs;
 using Grabbe.API.Infrastructure.Configuration;
-using Microsoft.Extensions.Options;
 using System.Net.Http.Headers;
 using Grabbe.API.Infrastructure.ExternalClients.TMDB;
 
@@ -13,6 +12,7 @@ namespace Grabbe.API.Infrastructure.ExternalClients;
 public class TmdbClient : IMediaProviderClient
 {
     private readonly HttpClient _httpClient;
+    private readonly AppSettingsService _appSettingsService;
 
     /// <inheritdoc/>
     public string ProviderName => "TMDB";
@@ -20,10 +20,16 @@ public class TmdbClient : IMediaProviderClient
     /// <inheritdoc/>
     public string[] SupportedTypes => new[] { "MOVIE", "SERIES" };
 
-    public TmdbClient(HttpClient httpClient, IOptions<ExternalApiOptions> options)
+    public TmdbClient(HttpClient httpClient, AppSettingsService appSettingsService)
     {
         _httpClient = httpClient;
-        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", options.Value.TmdbApiKey);
+        _appSettingsService = appSettingsService;
+    }
+
+    private void EnsureAuthorizationHeader()
+    {
+        var apiKey = _appSettingsService.GetSetting("TMDB_API_KEY");
+        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey ?? string.Empty);
     }
 
     /// <inheritdoc/>
@@ -31,6 +37,7 @@ public class TmdbClient : IMediaProviderClient
     {
         try
         {
+            EnsureAuthorizationHeader();
             var endpoint = type == "SERIES" ? "search/tv" : "search/movie";
 
             var response = await _httpClient.GetFromJsonAsync<TmdbSearchResponse>(
@@ -66,6 +73,7 @@ public class TmdbClient : IMediaProviderClient
     {
         try
         {
+            EnsureAuthorizationHeader();
             var endpoint = type == "SERIES" ? $"tv/{externalId}" : $"movie/{externalId}";
 
             var response = await _httpClient.GetFromJsonAsync<TmdbDetailResponse>(

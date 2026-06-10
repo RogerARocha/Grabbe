@@ -15,10 +15,12 @@ builder.WebHost.ConfigureKestrel(options =>
 // No manual .env file loading is required.
 builder.Configuration.AddEnvironmentVariables();
 
+builder.Services.AddSingleton<Grabbe.API.Infrastructure.Configuration.AppSettingsService>();
+
 builder.Services.Configure<ExternalApiOptions>(options =>
 {
-    options.TmdbApiKey = builder.Configuration["TMDB_API_KEY"] ?? throw new InvalidOperationException("TMDB_API_KEY is not configured.");
-    options.GBooksApiKey = builder.Configuration["GBOOKS_API_KEY"] ?? throw new InvalidOperationException("GBOOKS_API_KEY is not configured.");
+    options.TmdbApiKey = builder.Configuration["TMDB_API_KEY"] ?? string.Empty;
+    options.GBooksApiKey = builder.Configuration["GBOOKS_API_KEY"] ?? string.Empty;
 });
 
 builder.Services.AddRouting(options => options.LowercaseUrls = true);
