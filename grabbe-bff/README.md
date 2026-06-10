@@ -79,7 +79,7 @@ If you are using an IDE like **Visual Studio** or **Rider**, just open the `Grab
 
 With the project running in *Development* mode, open your browser at the URL mapped by the terminal (usually local), followed by the swagger path:
 
-`http://localhost:5244/swagger`
+`http://localhost:18493/swagger`
 
 ---
 
@@ -162,4 +162,4 @@ Se você estiver usando uma IDE como **Visual Studio** ou **Rider**, basta abrir
 
 Com o projeto rodando em modo *Development*, abra seu navegador na URL mapeada pelo terminal (geralmente local), seguido do caminho do swagger:
 
-`http://localhost:5244/swagger`
+`http://localhost:18493/swagger`

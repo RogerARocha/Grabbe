@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { apiFetch } from '../lib/httpClient';
 
 export function useMediaSearch() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -14,7 +15,7 @@ export function useMediaSearch() {
     }
     setIsSearching(true);
     try {
-      const response = await fetch(`http://localhost:5244/api/v1/search?query=${encodeURIComponent(q)}&page=1`);
+      const response = await apiFetch(`/api/v1/search?query=${encodeURIComponent(q)}&page=1`);
       if (!response.ok) throw new Error('Search failed');
       const data = await response.json();
       setSearchResults(data.data || []);

@@ -3,6 +3,12 @@ using Grabbe.API.Infrastructure.ExternalClients;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.ListenLocalhost(18493);
+});
+
+
 // API keys are resolved from the .NET configuration hierarchy:
 //  - Development: 'dotnet user-secrets' (keeps secrets out of source control)
 //  - Production:  System environment variables

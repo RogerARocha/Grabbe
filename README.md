@@ -24,7 +24,7 @@ The BFF requires the .NET 9.0 SDK and API keys for TMDB and Google Books.
 cd grabbe-bff
 dotnet run --project src/Grabbe.API/Grabbe.API.csproj
 ```
-*The API will be available at `http://localhost:5244/swagger`.*
+*The API will be available at `http://localhost:18493/swagger`.*
 
 ### 2. Running the Desktop App (Tauri + React)
 The desktop client requires Node.js and the Rust toolchain (for Tauri).

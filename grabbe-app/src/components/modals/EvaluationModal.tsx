@@ -3,6 +3,7 @@ import { PartialDateInput } from '../shared/PartialDateInput';
 import { formatStatusLabel } from '../../lib/statusUtils';
 import { useMediaSearch } from '../../hooks/useMediaSearch';
 import { useEvaluationForm } from '../../hooks/useEvaluationForm';
+import { apiFetch } from '../../lib/httpClient';
 
 export type EvaluationModalMode = 'add' | 'update';
 
@@ -131,7 +132,7 @@ export const EvaluationModal = ({
     setShowDropdown(false);
     setIsSearching(true);
     try {
-      const response = await fetch(`http://localhost:5244/api/v1/media/${result.sourceApi}/${result.type}/${result.externalId}`);
+      const response = await apiFetch(`/api/v1/media/${result.sourceApi}/${result.type}/${result.externalId}`);
       if (!response.ok) throw new Error('Failed to fetch details');
       const data = await response.json();
       setSelectedMedia(data.data);

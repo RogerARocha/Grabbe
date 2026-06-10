@@ -29,5 +29,12 @@ export default defineConfig(async () => ({
       // 3. tell Vite to ignore watching `src-tauri`
       ignored: ["**/src-tauri/**"],
     },
+    proxy: {
+      '/api': {
+        target: 'http://localhost:18493',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
 }));

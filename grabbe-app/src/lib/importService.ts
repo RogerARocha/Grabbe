@@ -1,5 +1,6 @@
 import { upsertMedia, saveTracking, importBackupItem } from './db';
 import { v4 as uuidv4 } from 'uuid';
+import { apiFetch } from './httpClient';
 
 /**
  * Shape of a single media entry returned by the BFF import endpoint.
@@ -47,7 +48,7 @@ export async function importMediaFromFile(
 ): Promise<void> {
     const formData = new FormData();
     formData.append('file', file);
-    const response = await fetch(`http://localhost:5244/api/v1/import/${provider}`, {
+    const response = await apiFetch(`/api/v1/import/${provider}`, {
         method: 'POST',
         body: formData,
     });
@@ -75,8 +76,8 @@ export async function importMediaFromFile(
         let totalProgressUnits = item.totalProgressUnits;
 
         try {
-            const searchResponse = await fetch(
-                `http://localhost:5244/api/v1/search?query=${encodeURIComponent(item.title)}&type=${item.type}`
+            const searchResponse = await apiFetch(
+                `/api/v1/search?query=${encodeURIComponent(item.title)}&type=${item.type}`
             );
             if (searchResponse.ok) {
                 const searchBody = await searchResponse.json();
@@ -92,7 +93,7 @@ export async function importMediaFromFile(
                         description     = firstResult.description   ?? null;
                         
                         try {
-                            const detailsResponse = await fetch(`http://localhost:5244/api/v1/media/${sourceApi}/${firstResult.type}/${externalId}`);
+                            const detailsResponse = await apiFetch(`/api/v1/media/${sourceApi}/${firstResult.type}/${externalId}`);
                             if (detailsResponse.ok) {
                                 const detailsBody = await detailsResponse.json();
                                 if (detailsBody.data) {
@@ -194,7 +195,7 @@ export async function importBackupData(
         // Backfill missing metric for older backups
         if (!metric && media.source_api && media.external_id && !media.external_id.startsWith('imported_')) {
             try {
-                const detailsResponse = await fetch(`http://localhost:5244/api/v1/media/${media.source_api}/${media.type}/${media.external_id}`);
+                const detailsResponse = await apiFetch(`/api/v1/media/${media.source_api}/${media.type}/${media.external_id}`);
                 if (detailsResponse.ok) {
                     const detailsBody = await detailsResponse.json();
                     if (detailsBody.data) {

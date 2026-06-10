@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '../components/layout/MainLayout';
+import { apiFetch } from '../lib/httpClient';
 import { MediaCard } from '../components/shared/MediaCard';
 import { MediaType } from '../components/shared/types';
 import { TypeFilters } from '../components/shared/TypeFilters';
@@ -49,7 +50,7 @@ export const Discover = () => {
 
     try {
       const typeParam = type !== 'ALL' ? `&type=${type}` : '';
-      const response = await fetch(`http://localhost:5244/api/v1/search?query=${encodeURIComponent(q)}${typeParam}&page=1`);
+      const response = await apiFetch(`/api/v1/search?query=${encodeURIComponent(q)}${typeParam}&page=1`);
       if (!response.ok) throw new Error('Search failed');
       const data = await response.json();
       setResults(data.data || []);

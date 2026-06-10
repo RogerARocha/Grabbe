@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import { MainLayout } from '../components/layout/MainLayout';
+import { apiFetch } from '../lib/httpClient';
 import { Breadcrumbs } from '../components/shared/Breadcrumbs';
 import { EvaluationModal } from '../components/modals/EvaluationModal';
 import { HeroCover } from '../components/media-details/HeroCover';
@@ -101,7 +102,7 @@ export const MediaDetails = () => {
             }
             
             try {
-              const res = await fetch(`http://localhost:5244/api/v1/media/${sourceApi}/${type}/${externalId}`);
+              const res = await apiFetch(`/api/v1/media/${sourceApi}/${type}/${externalId}`);
               if (res.ok) {
                 const body = await res.json();
                 if (body.data && active) {
@@ -132,7 +133,7 @@ export const MediaDetails = () => {
 
       // 2. If not found locally, fetch from BFF
       try {
-        const res = await fetch(`http://localhost:5244/api/v1/media/${sourceApi}/${type}/${externalId}`);
+        const res = await apiFetch(`/api/v1/media/${sourceApi}/${type}/${externalId}`);
         if (!res.ok) throw new Error('Failed to load from BFF');
         const body = await res.json();
         if (!body.data) throw new Error('Empty data from BFF');
