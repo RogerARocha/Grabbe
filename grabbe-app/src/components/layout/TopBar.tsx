@@ -1,5 +1,6 @@
-// import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { useNavigationHistory } from "../../store/navigationHistory";
 
 const handleMinimize = async () => {
   await getCurrentWindow().minimize();
@@ -19,7 +20,8 @@ const handleDragStart = async (e: React.MouseEvent) => {
 };
 
 export const TopBar = ({ minimal = false }: { minimal?: boolean }) => {
-  // const navigation = useNavigate();
+  const navigate = useNavigate();
+  const { historyStack, currentIndex } = useNavigationHistory();
 
   return (
     <header className={`fixed top-0 left-0 w-full h-10 flex items-center z-50 select-none ${
@@ -36,6 +38,28 @@ export const TopBar = ({ minimal = false }: { minimal?: boolean }) => {
           <span className="text-3xl font-black bg-clip-text text-transparent bg-linear-to-r from-primary to-secondary pointer-events-none">
             Grabbe
           </span>
+        </div>
+      )}
+
+      {/* Navigation History Controls */}
+      {!minimal && (
+        <div className="flex items-center gap-1.5 px-2 shrink-0">
+          <button
+            onClick={() => navigate(-1)}
+            disabled={currentIndex <= 0}
+            className="w-7 h-7 rounded-full flex items-center justify-center bg-transparent hover:bg-white/5 active:scale-95 text-text-muted hover:text-text-high disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer border-none p-0 outline-none"
+            title="Back"
+          >
+            <span className="material-symbols-outlined text-[20px] font-bold">chevron_left</span>
+          </button>
+          <button
+            onClick={() => navigate(1)}
+            disabled={currentIndex >= historyStack.length - 1}
+            className="w-7 h-7 rounded-full flex items-center justify-center bg-transparent hover:bg-white/5 active:scale-95 text-text-muted hover:text-text-high disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer border-none p-0 outline-none"
+            title="Forward"
+          >
+            <span className="material-symbols-outlined text-[20px] font-bold">chevron_right</span>
+          </button>
         </div>
       )}
 

@@ -1,5 +1,6 @@
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation, useNavigationType } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { useNavigationHistory } from './store/navigationHistory';
 import { Dashboard } from './pages/Dashboard';
 import { Library } from './pages/Library';
 import { Ranking } from './pages/Ranking';
@@ -55,6 +56,36 @@ function OnboardingInterceptor() {
  * Main application entry point.
  * Initializes the local database and configures the routing for all main views.
  */
+function NavigationTracker() {
+  const location = useLocation();
+  const navType = useNavigationType();
+  const { historyStack, currentIndex, pushPath, setIndexForPath } = useNavigationHistory();
+
+  useEffect(() => {
+    const fullPath = location.pathname + location.search;
+    if (navType === 'POP') {
+      const index = historyStack.indexOf(fullPath);
+      if (index !== -1) {
+        setIndexForPath(index);
+      } else {
+        pushPath(fullPath);
+      }
+    } else if (navType === 'PUSH') {
+      pushPath(fullPath);
+    } else if (navType === 'REPLACE') {
+      const newStack = [...historyStack];
+      if (currentIndex >= 0 && currentIndex < newStack.length) {
+        newStack[currentIndex] = fullPath;
+        useNavigationHistory.setState({ historyStack: newStack });
+      } else {
+        pushPath(fullPath);
+      }
+    }
+  }, [location, navType]);
+
+  return null;
+}
+
 function App() {
   const [dbReady, setDbReady] = useState(false);
 
@@ -77,6 +108,7 @@ function App() {
     <ImportProvider>
       <ToastProvider>
         <BrowserRouter>
+          <NavigationTracker />
           <Routes>
             <Route path="/onboarding" element={<Onboarding />} />
 
