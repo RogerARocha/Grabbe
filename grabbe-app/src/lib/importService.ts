@@ -1,4 +1,4 @@
-import { upsertMedia, saveTracking, importBackupItem } from './db';
+import { upsertMedia, saveTracking, importBackupItem, setSetting } from './db';
 import { v4 as uuidv4 } from 'uuid';
 import { apiFetch } from './httpClient';
 
@@ -181,6 +181,10 @@ export async function importBackupData(
 ): Promise<void> {
     if (!backupData || backupData.version !== "1.0" || !Array.isArray(backupData.items)) {
         throw new Error("Invalid backup format. File must be a Grabbe Backup version 1.0.");
+    }
+
+    if (backupData.userName) {
+        await setSetting('USER_NAME', backupData.userName);
     }
 
     const items = backupData.items;

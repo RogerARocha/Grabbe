@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { setSetting } from '../lib/db';
+import { setSetting, getSetting } from '../lib/db';
+import { importBackupData } from '../lib/importService';
 import { apiFetch } from '../lib/httpClient';
 import { useToast } from '../contexts/ToastContext';
 import { TopBar } from '../components/layout/TopBar';
@@ -21,6 +22,43 @@ export const Onboarding = () => {
   // Loading & error state
   const [isValidating, setIsValidating] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
+
+  const handleBackupChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    e.target.value = '';
+
+    try {
+      setIsImporting(true);
+      setImportProgress({ current: 0, total: 0 });
+
+      const text = await file.text();
+      const backupData = JSON.parse(text);
+
+      await importBackupData(backupData, (current, total) => {
+        setImportProgress({ current, total });
+      });
+
+      const restoredName = backupData.userName || await getSetting('USER_NAME');
+      
+      if (restoredName) {
+        setName(restoredName);
+        showToast(`Backup restored successfully! Welcome back, ${restoredName}.`, 'success');
+        setStep(2);
+      } else {
+        showToast('Library data restored. Please enter your name to continue.', 'success');
+      }
+    } catch (error: any) {
+      console.error('Backup restore failed:', error);
+      showToast(`Error restoring backup: ${error.message || error}`, 'error');
+    } finally {
+      setIsImporting(false);
+      setImportProgress({ current: 0, total: 0 });
+    }
+  };
 
   const handleNextStep = () => {
     if (!name.trim()) {
@@ -121,17 +159,47 @@ export const Onboarding = () => {
             Welcome to <span className="prismatic-text">Grabbe</span>
           </h1>
           <p className="text-text-muted mt-2 text-sm max-w-sm">
-            Set up your profile and credentials to connect to global media databases.
+            {isImporting ? 'Restoring your backup file...' : 'Set up your profile and credentials to connect to global media databases.'}
           </p>
         </div>
 
-        {/* Step Indicator */}
-        <div className="flex items-center justify-center gap-3 mb-8">
-          <div className={`h-1.5 rounded-full transition-all duration-300 ${step === 1 ? 'w-8 bg-primary' : 'w-2 bg-white/10'}`} />
-          <div className={`h-1.5 rounded-full transition-all duration-300 ${step === 2 ? 'w-8 bg-primary' : 'w-2 bg-white/10'}`} />
-        </div>
+        {isImporting ? (
+          <div className="space-y-6 text-center py-6 animate-in fade-in duration-300">
+            <div className="flex flex-col items-center gap-4">
+              <div className="relative w-16 h-16 flex items-center justify-center">
+                <div className="absolute inset-0 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+                <span className="material-symbols-outlined text-[28px] text-primary">settings_backup_restore</span>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold">Restoring Library</h3>
+                <p className="text-xs text-text-muted mt-1">Please wait while we restore your library records...</p>
+              </div>
+            </div>
 
-        {/* Step 1: Name */}
+            {importProgress.total > 0 && (
+              <div className="space-y-2">
+                <div className="w-full bg-background border border-outline-variant/10 h-2.5 rounded-full overflow-hidden">
+                  <div 
+                    className="bg-primary h-full transition-all duration-150" 
+                    style={{ width: `${(importProgress.current / importProgress.total) * 100}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-xs text-text-muted">
+                  <span>Importing items</span>
+                  <span>{importProgress.current} / {importProgress.total}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* Step Indicator */}
+            <div className="flex items-center justify-center gap-3 mb-8">
+              <div className={`h-1.5 rounded-full transition-all duration-300 ${step === 1 ? 'w-8 bg-primary' : 'w-2 bg-white/10'}`} />
+              <div className={`h-1.5 rounded-full transition-all duration-300 ${step === 2 ? 'w-8 bg-primary' : 'w-2 bg-white/10'}`} />
+            </div>
+
+            {/* Step 1: Name */}
         {step === 1 && (
           <div className="space-y-6 animate-in fade-in duration-300">
             <div className="flex flex-col gap-2">
@@ -155,6 +223,20 @@ export const Onboarding = () => {
               Continue
               <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
             </button>
+
+            <div className="flex items-center justify-center pt-2">
+              <label className="cursor-pointer text-xs text-primary hover:text-primary/80 transition-colors flex items-center gap-1.5 select-none font-medium">
+                <span className="material-symbols-outlined text-[16px]">settings_backup_restore</span>
+                Have a Grabbe backup file?
+                <input
+                  type="file"
+                  accept=".json"
+                  className="hidden"
+                  onChange={handleBackupChange}
+                  disabled={isImporting}
+                />
+              </label>
+            </div>
           </div>
         )}
 
@@ -260,6 +342,8 @@ export const Onboarding = () => {
               </button>
             </div>
           </div>
+        )}
+          </>
         )}
 
       </div>

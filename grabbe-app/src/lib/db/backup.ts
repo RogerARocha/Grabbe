@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { getDb } from './connection';
 import { upsertMedia } from './media';
+import { getSetting } from './settings';
 
 /**
  * Compiles and exports the user's entire local library into a structured, relational JSON backup format.
@@ -11,6 +12,7 @@ import { upsertMedia } from './media';
  */
 export async function exportLibraryData() {
   const db = await getDb();
+  const userName = await getSetting('USER_NAME');
 
   // Perform parallel, highly optimized flat queries for all relevant tables
   const mediaList = await db.select<any[]>("SELECT * FROM Media");
@@ -108,6 +110,7 @@ export async function exportLibraryData() {
   return {
     version: "1.0",
     exportedAt: new Date().toISOString(),
+    userName: userName || undefined,
     items
   };
 }
