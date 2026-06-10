@@ -19,7 +19,7 @@ public class MediaController : ControllerBase
     /// <summary>
     /// Retrieves full details for a specific media item from its originating provider.
     /// </summary>
-    /// <param name="sourceApi">The provider identifier (e.g., "TMDB", "JIKAN", "GBOOKS").</param>
+    /// <param name="sourceApi">The provider identifier (e.g., "TMDB", "JIKAN", "OPENLIBRARY").</param>
     /// <param name="type">The normalized media type (e.g., "MOVIE", "ANIME").</param>
     /// <param name="id">The external identifier for the media item within its source API.</param>
     /// <returns>A data envelope containing the <see cref="Grabbe.API.Domain.DTOs.GrabbeMediaDTO"/>, or 404 if not found.</returns>

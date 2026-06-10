@@ -159,17 +159,17 @@ Each external client maps only the necessary fields from its API into the univer
   * `titles` (non-Default) -> `AlternativeTitles`
   * `KeyPeople`: left empty (would require extra `/characters` call).
 
-## C. Google Books Client (Books)**
+## C. Open Library Client (Books)**
 
-* **Base Endpoint:** `https://www.googleapis.com/books/v1`
-* **Authentication:** Query param `?key={GBOOKS_API_KEY}` (Read from `.env.local`).
-* **Mapping (extracted from volumeInfo):**
-  * `imageLinks.thumbnail` -> `CoverImageUrl` (forced to HTTPS)
-  * `description` -> `Description`
-  * `averageRating` -> `CommunityScore` (multiplied by 2 to normalize from 0-5 to 0-10)
+* **Base Endpoint:** `https://openlibrary.org`
+* **Authentication:** None (Free & Public API, no key required).
+* **Mapping:**
+  * `cover_i` -> `CoverImageUrl` (mapped using `https://covers.openlibrary.org/b/id/{cover_i}-L.jpg`)
+  * `description` -> `Description` (supports string or text/markdown object)
+  * `ratings_average` -> `CommunityScore` (multiplied by 2 to normalize from 1-5 to 0-10 scale)
   * `publisher` -> `PublisherOrStudio`
-  * `pageCount` -> `FormattedConsumptionMetric` (formatted as "X pages") and `TotalProgressUnits`
-  * `authors` -> `KeyPeople` (with Role = "Author")
+  * `number_of_pages_median` -> `FormattedConsumptionMetric` ("X pages") and `TotalProgressUnits`
+  * `author_name` -> `KeyPeople` (with Role = "Author")
 
 ## **5. Ideal Database Schema Structure (Local SQLite)**
 
@@ -281,7 +281,7 @@ namespace Grabbe.API.Domain.DTOs;
 public class GrabbeMediaDTO
 {
     public required string ExternalId { get; set; }
-    public required string SourceApi { get; set; }  // "TMDB", "JIKAN", "GBOOKS"
+    public required string SourceApi { get; set; }  // "TMDB", "JIKAN", "OPENLIBRARY"
     public required string Type { get; set; }       // "MOVIE", "SERIES", "ANIME", "MANGA", "BOOK", "GAME"
     public required string Title { get; set; }
     public string? Description { get; set; }

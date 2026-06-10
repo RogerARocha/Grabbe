@@ -1,5 +1,6 @@
 using Grabbe.API.Infrastructure.Configuration;
 using Grabbe.API.Infrastructure.ExternalClients;
+using Grabbe.API.Infrastructure.ExternalClients.OpenLibrary;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -47,16 +48,13 @@ builder.Services.AddHttpClient<JikanClient>(client =>
     client.BaseAddress = new Uri("https://api.jikan.moe/v4/");
 });
 
-builder.Services.AddHttpClient<GoogleBooksClient>(client =>
-{
-    client.BaseAddress = new Uri("https://www.googleapis.com/books/v1/");
-});
+builder.Services.AddHttpClient<OpenLibraryClient>();
 
 // Each typed HttpClient is also registered as IMediaProviderClient so the aggregation
 // and details services can resolve all providers via DI without knowing concrete types.
 builder.Services.AddTransient<IMediaProviderClient>(sp => sp.GetRequiredService<TmdbClient>());
 builder.Services.AddTransient<IMediaProviderClient>(sp => sp.GetRequiredService<JikanClient>());
-builder.Services.AddTransient<IMediaProviderClient>(sp => sp.GetRequiredService<GoogleBooksClient>());
+builder.Services.AddTransient<IMediaProviderClient>(sp => sp.GetRequiredService<OpenLibraryClient>());
 builder.Services.AddTransient<IMediaProviderClient>(sp => sp.GetRequiredService<IgdbClient>());
 builder.Services.AddHttpClient<IgdbClient>();
 

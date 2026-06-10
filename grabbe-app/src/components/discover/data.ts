@@ -6,6 +6,7 @@ export const SOURCE_COLOR: Record<string, string> = {
   TMDB: 'text-primary',
   JIKAN: 'text-warning',
   GBOOKS: 'text-secondary',
+  OPENLIBRARY: 'text-secondary',
   IGDB: 'text-tertiary',
 };
 
@@ -64,7 +65,7 @@ export const MOCK_RESULTS: DiscoverResult[] = [
     genres: ['Fantasy', 'Epic'],
     communityScore: 8.8,
     formattedConsumptionMetric: '662 pages',
-    sourceApi: 'GBOOKS',
+    sourceApi: 'OPENLIBRARY',
   },
   {
     externalId: '5',

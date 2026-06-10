@@ -2,7 +2,7 @@ namespace Grabbe.API.Domain.DTOs;
 
 /// <summary>
 /// The universal output contract of the BFF layer.
-/// Each external client (TMDB, Jikan, Google Books) maps its proprietary API response
+/// Each external client (TMDB, Jikan, Open Library) maps its proprietary API response
 /// to this normalized structure, acting as an Anti-Corruption Layer (ACL) between
 /// the frontend and third-party data sources.
 /// </summary>
@@ -11,7 +11,7 @@ public class GrabbeMediaDTO
     /// <summary>The unique identifier from the originating external API.</summary>
     public required string ExternalId { get; set; }
 
-    /// <summary>The name of the source API. Valid values: "TMDB", "JIKAN", "GBOOKS".</summary>
+    /// <summary>The name of the source API. Valid values: "TMDB", "JIKAN", "OPENLIBRARY".</summary>
     public required string SourceApi { get; set; }
 
     /// <summary>The normalized media type. Valid values: "MOVIE", "SERIES", "ANIME", "MANGA", "BOOK".</summary>
