@@ -5,6 +5,7 @@ import { MediaCard } from '../shared/MediaCard';
 import type { MediaStatus, MediaType } from '../shared/types';
 import { Pagination } from '../shared/Pagination';
 import { useLibraryStore } from '../../store/libraryStore';
+import { filterAndSortLibraryItems } from '../../lib/libraryUtils';
 
 interface LibraryGridProps {
   activeTab: MediaType;
@@ -35,79 +36,7 @@ export const LibraryGrid = ({ activeTab, activeStatus, searchQuery, sortBy }: Li
    * All transforms are memoized so they only recompute when inputs change.
    */
   const processedData = useMemo(() => {
-    //Filter by type and status
-    let result = data.filter(item => {
-      const matchesTab = activeTab === 'ALL' || item.type === activeTab;
-      const matchesStatus = activeStatus === 'ALL' || item.status === activeStatus;
-      return matchesTab && matchesStatus;
-    });
-
-    //Filter by search query (title, genres, franchise)
-    const q = searchQuery.trim().toLowerCase();
-    if (q) {
-      result = result.filter(item => {
-        const inTitle = item.title?.toLowerCase().includes(q);
-        const inGenres = item.genres?.toLowerCase().includes(q);
-        const inFranchise = item.franchise?.toLowerCase().includes(q);
-        return inTitle || inGenres || inFranchise;
-      });
-    }
-
-    // Sort
-    result = [...result].sort((a, b) => {
-      switch (sortBy) {
-        case 'last_added':
-          // Media.created_at DESC — newest item added first
-          return new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime();
-        case 'first_added':
-          // Media.created_at ASC — oldest item added first
-          return new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime();
-        case 'az':
-          return (a.title ?? '').localeCompare(b.title ?? '');
-        case 'za':
-          return (b.title ?? '').localeCompare(a.title ?? '');
-        case 'last_finished': {
-          const parseSafeTime = (val: any): number => {
-            if (!val) return 0;
-            if (val instanceof Date) return val.getTime();
-            if (typeof val === 'number') return val;
-            const str = String(val);
-            return new Date(str.includes(' ') ? str.replace(' ', 'T') + 'Z' : str).getTime();
-          };
-          const dateA = parseSafeTime(a.finish_date);
-          const dateB = parseSafeTime(b.finish_date);
-
-          if (dateA === 0 && dateB === 0) return 0;
-          if (dateA === 0) return 1; // push a to bottom
-          if (dateB === 0) return -1; // push b to bottom
-
-          return dateB - dateA; // newest first
-        }
-        case 'first_finished': {
-          const parseSafeTime = (val: any): number => {
-            if (!val) return 0;
-            if (val instanceof Date) return val.getTime();
-            if (typeof val === 'number') return val;
-            const str = String(val);
-            return new Date(str.includes(' ') ? str.replace(' ', 'T') + 'Z' : str).getTime();
-          };
-          const dateA = parseSafeTime(a.finish_date);
-          const dateB = parseSafeTime(b.finish_date);
-
-          if (dateA === 0 && dateB === 0) return 0;
-          if (dateA === 0) return 1; // push a to bottom
-          if (dateB === 0) return -1; // push b to bottom
-
-          return dateA - dateB; // oldest first
-        }
-        case 'last_updated':
-        default:
-          // UserTracking.updated_at DESC — matches the default DB order
-          return new Date(b.updated_at ?? 0).getTime() - new Date(a.updated_at ?? 0).getTime();
-      }
-    });
-
-    return result;
+    return filterAndSortLibraryItems(data, activeTab, activeStatus, searchQuery, sortBy);
   }, [data, activeTab, activeStatus, searchQuery, sortBy]);
 
   const totalPages = Math.ceil(processedData.length / ITEMS_PER_PAGE);
@@ -149,7 +78,7 @@ export const LibraryGrid = ({ activeTab, activeStatus, searchQuery, sortBy }: Li
               variant="library" 
               title={item.title}
               subtitle={finalSubtitle}
-              image={item.cover_image_path}
+              image={item.cover_image_path || null}
               status={item.status}
               typeBadge={item.type}
               onClick={() => navigate(`/media/${item.external_id}?source=${item.source_api}&type=${item.type}`, { state: { from: 'Library', path: '/library' } })}

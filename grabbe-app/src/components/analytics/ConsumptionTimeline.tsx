@@ -1,15 +1,11 @@
 import { useState, useMemo } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
-import { isYearOnly, parseDate } from '../../lib/dateUtils';
-
-interface MediaSession {
-  start_date: string;
-  finish_date: string;
-  total_hours: number;
-  media_id: string;
-  title: string;
-  type: string;
-}
+import {
+  getNormalizedSessions,
+  getTimelineYears,
+  calculateProRataConsumption,
+  MediaSession
+} from '../../lib/consumptionUtils';
 
 const DISTINCT_COLORS = [
   'hsl(210, 85%, 60%)', // Blue
@@ -75,83 +71,20 @@ export const ConsumptionTimeline = ({ sessions = [] }: { sessions: MediaSession[
 
   // Normalize sessions so that if start_date is missing, it defaults to finish_date
   const normalizedSessions = useMemo(() => {
-    return sessions.map(s => ({
-      ...s,
-      start_date: s.start_date || s.finish_date
-    })).filter(s => s.start_date && s.finish_date);
+    return getNormalizedSessions(sessions);
   }, [sessions]);
 
   // Extract all unique years available from full dates in sessions
   const years = useMemo(() => {
-    const uniqueYears = new Set<number>();
-    normalizedSessions.forEach(s => {
-      if (s.start_date && !isYearOnly(s.start_date)) {
-        const y = parseDate(s.start_date).getFullYear();
-        if (!isNaN(y)) uniqueYears.add(y);
-      }
-      if (s.finish_date && !isYearOnly(s.finish_date)) {
-        const y = parseDate(s.finish_date).getFullYear();
-        if (!isNaN(y)) uniqueYears.add(y);
-      }
-    });
-    const list = Array.from(uniqueYears).sort((a, b) => b - a);
-    return list.length > 0 ? list : [new Date().getFullYear()];
+    return getTimelineYears(normalizedSessions);
   }, [normalizedSessions]);
 
   const [selectedYear, setSelectedYear] = useState<number>(() => years[0]);
 
   // Compute pro-rata monthly distribution
   const { chartData, activeMediaList } = useMemo(() => {
-    const monthlyBuckets: { [mediaId: string]: number }[] = Array.from({ length: 12 }, () => ({}));
-    const mediaTitles: { [mediaId: string]: string } = {};
-
-    normalizedSessions.forEach(session => {
-      if (!session.start_date || !session.finish_date) return;
-      if (isYearOnly(session.start_date) || isYearOnly(session.finish_date)) return;
-
-      const start = parseDate(session.start_date);
-      const finish = parseDate(session.finish_date);
-      if (isNaN(start.getTime()) || isNaN(finish.getTime())) return;
-
-      // Inclusive days calculation
-      const startMidnight = new Date(start.getFullYear(), start.getMonth(), start.getDate());
-      const finishMidnight = new Date(finish.getFullYear(), finish.getMonth(), finish.getDate());
-      const oneDayMs = 24 * 60 * 60 * 1000;
-      const diffMs = finishMidnight.getTime() - startMidnight.getTime();
-      const activeDays = Math.max(1, Math.round(diffMs / oneDayMs) + 1);
-
-      const hoursPerDay = session.total_hours / activeDays;
-      mediaTitles[session.media_id] = session.title;
-
-      let currentDay = new Date(startMidnight.getTime());
-      while (currentDay <= finishMidnight) {
-        if (currentDay.getFullYear() === selectedYear) {
-          const monthIndex = currentDay.getMonth();
-          const mediaId = session.media_id;
-          monthlyBuckets[monthIndex][mediaId] = (monthlyBuckets[monthIndex][mediaId] || 0) + hoursPerDay;
-        }
-        currentDay.setDate(currentDay.getDate() + 1);
-      }
-    });
-
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const data = monthNames.map((name, index) => ({
-      name,
-      ...monthlyBuckets[index]
-    }));
-
-    const activeMediaIds = new Set<string>();
-    monthlyBuckets.forEach(bucket => {
-      Object.keys(bucket).forEach(id => activeMediaIds.add(id));
-    });
-
-    const mediaList = Array.from(activeMediaIds).map(id => ({
-      id,
-      title: mediaTitles[id] || 'Unknown Title'
-    }));
-
-    return { chartData: data, activeMediaList: mediaList };
-  }, [sessions, selectedYear]);
+    return calculateProRataConsumption(normalizedSessions, selectedYear);
+  }, [normalizedSessions, selectedYear]);
 
   return (
     <section className="bg-surface rounded-xl p-6 bloom-shadow border border-surface-container-high relative flex flex-col gap-6">
