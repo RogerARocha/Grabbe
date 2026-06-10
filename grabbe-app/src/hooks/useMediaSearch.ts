@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { apiFetch } from '../lib/httpClient';
 
-export function useMediaSearch() {
+export function useMediaSearch(mediaType?: string) {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -15,7 +15,8 @@ export function useMediaSearch() {
     }
     setIsSearching(true);
     try {
-      const response = await apiFetch(`/api/v1/search?query=${encodeURIComponent(q)}&page=1`);
+      const typeParam = mediaType ? `&type=${encodeURIComponent(mediaType)}` : '';
+      const response = await apiFetch(`/api/v1/search?query=${encodeURIComponent(q)}${typeParam}&page=1`);
       if (!response.ok) throw new Error('Search failed');
       const data = await response.json();
       setSearchResults(data.data || []);

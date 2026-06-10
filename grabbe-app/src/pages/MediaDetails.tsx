@@ -42,7 +42,7 @@ export const MediaDetails = () => {
     showDropdown,
     setShowDropdown,
     handleQueryChange
-  } = useMediaSearch();
+  } = useMediaSearch(type || media?.type);
 
   const {
     isModalOpen,

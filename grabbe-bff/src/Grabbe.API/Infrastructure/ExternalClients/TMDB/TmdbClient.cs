@@ -38,7 +38,9 @@ public class TmdbClient : IMediaProviderClient
         try
         {
             EnsureAuthorizationHeader();
-            var endpoint = type == "SERIES" ? "search/tv" : "search/movie";
+            var endpoint = string.IsNullOrWhiteSpace(type)
+                ? "search/multi"
+                : (type == "SERIES" ? "search/tv" : "search/movie");
 
             var response = await _httpClient.GetFromJsonAsync<TmdbSearchResponse>(
                 $"{endpoint}?query={Uri.EscapeDataString(query)}&language=en&page=1");
@@ -47,8 +49,10 @@ public class TmdbClient : IMediaProviderClient
 
             // Exclude Japanese-language animation (genre 16) from TMDB results.
             // These are anime titles that would be duplicated by the dedicated Jikan client.
+            // Also exclude 'person' results from multi-search.
             return response.Results
                 .Where(media => !media.Adult) // Exclude adult content
+                .Where(media => media.MediaType != "person") // Exclude people
                 .Where(media => !(media.OriginalLanguage == "ja" && media.GenreIds.Contains(16)))
                 .Select(media => media.ToSearchDto(type));
         }

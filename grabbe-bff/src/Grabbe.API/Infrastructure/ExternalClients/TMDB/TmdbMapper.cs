@@ -18,11 +18,12 @@ public static class TmdbMapper
     /// <param name="type">The normalized media type ("MOVIE" or "SERIES").</param>
     public static GrabbeMediaDTO ToSearchDto(this TmdbResult media, string type)
     {
+        var isSeries = type == "SERIES" || media.MediaType == "tv";
         return new GrabbeMediaDTO
         {
             ExternalId = media.Id.ToString(),
             SourceApi = "TMDB",
-            Type = type == "SERIES" ? "SERIES" : "MOVIE",
+            Type = isSeries ? "SERIES" : "MOVIE",
             Title = media.Title ?? media.Name ?? "Unknown Title",
             Description = string.IsNullOrWhiteSpace(media.Overview) ? null : media.Overview,
             CoverImageUrl = string.IsNullOrWhiteSpace(media.PosterPath)
@@ -34,7 +35,7 @@ public static class TmdbMapper
             CommunityScore = media.VoteAverage.HasValue
                 ? Math.Round(media.VoteAverage.Value, 1)
                 : null,
-            TotalProgressUnits = type == "SERIES" ? null : 1,
+            TotalProgressUnits = isSeries ? null : 1,
             PublisherOrStudio = null,
             FormattedConsumptionMetric = null
         };

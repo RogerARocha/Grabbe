@@ -42,6 +42,9 @@ public class TmdbResult
 
     [JsonPropertyName("adult")]
     public bool Adult { get; set; }
+
+    [JsonPropertyName("media_type")]
+    public string? MediaType { get; set; }
 }
 
 

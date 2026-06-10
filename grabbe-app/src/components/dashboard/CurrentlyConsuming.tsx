@@ -14,7 +14,12 @@ export const CurrentlyConsuming = ({ items = [] }: { items?: any[] }) => {
     <section>
       <div className="flex justify-between items-end mb-6">
         <h2 className="text-2xl font-bold tracking-tight text-text-high">Currently Consuming</h2>
-        <a className="text-sm font-bold text-primary hover:text-tertiary transition-colors" href="/library">View All Session</a>
+        <button 
+          onClick={() => navigate('/library?status=CONSUMING')}
+          className="text-sm font-bold text-primary hover:text-tertiary transition-colors cursor-pointer select-none bg-transparent border-none p-0"
+        >
+          View All Session
+        </button>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
         {consumingItems.map(item => {

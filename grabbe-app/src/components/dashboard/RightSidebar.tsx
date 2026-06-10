@@ -47,8 +47,8 @@ export const RightSidebar = ({ items = [] }: { items?: any[] }) => {
         )}
         
         <button 
-          onClick={() => navigate('/library?filter=PLANNED')}
-          className="w-full mt-8 py-2 bg-surface-container-high rounded-lg text-[11px] font-bold text-primary hover:bg-surface-container-highest transition-colors"
+          onClick={() => navigate('/library?status=PLANNED')}
+          className="w-full mt-8 py-2 bg-surface-container-high rounded-lg text-[11px] font-bold text-primary hover:bg-surface-container-highest transition-colors cursor-pointer select-none"
         >
           Manage Watchlist
         </button>
@@ -92,6 +92,13 @@ export const RightSidebar = ({ items = [] }: { items?: any[] }) => {
         ) : (
           <p className="text-sm text-text-muted text-center py-4">No dropped items.</p>
         )}
+        
+        <button 
+          onClick={() => navigate('/library?status=DROPPED')}
+          className="w-full mt-8 py-2 bg-surface-container-high rounded-lg text-[11px] font-bold text-primary hover:bg-surface-container-highest transition-colors cursor-pointer select-none"
+        >
+          View Dropped Items
+        </button>
       </section>
     </aside>
   );
