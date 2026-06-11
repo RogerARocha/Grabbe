@@ -21,10 +21,17 @@ function OnboardingInterceptor() {
 
   useEffect(() => {
     async function checkCredentials() {
+      const name = await getSetting('USER_NAME');
+      const skipKeys = await getSetting('SKIP_KEYS');
       const tmdb = await getSetting('TMDB_API_KEY');
       const client = await getSetting('IGDB_CLIENT_ID');
       const secret = await getSetting('IGDB_CLIENT_SECRET');
-      if (!tmdb || !client || !secret) {
+      
+      if (!name) {
+        setNeedsOnboarding(true);
+      } else if (skipKeys === 'true') {
+        setNeedsOnboarding(false);
+      } else if (!tmdb || !client || !secret) {
         setNeedsOnboarding(true);
       } else {
         setNeedsOnboarding(false);

@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { setSetting, getSetting } from '../lib/db';
+import { setSetting, getSetting, deleteSetting } from '../lib/db';
 import { importBackupData } from '../lib/importService';
 import { apiFetch } from '../lib/httpClient';
 import { useToast } from '../contexts/ToastContext';
 import { TopBar } from '../components/layout/TopBar';
+import { ConfirmationModal } from '../components/modals/ConfirmationModal';
 
 export const Onboarding = () => {
   const navigate = useNavigate();
@@ -24,6 +25,7 @@ export const Onboarding = () => {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   const handleBackupChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -107,6 +109,7 @@ export const Onboarding = () => {
         await setSetting('TMDB_API_KEY', tmdbKey.trim());
         await setSetting('IGDB_CLIENT_ID', igdbClientId.trim());
         await setSetting('IGDB_CLIENT_SECRET', igdbClientSecret.trim());
+        await deleteSetting('SKIP_KEYS');
 
         showToast(`Welcome aboard, ${name}! Your keys have been verified.`, 'success');
         
@@ -136,6 +139,24 @@ export const Onboarding = () => {
       showToast(msg, 'error');
     } finally {
       setIsValidating(false);
+    }
+  };
+
+  const handleSkipKeys = async () => {
+    setIsConfirmOpen(false);
+    try {
+      await setSetting('USER_NAME', name.trim());
+      await setSetting('SKIP_KEYS', 'true');
+      await deleteSetting('TMDB_API_KEY');
+      await deleteSetting('IGDB_CLIENT_ID');
+      await deleteSetting('IGDB_CLIENT_SECRET');
+
+      showToast(`Welcome aboard, ${name}! Profile created.`, 'info');
+      navigate('/discover', { replace: true });
+      window.location.reload();
+    } catch (error: any) {
+      console.error('Failed to skip key setup:', error);
+      showToast('Failed to complete onboarding. Please check console.', 'error');
     }
   };
 
@@ -341,12 +362,35 @@ export const Onboarding = () => {
                 )}
               </button>
             </div>
+
+            <div className="flex flex-col items-center pt-4 border-t border-white/5">
+              <button
+                type="button"
+                onClick={() => setIsConfirmOpen(true)}
+                disabled={isValidating}
+                className="cursor-pointer text-xs text-text-muted hover:text-primary transition-colors flex items-center gap-1 font-medium hover:underline disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-[16px]">skip_next</span>
+                Skip adding keys (offline mode)
+              </button>
+            </div>
           </div>
         )}
           </>
         )}
 
       </div>
+
+      <ConfirmationModal
+        isOpen={isConfirmOpen}
+        title="Skip API Key Configuration?"
+        message="Are you sure you want to skip adding API keys? You will not be able to automatically search or fetch details for movies, series, or games until you configure keys in Settings."
+        confirmLabel="Skip Setup"
+        cancelLabel="Go Back"
+        type="warning"
+        onConfirm={handleSkipKeys}
+        onCancel={() => setIsConfirmOpen(false)}
+      />
     </div>
   );
 };

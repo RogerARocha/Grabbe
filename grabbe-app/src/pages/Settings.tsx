@@ -58,6 +58,7 @@ export const Settings = () => {
       await setSetting('TMDB_API_KEY', tmdbKey.trim());
       await setSetting('IGDB_CLIENT_ID', igdbClientId.trim());
       await setSetting('IGDB_CLIENT_SECRET', igdbClientSecret.trim());
+      await deleteSetting('SKIP_KEYS');
       
       setInitialTmdbKey(tmdbKey.trim());
       setInitialIgdbClientId(igdbClientId.trim());
@@ -78,6 +79,7 @@ export const Settings = () => {
       await deleteSetting('TMDB_API_KEY');
       await deleteSetting('IGDB_CLIENT_ID');
       await deleteSetting('IGDB_CLIENT_SECRET');
+      await setSetting('SKIP_KEYS', 'true');
       
       setTmdbKey('');
       setIgdbClientId('');

@@ -54,7 +54,7 @@ public class IgdbClient : IMediaProviderClient
 
             if (string.IsNullOrEmpty(_clientId) || string.IsNullOrEmpty(_clientSecret))
             {
-                throw new InvalidOperationException("Twitch / IGDB Client ID or Client Secret is not configured in AppSettings.");
+                return;
             }
 
             var requestParams = new Dictionary<string, string>
@@ -87,20 +87,28 @@ public class IgdbClient : IMediaProviderClient
         if (!string.IsNullOrEmpty(type) && !SupportedTypes.Contains(type, StringComparer.OrdinalIgnoreCase))
             return Enumerable.Empty<GrabbeMediaDTO>();
 
-        var apicalypseQuery = $@"
-            search ""{query}"";
-            fields name, summary, first_release_date, 
-                   cover.url, genres.name, rating, alternative_names.name,
-                   involved_companies.developer, involved_companies.publisher, involved_companies.company.name;
-            limit 12;
-        ";
+        try
+        {
+            var apicalypseQuery = $@"
+                search ""{query}"";
+                fields name, summary, first_release_date, 
+                       cover.url, genres.name, rating, alternative_names.name,
+                       involved_companies.developer, involved_companies.publisher, involved_companies.company.name;
+                limit 12;
+            ";
 
-        var games = await ExecuteIgdbQueryAsync(apicalypseQuery);
-        
-        if (games == null || !games.Any()) 
+            var games = await ExecuteIgdbQueryAsync(apicalypseQuery);
+            
+            if (games == null || !games.Any()) 
+                return Enumerable.Empty<GrabbeMediaDTO>();
+
+            return games.Select(IgdbMapper.ToUniversalDto);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[IgdbClient] Search failed: {ex.Message}");
             return Enumerable.Empty<GrabbeMediaDTO>();
-
-        return games.Select(IgdbMapper.ToUniversalDto);
+        }
     }
 
     public async Task<GrabbeMediaDTO?> GetDetailsAsync(string externalId, string type)
@@ -108,30 +116,51 @@ public class IgdbClient : IMediaProviderClient
         if ((!string.IsNullOrEmpty(type) && !SupportedTypes.Contains(type, StringComparer.OrdinalIgnoreCase)) || !int.TryParse(externalId, out int id))
             return null;
 
-        var apicalypseQuery = $@"
-            fields name, summary, first_release_date, 
-                   cover.url, genres.name, rating, alternative_names.name,
-                   involved_companies.developer, involved_companies.publisher, involved_companies.company.name;
-            where id = {id};
-        ";
+        try
+        {
+            var apicalypseQuery = $@"
+                fields name, summary, first_release_date, 
+                       cover.url, genres.name, rating, alternative_names.name,
+                       involved_companies.developer, involved_companies.publisher, involved_companies.company.name;
+                where id = {id};
+            ";
 
-        return await RetryHelper.ExecuteWithRetryAsync(
-            async () =>
-            {
-                var games = await ExecuteIgdbQueryAsync(apicalypseQuery);
-                var game = games?.FirstOrDefault();
-                return game != null ? IgdbMapper.ToUniversalDto(game) : null;
-            },
-            maxRetries: 3,
-            delayMilliseconds: 1000,
-            shouldRetry: ex => ex is ExternalProviderException pEx && (pEx.StatusCode == null || pEx.StatusCode == System.Net.HttpStatusCode.TooManyRequests || (int)pEx.StatusCode >= 500)
-        );
+            return await RetryHelper.ExecuteWithRetryAsync(
+                async () =>
+                {
+                    var games = await ExecuteIgdbQueryAsync(apicalypseQuery);
+                    var game = games?.FirstOrDefault();
+                    return game != null ? IgdbMapper.ToUniversalDto(game) : null;
+                },
+                maxRetries: 3,
+                delayMilliseconds: 1000,
+                shouldRetry: ex => ex is ExternalProviderException pEx && (pEx.StatusCode == null || pEx.StatusCode == System.Net.HttpStatusCode.TooManyRequests || (int)pEx.StatusCode >= 500)
+            );
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[IgdbClient] GetDetails failed: {ex.Message}");
+            return null;
+        }
     }
 
     // ── Helper centralizado para as chamadas HTTP ──
     private async Task<List<IgdbGameResponse>?> ExecuteIgdbQueryAsync(string query)
     {
-        await EnsureAccessTokenAsync();
+        try
+        {
+            await EnsureAccessTokenAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[IgdbClient] Authentication with Twitch failed: {ex.Message}");
+            return null;
+        }
+
+        if (string.IsNullOrEmpty(_clientId) || string.IsNullOrEmpty(_accessToken))
+        {
+            return null;
+        }
 
         var request = new HttpRequestMessage(HttpMethod.Post, "games")
         {
