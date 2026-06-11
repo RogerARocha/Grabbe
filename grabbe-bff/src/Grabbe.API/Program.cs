@@ -48,11 +48,11 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowTauri",
         policy =>
         {
-            policy.WithOrigins("http://localhost:1420", "tauri://localhost")
+            policy.WithOrigins("http://localhost:1420", "tauri://localhost", "http://tauri.localhost")
                   .AllowAnyHeader()
                   .AllowAnyMethod();
         });
-});
+        });
 
 var app = builder.Build();
 

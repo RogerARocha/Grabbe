@@ -3,6 +3,8 @@ using System.IO;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Configuration;
 
+using Microsoft.Extensions.Hosting;
+
 namespace Grabbe.API.Infrastructure.Configuration;
 
 /// <summary>
@@ -20,35 +22,37 @@ public class AppSettingsService
     /// Resolves the database path dynamically based on the current operating system.
     /// </summary>
     /// <param name="configuration">The .NET configuration instance for fallbacks.</param>
-    public AppSettingsService(IConfiguration configuration)
+    /// <param name="environment">The hosting environment to distinguish dev and prod databases.</param>
+    public AppSettingsService(IConfiguration configuration, IHostEnvironment environment)
     {
         _configuration = configuration;
-        _dbPath = GetDatabasePath();
+        _dbPath = GetDatabasePath(environment.IsDevelopment());
     }
 
     /// <summary>
     /// Checks the operating system and returns the target path to the Tauri local sqlite database.
     /// </summary>
-    private static string GetDatabasePath()
+    private static string GetDatabasePath(bool isDevelopment)
     {
+        string appIdentifier = isDevelopment ? "com.grabbe.dev" : "com.grabbe.prod";
         var os = Environment.OSVersion.Platform;
         if (os == PlatformID.Win32NT)
         {
-            return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "com.grabbe.dev", "grabbe.db");
+            return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), appIdentifier, "grabbe.db");
         }
         else if (os == PlatformID.Unix)
         {
             var personalPath = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
-            var macOsAppSupport = Path.Combine(personalPath, "Library", "Application Support", "com.grabbe.dev", "grabbe.db");
+            var macOsAppSupport = Path.Combine(personalPath, "Library", "Application Support", appIdentifier, "grabbe.db");
             if (Directory.Exists(Path.Combine(personalPath, "Library", "Application Support")))
             {
                 return macOsAppSupport;
             }
-            return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "com.grabbe.dev", "grabbe.db");
+            return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), appIdentifier, "grabbe.db");
         }
         else
         {
-            return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Library", "Application Support", "com.grabbe.dev", "grabbe.db");
+            return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Library", "Application Support", appIdentifier, "grabbe.db");
         }
     }
 

@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "build:bff": "node scripts/build-bff.js",
+    "tauri:build": "npm run build:bff && tauri build -c src-tauri/tauri.conf.prod.json"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.4",

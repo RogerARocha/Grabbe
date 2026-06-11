@@ -1,0 +1,9 @@
+{
+  "productName": "Grabbe",
+  "identifier": "com.grabbe.prod",
+  "bundle": {
+    "externalBin": [
+      "bin/grabbe-bff"
+    ]
+  }
+}

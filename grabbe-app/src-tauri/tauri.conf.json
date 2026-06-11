@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Grabbe",
+  "productName": "Grabbe Dev",
   "version": "1.0.0",
   "identifier": "com.grabbe.dev",
   "build": {
@@ -33,9 +33,6 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ],
-    "externalBin": [
-      "bin/grabbe-bff"
     ]
   }
 }
