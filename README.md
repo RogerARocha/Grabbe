@@ -34,10 +34,20 @@ The desktop client requires Node.js and the Rust toolchain (for Tauri).
 cd grabbe-app
 npm install
 ```
-3. Run the development server (which compiles the Tauri app):
+3. Run the development server:
 ```bash
-npm run tauri dev
+npm run tauri:dev
 ```
+*Note: This starts the frontend development server and compiles the desktop app in debug mode (named `Grabbe Dev`). It will use your separately run BFF instance on port 18493.*
+
+### 3. Packaging the Application (Production Build)
+To bundle the frontend with the C# BFF compiled as a self-contained sidecar executable:
+1. Run the build script:
+```bash
+cd grabbe-app
+npm run tauri:build
+```
+*Note: This automatically compiles the C# BFF as a single-file executable, moves it to the Tauri sidecar folder, and packages the complete production installers (named `Grabbe`).*
 
 ## 📚 Documentation
 
