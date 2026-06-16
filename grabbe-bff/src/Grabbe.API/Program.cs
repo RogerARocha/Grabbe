@@ -67,4 +67,18 @@ app.UseCors("AllowTauri");
 app.UseAuthorization();
 app.MapControllers();
 
+// Terminate the sidecar if the parent Tauri process exits (stdin closes)
+_ = Task.Run(() =>
+{
+    try
+    {
+        while (Console.ReadLine() != null) { }
+    }
+    catch
+    {
+        // Ignore errors
+    }
+    Environment.Exit(0);
+});
+
 app.Run();

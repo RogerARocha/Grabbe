@@ -17,6 +17,21 @@ public class AppSettingsService
     private readonly string _dbPath;
     private readonly IConfiguration _configuration;
 
+    private void Log(string message)
+    {
+        try
+        {
+            var logDir = Path.GetDirectoryName(_dbPath);
+            if (logDir != null)
+            {
+                Directory.CreateDirectory(logDir);
+                var logPath = Path.Combine(logDir, "bff_debug.log");
+                File.AppendAllText(logPath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}\n");
+            }
+        }
+        catch { }
+    }
+
     /// <summary>
     /// Initializes a new instance of the <see cref="AppSettingsService"/> class.
     /// Resolves the database path dynamically based on the current operating system.
@@ -27,6 +42,7 @@ public class AppSettingsService
     {
         _configuration = configuration;
         _dbPath = GetDatabasePath(environment.IsDevelopment());
+        Log($"Initializing AppSettingsService. Env Dev: {environment.IsDevelopment()}. Resolved DB Path: {_dbPath}. File Exists: {File.Exists(_dbPath)}");
     }
 
     /// <summary>
@@ -64,6 +80,7 @@ public class AppSettingsService
     /// <returns>The resolved configuration value, or null if unconfigured.</returns>
     public string? GetSetting(string key)
     {
+        Log($"GetSetting({key}) called. DB Path: {_dbPath}. File Exists: {File.Exists(_dbPath)}");
         if (File.Exists(_dbPath))
         {
             try
@@ -79,14 +96,20 @@ public class AppSettingsService
                 if (reader.Read())
                 {
                     var val = reader.IsDBNull(0) ? null : reader.GetString(0);
+                    Log($"Read value for key '{key}' from DB: '{val}'");
                     if (!string.IsNullOrEmpty(val))
                     {
                         return val;
                     }
                 }
+                else
+                {
+                    Log($"No row found for key '{key}' in DB.");
+                }
             }
             catch (Exception ex)
             {
+                Log($"[AppSettingsService] SQLite query failed for '{key}': {ex.Message}\n{ex.StackTrace}");
                 Console.WriteLine($"[AppSettingsService] SQLite query failed for '{key}': {ex.Message}");
             }
         }

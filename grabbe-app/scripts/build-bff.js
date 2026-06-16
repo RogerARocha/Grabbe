@@ -60,7 +60,7 @@ const tempOutDir = path.join(tauriBinDir, 'temp-publish');
 
 try {
   // Run dotnet publish
-  const publishCmd = `dotnet publish "${bffProject}" -c Release -r ${runtimeIdentifier} --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -o "${tempOutDir}"`;
+  const publishCmd = `dotnet publish "${bffProject}" -c Release -r ${runtimeIdentifier} --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -p:IncludeNativeLibrariesForSelfExtract=true -o "${tempOutDir}"`;
   console.log(`Running: ${publishCmd}`);
   execSync(publishCmd, { stdio: 'inherit' });
 
