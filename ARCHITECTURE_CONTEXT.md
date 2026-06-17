@@ -1,8 +1,8 @@
 # **Architecture Context & PRD — Grabbe**
 
-**Version:** 1.4 (Desktop-First / Local-First / Enterprise Ready)
+**Version:** 1.0.0 (Desktop-First / Local-First / Enterprise Ready)
 
-**Status:** In Development
+**Status:** Stable / Release
 
 **Target Audience:** Engineering, Product, and Design
 
@@ -21,49 +21,44 @@ Built under the **Local-First** paradigm, Grabbe ensures the user has full owner
 
 ## **3. Detailed Technical Architecture**
 
-The architecture is divided into two main domains: the **Client Application (Desktop)** and the **Supporting Service (BFF in the Cloud)**.
+The architecture consists of a local-first desktop client running Tauri, which integrates a C# (.NET 9.0) background process acting as a **local BFF sidecar** (gateway and normalizer). 
 
-### **3.1. Recommended Tech Stack**
+* **Local-First & Sidecar Execution:** In production, the BFF is compiled as a self-contained sidecar executable and packaged with the application (configured in `tauri.conf.prod.json`). Tauri spawns and manages the lifetime of this local BFF process. Communication between Tauri and the BFF occurs over `localhost:18493`.
+* **Zero Cloud Dependency for Core Logic:** The primary SQLite database resides entirely on the user's machine, allowing the app to read, write, rank, and track media offline. The BFF is used purely as an anti-corruption layer to query external metadata APIs when online.
 
-* **Frontend (Desktop):** Tauri (Core in Rust, Interface in React/TypeScript or Vue). Tauri offers a much smaller binary and drastically lower RAM consumption compared to Electron, essential for an app that runs in the background.
-* **Local Database:** SQLite via Prisma ORM or Drizzle (integrated into the frontend) or via abstraction in the Rust core.
-* **BFF (Backend for Frontend):** C# (.NET 9.0+) due to its excellent performance in handling concurrency and multiple asynchronous calls to external APIs.
-* **BFF Cache:** Redis or IMemoryCache (to store responses from external APIs and avoid rate-limiting).
+### **3.1. Tech Stack**
+
+* **Frontend (Desktop):** Tauri (Core in Rust, User Interface in React/TypeScript).
+* **Local Database:** SQLite, integrated via Tauri SQL Plugin (`@tauri-apps/plugin-sql`).
+* **BFF (Backend for Frontend):** C# (.NET 9.0), running locally as a sidecar process.
+* **BFF Cache / Sync:** Planned future phases (e.g. MemoryCache/Redis for BFF caching; event sourcing for cloud sync).
 
 ### **3.2. Architecture Diagram**
 
 ```mermaid
 graph TD
-    subgraph Desktop Client [Grabbe Desktop App - Local First]
-        UI[UI Interface - React/Vue]
-        Core[Tauri Core - Rust]
-        DB[(Local SQLite)]
+    subgraph DesktopClient ["Grabbe Desktop Client (Local Environment)"]
+        UI["UI Interface (React / TS)"]
+        Core["Tauri Core (Rust)"]
+        DB[("Local SQLite (.db)")]
+        BFF["BFF Sidecar (C# / .NET 9)"]
         
         UI <-->|Commands / Events| Core
         Core <-->|Fast Queries / Offline| DB
+        Core <-->|Localhost REST / JSON| BFF
     end
 
-    subgraph Cloud [Grabbe Cloud Services]
-        BFF[BFF - API Aggregator]
-        Redis[(Redis Cache)]
-        Sync[Sync Engine - Phase 3]
+    subgraph ExternalAPIs ["External APIs (Metadata Providers)"]
+        TMDB["TMDB API (Movies/Series)"]
+        IGDB["IGDB API (Games)"]
+        Jikan["Jikan API (Anime/Manga)"]
+        OpenLibrary["Open Library API (Books)"]
     end
 
-    subgraph External APIs [Metadata Providers]
-        TMDB[TMDB API - Movies/Series]
-        IGDB[IGDB API - Games]
-        Jikan[Jikan API - Anime/Manga]
-        GBooks[Google Books API]
-        ComicVine[ComicVine API]
-    end
-
-    Core <-->|REST / JSON - Media Search| BFF
-    BFF <-->|Check / Save Cache| Redis
     BFF -->|Normalized Fetch| TMDB
     BFF -->|Normalized Fetch| IGDB
     BFF -->|Normalized Fetch| Jikan
-    BFF -->|Normalized Fetch| GBooks
-    BFF -->|Normalized Fetch| ComicVine
+    BFF -->|Normalized Fetch| OpenLibrary
 ```
 
 ## **4. BFF (Backend for Frontend) Aggregator Design**
@@ -74,28 +69,29 @@ The BFF acts as a shield between Grabbe Desktop and third-party APIs. The deskto
 
 Grabbe's Backend for Frontend (BFF) acts as an intermediary (Aggregator and Normalizer). It has three main responsibilities:
 
-1. **Contract Unification / Anti-Corruption Layer (ACL):** Whether the source is Jikan, TMDB, or GBooks, the BFF receives distinct JSONs from different APIs and transforms them into a single universal standard (`GrabbeMediaDTO`). Each external client acts as an ACL boundary, ensuring the frontend never depends on any external API's data structure. The DTO is source-agnostic — fields like `CommunityScore`, `PublisherOrStudio`, and `FormattedConsumptionMetric` abstract away provider-specific concepts into universal terms.
-2. **Rate Limit Protection and Management:** APIs like IGDB and Jikan have strict limits. The BFF queues or limits calls to avoid exceeding free tiers.
-3. **Aggressive Caching (Redis/Memory):** Stores responses for repeated searches, reducing latency to milliseconds. Ex: If the user searches for "Breaking Bad", the BFF queries TMDB, formats it, and saves it with a TTL of 7 to 15 days. The next search will hit only the cache.
+1. **Contract Unification / Anti-Corruption Layer (ACL):** Whether the source is TMDB, Jikan, OpenLibrary, or IGDB, the BFF receives distinct JSON payloads from each provider and transforms them into a single universal standard (`GrabbeMediaDTO`). Each external client acts as an ACL boundary, ensuring the Tauri frontend never depends on external API-specific structures. The DTO is source-agnostic, abstracts concepts into universal terms, and normalizes details like community scores.
+2. **Rate Limit Protection and Management:** APIs like IGDB and Jikan have strict limits. The BFF manages client instantiation and throttling (e.g. via Polly retries) to handle rate-limiting.
+3. **Structured Caching (Planned):** A structured `Infrastructure/Cache/` module exists to cache provider responses locally for repeated searches, reducing duplicate API queries. (This is planned for future optimization and is empty/inactive in the initial v1.0.0 release).
 
 ### **4.2. Project Structure and Environment Setup**
 
-The project follows a structure based on separation of concerns by features (Vertical Slice Architecture). To ensure proper functioning and avoid IDE code versioning issues, the repository structure should be assembled as follows:
+The project follows a structure based on separation of concerns by features (Vertical Slice Architecture). The repository structure is organized as follows:
 
 ```plaintext
 grabbe-bff/  
-├── .gitignore               # Must ignore .env.local, .idea/ (if applicable), bin/, obj/  
-├── .env.local               # Local file for API keys (MUST NOT be committed to the repository)  
-├── Grabbe.BFF.sln           # Solution file (Must be committed)  
+├── .gitignore               # Ignores local configurations (.env.local, bin/, obj/, etc.)  
+├── .env.local               # Local file for API credentials (MUST NOT be committed)  
+├── Grabbe.BFF.sln           # C# Solution file  
 └── src/  
     └── Grabbe.API/  
-        ├── Grabbe.API.csproj  # Project file (Must be committed)  
-        ├── Program.cs  
+        ├── Grabbe.API.csproj  # Project file  
+        ├── Program.cs         # Application entry and dependency injection setup  
         ├── appsettings.json  
         ├── Domain/  
         │   └── DTOs/  
         │       └── GrabbeMediaDTO.cs  
         ├── Features/  
+        │   ├── Credentials/   # Key validation endpoints  
         │   ├── MediaDetails/  
         │   │   ├── DetailsController.cs  
         │   │   └── DetailsService.cs  
@@ -103,27 +99,27 @@ grabbe-bff/
         │       ├── SearchController.cs  
         │       └── SearchAggregationService.cs  
         └── Infrastructure/  
-            ├── Cache/  
+            ├── Cache/         # Caching mechanisms (placeholder for future phases)  
             ├── Configuration/  
-            │   └── ExternalApiOptions.cs  
+            │   └── AppSettingsService.cs  # Resolves credentials from local SQLite DB or .NET configs  
             └── ExternalClients/  
                 ├── IMediaProviderClient.cs  
                 ├── TMDB/  
                 ├── Jikan/  
-                ├── GBooks/
+                ├── OpenLibrary/
                 └── IGDB/
 ```
 
 **Development Setup:**
 
 * The solution can be natively opened in Rider or Visual Studio, ensuring the `.sln` and `.csproj` files are properly tracked by Git.
-* Sensitive keys (like TMDB and Google API Keys) must be isolated in the `.env.local` file at the project root.
+* Sensitive keys (like TMDB API keys and IGDB Twitch Client credentials) must be isolated in the `.env.local` file at the project root for local development, or configured as Environment Variables.
 
 ### **4.3. Concurrency and Performance Patterns**
 
 For global searches (when the user doesn't filter the media type and searches all sources simultaneously), the BFF must optimize response times by executing concurrent asynchronous calls.
 
-The `MediaAggregationService` will use `Task.WhenAll` to fire requests to TMDB, Jikan, and GBooks at the same time, await all of them, flatten the lists, sort by relevance, and return the unified array to the frontend.
+The `SearchAggregationService` will use `Task.WhenAll` to fire requests to TMDB, Jikan, OpenLibrary, and IGDB at the same time, await all of them, flatten the lists, and return the unified array to the frontend.
 
 ### **4.4. External Clients Specifications (Inputs)**
 
@@ -171,72 +167,104 @@ Each external client maps only the necessary fields from its API into the univer
   * `number_of_pages_median` -> `FormattedConsumptionMetric` ("X pages") and `TotalProgressUnits`
   * `author_name` -> `KeyPeople` (with Role = "Author")
 
-## **5. Ideal Database Schema Structure (Local SQLite)**
+## D. IGDB Client (Games)**
+
+* **Base Endpoint:** `https://api.igdb.com/v4`
+* **Authentication:** Twitch OAuth client credentials token. Requires headers `Client-ID: {IGDB_CLIENT_ID}` and `Authorization: Bearer {Access_Token}`.
+* **Mapping:**
+  * `id` -> `ExternalId`
+  * `name` -> `Title`
+  * `summary` -> `Description`
+  * `cover.url` -> `CoverImageUrl` (mapped using `https:` prefix and converting `t_thumb` size to `t_cover_big`)
+  * `rating` -> `CommunityScore` (divided by 10 to normalize from 0-100 to 0-10 scale)
+  * `involved_companies` -> `PublisherOrStudio` (extracts name of developer or publisher company)
+  * `first_release_date` -> `ReleaseDate` (unix timestamp converted to year string)
+  * `genres.name` -> `Genres`
+  * `alternative_names.name` -> `AlternativeTitles`
+
+## **5. Actual Database Schema Structure (Local SQLite)**
 
 The relational model below ensures the integrity of the user's history and supports the ranking system and consumption logs in the Desktop client.
 
 ```sql
--- TABLE: Media (Stores the local cache of media for offline functioning)
+-- TABLE: AppSettings (Stores user preferences and API credentials locally)
+CREATE TABLE AppSettings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
+
+-- TABLE: Media (Stores local metadata cache of media for offline functioning)
 CREATE TABLE Media (
     id TEXT PRIMARY KEY, -- Locally generated UUID
-    external_id TEXT NOT NULL, -- Original API ID (e.g., TMDB id)
-    source_api TEXT NOT NULL, -- 'TMDB', 'JIKAN', 'IGDB', etc.
-    type TEXT NOT NULL, -- 'MOVIE', 'GAME', 'ANIME', etc.
+    external_id TEXT NOT NULL, -- Original API ID (e.g. TMDB id)
+    source_api TEXT NOT NULL, -- 'TMDB', 'JIKAN', 'OPENLIBRARY', 'IGDB'
+    type TEXT NOT NULL, -- 'MOVIE', 'SERIES', 'ANIME', 'MANGA', 'BOOK', 'GAME'
     title TEXT NOT NULL,
     description TEXT,
-    cover_image_path TEXT, -- Local path saved in media_cache or URL
+    cover_image_path TEXT, -- Local path or URL
     release_date DATE,
     franchise TEXT,
-    genres TEXT, -- JSON or comma-separated string
+    genres TEXT, -- JSON array of strings
+    consumption_metric TEXT, -- Page count or duration unit format
+    release_year TEXT,
+    community_score REAL,
+    publisher_or_studio TEXT,
+    original_language TEXT,
+    alternative_titles TEXT, -- JSON string list
+    key_people TEXT, -- JSON list of people and roles
+    total_progress_units INTEGER, -- Total episodes, pages, etc.
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- TABLE: UserTracking (The user's current and global state regarding the media)
+-- TABLE: UserTracking (The user's tracking state regarding a specific media)
 CREATE TABLE UserTracking (
-    id TEXT PRIMARY KEY,
+    id TEXT PRIMARY KEY, -- Locally generated UUID
     media_id TEXT NOT NULL,
     status TEXT NOT NULL, -- 'PLANNED', 'CONSUMING', 'ON HOLD', 'DROPPED', 'COMPLETED'
-    progress INTEGER DEFAULT 0, -- Current episode, hours played, or read %
-    total_progress INTEGER, -- Total episodes/chapters (copied from Media)
-    rewatch_count INTEGER DEFAULT 0, -- Automatically incremented upon completing a new session
-    notes TEXT, -- Kept from the previous version for general notes
+    progress INTEGER DEFAULT 0, -- Current unit (e.g. episode or pages read)
+    total_progress INTEGER, -- Copy of Media's total_progress_units
+    rewatch_count INTEGER DEFAULT 0,
+    review_text TEXT, -- Optional review notes
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (media_id) REFERENCES Media(id)
 );
 
--- TABLE: ConsumptionSession (Records every time the media is consumed/replayed)
+-- TABLE: ConsumptionSession (Records consumption intervals/rewatches)
 CREATE TABLE ConsumptionSession (
     id TEXT PRIMARY KEY,
     tracking_id TEXT NOT NULL,
-    session_number INTEGER DEFAULT 1, -- 1 = First time, 2 = First Replay, etc.
+    session_number INTEGER DEFAULT 1, -- 1 = First run, 2 = First replay, etc.
     start_date DATETIME,
     finish_date DATETIME,
-    is_active BOOLEAN DEFAULT TRUE, -- Identifies if it is the currently running session
+    is_active BOOLEAN DEFAULT TRUE,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (tracking_id) REFERENCES UserTracking(id)
 );
 
--- TABLE: TrackingHistory (Immutable record for the "Consumption Timeline")
+-- TABLE: TrackingHistory (Immutable event timeline of status/progress updates)
 CREATE TABLE TrackingHistory (
     id TEXT PRIMARY KEY,
     tracking_id TEXT NOT NULL,
-    event_type TEXT NOT NULL, -- 'STATUS_CHANGE', 'PROGRESS_UPDATE', 'SESSION_START'
+    event_type TEXT NOT NULL, -- e.g. 'STATUS_CHANGE', 'PROGRESS_UPDATE'
     previous_value TEXT,
     new_value TEXT,
     event_date DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (tracking_id) REFERENCES UserTracking(id)
 );
 
--- TABLE: Ranking (User's reviews - 1:1 with Media)
+-- TABLE: Ranking (Stores user evaluation score out of 10)
 CREATE TABLE Ranking (
     id TEXT PRIMARY KEY,
-    media_id TEXT NOT NULL UNIQUE, -- UNIQUE ensures the score is always overwritten
+    media_id TEXT NOT NULL UNIQUE, -- UNIQUE ensures 1-to-1 rating per Media
     score INTEGER CHECK (score >= 1 AND score <= 10),
     review_text TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- Kept from previous version
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (media_id) REFERENCES Media(id)
 );
+
+-- INDEX: Ensures uniqueness of external provider entries in cached Media
+CREATE UNIQUE INDEX idx_media_external_source ON Media(external_id, source_api);
 ```
 
 ## **6. Detailed Features (Core)**

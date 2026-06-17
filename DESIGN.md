@@ -169,12 +169,15 @@ File: `src/components/layout/Sidebar.tsx`
 | Route | Nav icon | Status |
 |---|---|---|
 | `/` | `dashboard` | Implemented |
+| `/discover` | `travel_explore` | Implemented |
 | `/library` | `movie_filter` | Implemented |
+| `/ranking` | `leaderboard` | Implemented |
 | `/media/:id` | — | Implemented (linked from cards) |
-| `/analytics` | `monitoring` | Stub (nav only) |
+| `/analytics` | `monitoring` | Implemented |
 | `/community` | `group` | Stub (nav only) |
-| `/settings` | `settings` | Stub (nav only) |
-| `/movies`, `/series`, `/anime`, `/games`, `/books` | — | Commented out |
+| `/settings` | `settings` | Implemented |
+| `/profile` | — | Stub (nav only) |
+| `/movies`, `/series`, `/anime`, `/games`, `/books` | — | Commented out / Stub |
 
 ### TopBar
 File: `src/components/layout/TopBar.tsx`

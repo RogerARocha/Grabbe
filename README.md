@@ -2,7 +2,7 @@
 
 **The Collector's App** — Local-First desktop application designed to be the ultimate ecosystem for tracking and organizing all your entertainment media (Movies, Series, Anime, Manga, Games, and Books).
 
-![Grabbe Concept](https://img.shields.io/badge/Status-In%20Development-F848A1?style=for-the-badge)
+![Grabbe Status](https://img.shields.io/badge/Status-Stable%20v1.0.0-F848A1?style=for-the-badge)
 ![Tauri](https://img.shields.io/badge/Tauri-2.0-24c8db?style=for-the-badge&logo=tauri)
 ![React](https://img.shields.io/badge/React-19-61dafb?style=for-the-badge&logo=react&logoColor=black)
 ![.NET](https://img.shields.io/badge/.NET-9.0-512BD4?style=for-the-badge&logo=dotnet)
@@ -16,7 +16,7 @@
 To run the full Grabbe ecosystem locally, you will need to start both the BFF (to provide search capabilities) and the Desktop App.
 
 ### 1. Running the BFF (Backend for Frontend)
-The BFF requires the .NET 9.0 SDK and API keys for TMDB and Google Books.
+The BFF requires the .NET 9.0 SDK and API credentials for TMDB and IGDB.
 1. Navigate to `grabbe-bff/`
 2. Create your `.env.local` file (see `grabbe-bff/README.md` for instructions).
 3. Run the service:
