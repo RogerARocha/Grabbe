@@ -10,6 +10,7 @@ import { ComingSoon } from './pages/ComingSoon';
 import { Discover } from './pages/Discover';
 import { Settings } from './pages/Settings';
 import { Analytics } from './pages/Analytics';
+import { Profile } from './pages/Profile';
 import { initDb, getSetting } from './lib/db';
 import { ImportProvider } from './contexts/ImportContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -129,9 +130,9 @@ function App() {
 
               {/* Views currently in development (Coming Soon) */}
               <Route path="/analytics" element={<Analytics />} />
-              <Route path="/community" element={<ComingSoon feature="community" />} />
+              <Route path="/community" element={<Navigate to="/profile" replace />} />
               <Route path="/settings" element={<Settings />} />
-              <Route path="/profile" element={<ComingSoon feature="profile" />} />
+              <Route path="/profile" element={<Profile />} />
               
               {/* Specific categories */}
               <Route path="/movies" element={<ComingSoon feature="movies" />} />

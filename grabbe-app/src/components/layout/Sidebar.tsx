@@ -8,7 +8,7 @@ const navItems = [
   { name: 'Library', path: '/library', icon: 'movie_filter' },
   { name: 'Ranking', path: '/ranking', icon: 'leaderboard' },
   { name: 'Analytics', path: '/analytics', icon: 'monitoring' },
-  { name: 'Community', path: '/community', icon: 'group' },
+  { name: 'Profile', path: '/profile', icon: 'person' },
   { name: 'Settings', path: '/settings', icon: 'settings' }
 ];
 
