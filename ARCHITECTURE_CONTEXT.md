@@ -631,7 +631,7 @@ The following patterns should **never** have a comment:
 * [x] Consumption Timeline.
 * [ ] Commands Palette
 * [ ] Unified Profile Card with exportable Banner.
-* [ ] Grabbe Recap (Story Export).
+* [x] Grabbe Recap (Story Export).
 * [x] Manual data Export/Import.
 * [ ] Themes choices.
 * [x] Add new providers.
