@@ -1,4 +1,4 @@
-import { upsertMedia, saveTracking, importBackupItem, setSetting } from './db';
+import { upsertMedia, saveTracking, importBackupItem, setSetting, getDb, getTrackingByExternalId } from './db';
 import { v4 as uuidv4 } from 'uuid';
 import { apiFetch } from './httpClient';
 
@@ -43,9 +43,9 @@ function isTitleMatch(importedTitle: string, resultTitle: string): boolean {
  */
 export async function importMediaFromFile(
     file: File, 
-    provider: 'mal' | 'letterboxd', 
+    provider: 'mal' | 'letterboxd' | 'netflix', 
     onProgress?: (current: number, total: number) => void
-): Promise<void> {
+): Promise<{ importedCount: number; skippedCount: number }> {
     const formData = new FormData();
     formData.append('file', file);
     const response = await apiFetch(`/api/v1/import/${provider}`, {
@@ -57,9 +57,28 @@ export async function importMediaFromFile(
     }
     const responseBody = await response.json();
     const importedList: ImportedMediaDto[] = responseBody.data;
+    let importedCount = 0;
+    let skippedCount = 0;
     let count = 0;
 
     for (const item of importedList) {
+        // Fast local check by title/type to see if it is already added
+        const db = await getDb();
+        const localMediaByTitle = await db.select<any[]>(
+            "SELECT id FROM Media WHERE title = $1 AND type = $2 LIMIT 1",
+            [item.title, item.type]
+        );
+        let isAlreadyAdded = false;
+        if (localMediaByTitle && localMediaByTitle.length > 0) {
+            const existingTracking = await db.select<any[]>(
+                "SELECT id FROM UserTracking WHERE media_id = $1 LIMIT 1",
+                [localMediaByTitle[0].id]
+            );
+            if (existingTracking && existingTracking.length > 0) {
+                isAlreadyAdded = true;
+            }
+        }
+
         let externalId = `imported_${uuidv4()}`;
         let sourceApi = provider.toUpperCase();
         let coverImageUrl = null;
@@ -74,11 +93,13 @@ export async function importMediaFromFile(
         let keyPeople = [] as any[];
         let genres = [] as string[];
         let totalProgressUnits = item.totalProgressUnits;
+        let resolvedType = item.type;
 
         try {
-            const searchResponse = await apiFetch(
-                `/api/v1/search?query=${encodeURIComponent(item.title)}&type=${item.type}`
-            );
+            const searchUrl = provider === 'netflix'
+                ? `/api/v1/search?query=${encodeURIComponent(item.title)}`
+                : `/api/v1/search?query=${encodeURIComponent(item.title)}&type=${item.type}`;
+            const searchResponse = await apiFetch(searchUrl);
             if (searchResponse.ok) {
                 const searchBody = await searchResponse.json();
                 const results = searchBody.data;
@@ -91,9 +112,16 @@ export async function importMediaFromFile(
                         coverImageUrl   = firstResult.coverImageUrl ?? null;
                         releaseDate     = firstResult.releaseDate   ?? null;
                         description     = firstResult.description   ?? null;
+                        resolvedType    = firstResult.type        || resolvedType;
                         
+                        // Slower but more accurate check by resolved externalId/sourceApi
+                        const existingTracking = await getTrackingByExternalId(externalId, sourceApi);
+                        if (existingTracking) {
+                            isAlreadyAdded = true;
+                        }
+
                         try {
-                            const detailsResponse = await apiFetch(`/api/v1/media/${sourceApi}/${firstResult.type}/${externalId}`);
+                            const detailsResponse = await apiFetch(`/api/v1/media/${sourceApi}/${resolvedType}/${externalId}`);
                             if (detailsResponse.ok) {
                                 const detailsBody = await detailsResponse.json();
                                 if (detailsBody.data) {
@@ -128,10 +156,44 @@ export async function importMediaFromFile(
             console.error(`[import] Search failed for "${item.title}":`, error);
         }
 
+        if (isAlreadyAdded) {
+            console.log(`[import] Skipping "${item.title}" because it is already added to the library.`);
+            skippedCount++;
+            count++;
+            if (onProgress) {
+                onProgress(count, importedList.length);
+            }
+            continue;
+        }
+
+        let finalStatus = item.status;
+        let finalStartDate = item.startDate;
+        let finalEndDate = item.endDate;
+
+        // Netflix specific logic for Series/Anime
+        if (provider === 'netflix' && (resolvedType === 'SERIES' || resolvedType === 'ANIME')) {
+            if (totalProgressUnits && totalProgressUnits > 0) {
+                if (item.progress >= totalProgressUnits) {
+                    finalStatus = 'COMPLETED';
+                    finalStartDate = item.startDate;
+                    finalEndDate = item.endDate;
+                } else {
+                    finalStatus = 'CONSUMING';
+                    finalStartDate = item.startDate;
+                    finalEndDate = null;
+                }
+            } else {
+                // Unknown total progress, default to CONSUMING
+                finalStatus = 'CONSUMING';
+                finalStartDate = item.startDate;
+                finalEndDate = null;
+            }
+        }
+
         const media = {
             externalId,
             sourceApi,
-            type: item.type,
+            type: resolvedType,
             title: item.title,
             description,
             coverImageUrl,
@@ -150,21 +212,24 @@ export async function importMediaFromFile(
         const mediaId = await upsertMedia(media);
         await saveTracking(
             mediaId,
-            item.status,
+            finalStatus,
             item.score > 0 ? item.score : null,
             item.progress,
             totalProgressUnits,
             null,
-            item.startDate,
-            item.endDate
+            finalStartDate,
+            finalEndDate
         );
 
+        importedCount++;
         count++;
         if (onProgress) {
             onProgress(count, importedList.length);
         }
         await new Promise(r => setTimeout(r, 250));
     }
+
+    return { importedCount, skippedCount };
 }
 
 /**

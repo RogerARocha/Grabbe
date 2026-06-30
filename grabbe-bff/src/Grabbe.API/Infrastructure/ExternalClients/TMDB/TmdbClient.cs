@@ -43,8 +43,11 @@ public class TmdbClient : IMediaProviderClient
                 ? "search/multi"
                 : (type == "SERIES" ? "search/tv" : "search/movie");
 
+            var culture = System.Globalization.CultureInfo.CurrentUICulture.Name;
+            if (string.IsNullOrWhiteSpace(culture)) culture = "en-US";
+
             var response = await _httpClient.GetFromJsonAsync<TmdbSearchResponse>(
-                $"{endpoint}?query={Uri.EscapeDataString(query)}&language=en&page=1");
+                $"{endpoint}?query={Uri.EscapeDataString(query)}&language={culture}&page=1");
 
             if (response?.Results == null) return Array.Empty<GrabbeMediaDTO>();
 
@@ -81,8 +84,11 @@ public class TmdbClient : IMediaProviderClient
             EnsureAuthorizationHeader();
             var endpoint = type == "SERIES" ? $"tv/{externalId}" : $"movie/{externalId}";
 
+            var culture = System.Globalization.CultureInfo.CurrentUICulture.Name;
+            if (string.IsNullOrWhiteSpace(culture)) culture = "en-US";
+
             var response = await _httpClient.GetFromJsonAsync<TmdbDetailResponse>(
-                $"{endpoint}?language=en&append_to_response=credits,alternative_titles");
+                $"{endpoint}?language={culture}&append_to_response=credits,alternative_titles");
 
             if (response == null)
             {

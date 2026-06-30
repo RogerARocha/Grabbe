@@ -29,6 +29,8 @@ export const Settings = () => {
   // UI state for Save/Clear actions
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isNetflixConfirmOpen, setIsNetflixConfirmOpen] = useState(false);
+  const [netflixFile, setNetflixFile] = useState<File | null>(null);
 
   // Load existing credentials from SQLite on mount
   useEffect(() => {
@@ -59,11 +61,11 @@ export const Settings = () => {
       await setSetting('IGDB_CLIENT_ID', igdbClientId.trim());
       await setSetting('IGDB_CLIENT_SECRET', igdbClientSecret.trim());
       await deleteSetting('SKIP_KEYS');
-      
+
       setInitialTmdbKey(tmdbKey.trim());
       setInitialIgdbClientId(igdbClientId.trim());
       setInitialIgdbClientSecret(igdbClientSecret.trim());
-      
+
       showToast('API Credentials saved successfully!', 'success');
     } catch (error) {
       console.error('Failed to save credentials:', error);
@@ -80,15 +82,15 @@ export const Settings = () => {
       await deleteSetting('IGDB_CLIENT_ID');
       await deleteSetting('IGDB_CLIENT_SECRET');
       await setSetting('SKIP_KEYS', 'true');
-      
+
       setTmdbKey('');
       setIgdbClientId('');
       setIgdbClientSecret('');
-      
+
       setInitialTmdbKey('');
       setInitialIgdbClientId('');
       setInitialIgdbClientSecret('');
-      
+
       showToast('API Credentials cleared successfully!', 'success');
     } catch (error) {
       console.error('Failed to clear credentials:', error);
@@ -96,17 +98,17 @@ export const Settings = () => {
     }
   };
 
-  const isDirty = 
+  const isDirty =
     tmdbKey.trim() !== initialTmdbKey ||
     igdbClientId.trim() !== initialIgdbClientId ||
     igdbClientSecret.trim() !== initialIgdbClientSecret;
 
-  const hasKeys = 
+  const hasKeys =
     tmdbKey.trim() !== '' ||
     igdbClientId.trim() !== '' ||
     igdbClientSecret.trim() !== '';
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, provider: 'mal' | 'letterboxd') => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, provider: 'mal' | 'letterboxd' | 'netflix') => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -114,18 +116,55 @@ export const Settings = () => {
 
     try {
       setIsImporting(true);
-      
-      await importMediaFromFile(file, provider, (current, total) => {
+
+      const result = await importMediaFromFile(file, provider, (current, total) => {
         setProgress({ current, total });
       });
 
-      showToast('Import completed successfully!', 'success');
+      if (result.skippedCount > 0) {
+        showToast(`Import completed! Imported ${result.importedCount} items, skipped ${result.skippedCount} duplicates.`, 'success');
+      } else {
+        showToast('Import completed successfully!', 'success');
+      }
     } catch (error) {
       console.error('Import failed:', error);
       showToast('Error during import. Check console for details.', 'error');
     } finally {
       setIsImporting(false);
       setProgress({ current: 0, total: 0 });
+    }
+  };
+
+  const handleNetflixFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setNetflixFile(file);
+    setIsNetflixConfirmOpen(true);
+  };
+
+  const handleConfirmNetflixImport = async () => {
+    setIsNetflixConfirmOpen(false);
+    if (!netflixFile) return;
+
+    try {
+      setIsImporting(true);
+      const result = await importMediaFromFile(netflixFile, 'netflix', (current, total) => {
+        setProgress({ current, total });
+      });
+
+      if (result.skippedCount > 0) {
+        showToast(`Import completed! Imported ${result.importedCount} items, skipped ${result.skippedCount} duplicates.`, 'success');
+      } else {
+        showToast('Import completed successfully!', 'success');
+      }
+    } catch (error) {
+      console.error('Import failed:', error);
+      showToast('Error during import. Check console for details.', 'error');
+    } finally {
+      setIsImporting(false);
+      setProgress({ current: 0, total: 0 });
+      setNetflixFile(null);
     }
   };
 
@@ -137,7 +176,7 @@ export const Settings = () => {
 
     try {
       setIsImporting(true);
-      
+
       const text = await file.text();
       const backupData = JSON.parse(text);
 
@@ -164,11 +203,11 @@ export const Settings = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      
+
       const dateStr = new Date().toISOString().split('T')[0];
       const fileName = `grabbe-backup-${dateStr}.json`;
       a.download = fileName;
-      
+
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -227,46 +266,81 @@ export const Settings = () => {
             <p className="text-text-muted text-sm leading-relaxed">
               Restore your library from a previously saved Grabbe backup file, or ingest titles from popular services like MyAnimeList (XML) and Letterboxd (CSV).
             </p>
-            
+
             <div className="flex flex-wrap gap-4 mt-4">
               <label className="cursor-pointer bg-[#2E51A2] text-white px-4 py-2.5 rounded-lg font-bold hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 select-none">
                 <span className="material-symbols-outlined text-[18px]">upload_file</span>
                 Import MyAnimeList
-                <input 
-                  type="file" 
-                  accept=".xml" 
-                  className="hidden" 
-                  onChange={(e) => handleFileChange(e, 'mal')} 
+                <input
+                  type="file"
+                  accept=".xml"
+                  className="hidden"
+                  onChange={(e) => handleFileChange(e, 'mal')}
                   disabled={isImporting}
                 />
               </label>
- 
+
               <label className="cursor-pointer bg-[#00E054] text-[#14181C] px-4 py-2.5 rounded-lg font-bold hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 select-none">
                 <span className="material-symbols-outlined text-[18px]">upload_file</span>
                 Import Letterboxd
-                <input 
-                  type="file" 
-                  accept=".csv" 
-                  className="hidden" 
-                  onChange={(e) => handleFileChange(e, 'letterboxd')} 
+                <input
+                  type="file"
+                  accept=".csv"
+                  className="hidden"
+                  onChange={(e) => handleFileChange(e, 'letterboxd')}
                   disabled={isImporting}
                 />
               </label>
- 
+
               <label className="cursor-pointer bg-surface-container border border-outline-variant/20 text-text-high px-4 py-2.5 rounded-lg font-bold hover:bg-surface-container/80 active:scale-95 transition-all flex items-center gap-2 select-none">
                 <span className="material-symbols-outlined text-[18px]">settings_backup_restore</span>
                 Restore Grabbe Backup
-                <input 
-                  type="file" 
-                  accept=".json" 
-                  className="hidden" 
-                  onChange={handleBackupChange} 
+                <input
+                  type="file"
+                  accept=".json"
+                  className="hidden"
+                  onChange={handleBackupChange}
                   disabled={isImporting}
                 />
               </label>
             </div>
           </section>
- 
+
+          {/* Section: Import Streaming History */}
+          <section className="bg-surface p-6 rounded-2xl border border-white/5 space-y-4 shadow-lg shadow-black/20">
+            <h2 className="text-xl font-bold text-text-high flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary">history</span>
+              Import Streaming History
+            </h2>
+            <p className="text-text-muted text-sm leading-relaxed">
+              Upload your Netflix viewing history CSV file to import your watched series, anime, and movies, automatically tracking your progress and dates.
+            </p>
+
+            <div className="flex flex-col gap-2 mt-4">
+              <div className="flex flex-wrap gap-4">
+                <label
+                  className={`cursor-pointer bg-[#E50914] text-white px-4 py-2.5 rounded-lg font-bold hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 select-none ${(isImporting || !initialTmdbKey.trim()) ? 'opacity-40 cursor-not-allowed pointer-events-none' : ''}`}
+                >
+                  <span className="material-symbols-outlined text-[18px]">upload_file</span>
+                  Import Netflix History
+                  <input
+                    type="file"
+                    accept=".csv"
+                    className="hidden"
+                    onChange={handleNetflixFileChange}
+                    disabled={isImporting || !initialTmdbKey.trim()}
+                  />
+                </label>
+              </div>
+              {!initialTmdbKey.trim() && (
+                <p className="text-error text-xs flex items-center gap-1 mt-1">
+                  <span className="material-symbols-outlined text-[14px]">warning</span>
+                  Requires a TMDB API Key configured in the credentials section below to import.
+                </p>
+              )}
+            </div>
+          </section>
+
           {/* Section: Data Backup & Export */}
           <section className="bg-surface p-6 rounded-2xl border border-white/5 space-y-4 shadow-lg shadow-black/20">
             <h2 className="text-xl font-bold text-text-high flex items-center gap-2">
@@ -276,9 +350,9 @@ export const Settings = () => {
             <p className="text-text-muted text-sm leading-relaxed">
               Export your entire local library — including all cached media definitions, status tracking, rating history, scores, custom reviews, and chronological consumption timelines — into a standard JSON file.
             </p>
-            
+
             <div className="flex gap-4 mt-4">
-              <button 
+              <button
                 onClick={handleBackupExport}
                 disabled={isImporting || isExporting || hasExported}
                 className="cursor-pointer bg-primary text-on-primary px-6 py-2.5 rounded-lg font-bold hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 primary-glow shadow-md shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed select-none"
@@ -300,11 +374,11 @@ export const Settings = () => {
             <p className="text-text-muted text-sm leading-relaxed">
               Configure your personal API keys to connect directly to metadata providers. These keys are stored securely in your local SQLite database.
             </p>
-            
+
             <div className="space-y-4 pt-2">
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-bold uppercase tracking-wider text-text-muted">TMDB API Key (Bearer Token)</label>
-                <input 
+                <input
                   type="password"
                   value={tmdbKey}
                   onChange={(e) => setTmdbKey(e.target.value)}
@@ -312,11 +386,11 @@ export const Settings = () => {
                   className="w-full bg-background border border-outline-variant/10 rounded-lg text-sm px-4 py-2.5 text-text-high outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all"
                 />
               </div>
- 
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-bold uppercase tracking-wider text-text-muted">Twitch/IGDB Client ID</label>
-                  <input 
+                  <input
                     type="text"
                     value={igdbClientId}
                     onChange={(e) => setIgdbClientId(e.target.value)}
@@ -326,7 +400,7 @@ export const Settings = () => {
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-bold uppercase tracking-wider text-text-muted">Twitch/IGDB Client Secret</label>
-                  <input 
+                  <input
                     type="password"
                     value={igdbClientSecret}
                     onChange={(e) => setIgdbClientSecret(e.target.value)}
@@ -342,9 +416,9 @@ export const Settings = () => {
                   <strong>Warning:</strong> Clearing your credentials will disconnect the application from global media databases. Manual library entries can still be created, but automatic details lookup, cover art, and casts will be disabled.
                 </span>
               </div>
- 
+
               <div className="flex justify-end pt-2 gap-3">
-                <button 
+                <button
                   onClick={() => setIsConfirmOpen(true)}
                   disabled={!hasKeys}
                   className="cursor-pointer bg-error/10 text-error hover:bg-error/20 px-6 py-2 rounded-lg font-bold disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-2 select-none"
@@ -352,7 +426,7 @@ export const Settings = () => {
                   <span className="material-symbols-outlined text-[18px]">delete</span>
                   Clear Credentials
                 </button>
-                <button 
+                <button
                   onClick={handleSaveKeys}
                   disabled={!isDirty || isSaving}
                   className="cursor-pointer bg-primary text-on-primary px-6 py-2 rounded-lg font-bold hover:brightness-110 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-2 primary-glow shadow-md shadow-primary/20 select-none"
@@ -384,7 +458,7 @@ export const Settings = () => {
           <div className="flex flex-col flex-1 min-w-0">
             <div className="flex items-center justify-between">
               <span className="text-sm font-bold text-text-high">Backup Downloaded</span>
-              <button 
+              <button
                 onClick={() => setShowNotification(false)}
                 className="text-text-muted hover:text-text-high transition-colors cursor-pointer flex items-center"
               >
@@ -423,6 +497,23 @@ export const Settings = () => {
         type="danger"
         onConfirm={handleClearKeys}
         onCancel={() => setIsConfirmOpen(false)}
+      />
+
+      <ConfirmationModal
+        isOpen={isNetflixConfirmOpen}
+        title="Import Netflix History?"
+        message="Netflix history files contain raw episode titles, sometimes this can lead to incorrect metadata matching. 
+                Automated metadata lookups will run for all new shows/movies, which may take a few minutes depending on your history size. 
+                Please note that the engine might occasionally map the incorrect media due to translations, regional availability, or other matching issues. 
+                We suggest reviewing your imported library afterward; if you find any incorrect media links, you can manually Unlink them from their details page."
+        confirmLabel="Import History"
+        cancelLabel="Cancel"
+        type="warning"
+        onConfirm={handleConfirmNetflixImport}
+        onCancel={() => {
+          setIsNetflixConfirmOpen(false);
+          setNetflixFile(null);
+        }}
       />
     </MainLayout>
   );

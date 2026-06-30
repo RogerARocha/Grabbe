@@ -9,11 +9,16 @@ public class ImportController : ControllerBase
 {
     private readonly MalImportService _malImportService;
     private readonly LetterboxdImportService _letterboxdImportService;
+    private readonly NetflixImportService _netflixImportService;
 
-    public ImportController(MalImportService malImportService, LetterboxdImportService letterboxdImportService)
+    public ImportController(
+        MalImportService malImportService, 
+        LetterboxdImportService letterboxdImportService,
+        NetflixImportService netflixImportService)
     {
         _malImportService = malImportService;
         _letterboxdImportService = letterboxdImportService;
+        _netflixImportService = netflixImportService;
     }
 
     /// <summary>
@@ -72,6 +77,40 @@ public class ImportController : ControllerBase
         try
         {
             var result = _letterboxdImportService.ParseLetterboxdCsv(tempPath);
+            return Ok(new { Data = result });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { Error = $"Internal server error: {ex.Message}" });
+        }
+        finally
+        {
+            System.IO.File.Delete(tempPath);
+        }
+    }
+
+    /// <summary>
+    /// Imports a CSV file from Netflix and returns a list of media to be tracked.
+    /// </summary>
+    /// <param name="file">The CSV file exported from Netflix.</param>
+    /// <returns>A data envelope containing a list of <see cref="ImportedMediaDto"/> items.</returns>
+    [HttpPost("netflix")]
+    public async Task<IActionResult> ImportNetflix(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest(new { Error = "No file uploaded." });
+        }
+
+        var tempPath = Path.GetTempFileName();
+        using (var stream = new FileStream(tempPath, FileMode.Create))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        try
+        {
+            var result = _netflixImportService.ParseNetflixCsv(tempPath);
             return Ok(new { Data = result });
         }
         catch (Exception ex)

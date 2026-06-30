@@ -31,6 +31,7 @@ builder.Services.AddScoped<Grabbe.API.Features.MediaSearch.SearchAggregationServ
 builder.Services.AddScoped<Grabbe.API.Features.MediaDetails.DetailsService>();
 builder.Services.AddScoped<MalImportService>();
 builder.Services.AddScoped<LetterboxdImportService>();
+builder.Services.AddScoped<NetflixImportService>();
 builder.Services.AddHttpClient<TmdbClient>();
 builder.Services.AddHttpClient<JikanClient>();
 builder.Services.AddHttpClient<OpenLibraryClient>();
