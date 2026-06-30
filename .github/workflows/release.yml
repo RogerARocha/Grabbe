@@ -44,6 +44,27 @@ jobs:
           # Update grabbe-app/src-tauri/Cargo.toml
           (Get-Content -Path .\grabbe-app\src-tauri\Cargo.toml) -replace '^version\s*=\s*"[^"]+"', ('version = "' + $version + '"') | Set-Content -Path .\grabbe-app\src-tauri\Cargo.toml
 
+      - name: Commit and push updated versions
+        shell: pwsh
+        run: |
+          $version = "${{ steps.gitversion.outputs.semVer }}"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add .\grabbe-app\package.json
+          git add .\grabbe-app\src-tauri\tauri.conf.json
+          git add .\grabbe-app\src-tauri\Cargo.toml
+          
+          # Check if there are any changes to commit
+          $status = git status --porcelain
+          if ($status) {
+              echo "Changes detected. Committing version updates..."
+              git commit -m "chore(release): update project files to v$version [skip ci]"
+              git push origin master
+          } else {
+              echo "No changes detected in configuration files."
+          }
+
       # 3. Setup Rust and configure caching
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
