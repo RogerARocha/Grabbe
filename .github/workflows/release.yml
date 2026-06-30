@@ -1,0 +1,88 @@
+name: Unified Automatic SemVer
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  release:
+    name: Calculate Version and Build Installer
+    runs-on: windows-latest
+    permissions:
+      contents: write # Required to create the release and upload assets
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Required for GitVersion to read commit history
+
+      # 1. Install and run the SemVer calculator
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v1
+        with:
+          versionSpec: '5.x'
+
+      - name: Run GitVersion
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v1
+
+      # 2. Update config files with calculated version
+      - name: Update project files version
+        shell: pwsh
+        run: |
+          $version = "${{ steps.gitversion.outputs.semVer }}"
+          echo "Setting project version to $version"
+          
+          # Update grabbe-app/package.json
+          (Get-Content -Path .\grabbe-app\package.json) -replace '"version":\s*"[^"]+"', ('"version": "' + $version + '"') | Set-Content -Path .\grabbe-app\package.json
+          
+          # Update grabbe-app/src-tauri/tauri.conf.json
+          (Get-Content -Path .\grabbe-app\src-tauri\tauri.conf.json) -replace '"version":\s*"[^"]+"', ('"version": "' + $version + '"') | Set-Content -Path .\grabbe-app\src-tauri\tauri.conf.json
+          
+          # Update grabbe-app/src-tauri/Cargo.toml
+          (Get-Content -Path .\grabbe-app\src-tauri\Cargo.toml) -replace 'version\s*=\s*"[^"]+"', ('version = "' + $version + '"') | Set-Content -Path .\grabbe-app\src-tauri\Cargo.toml
+
+      # 3. Setup Rust and configure caching
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "grabbe-app/src-tauri -> grabbe-app/src-tauri/target"
+
+      # 4. Setup .NET (Needed for BFF sidecar compilation)
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0'
+
+      # 5. Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # 6. Install dependencies
+      - name: Install Frontend dependencies
+        run: npm ci --prefix ./grabbe-app
+
+      # 7. Compile and position the BFF sidecar binary
+      - name: Build BFF Sidecar
+        run: npm run build:bff --prefix ./grabbe-app
+
+      # 8. Build Tauri Installer and Create/Publish GitHub Release
+      - name: Build and Publish Tauri Installer
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VITE_APP_VERSION: ${{ steps.gitversion.outputs.semVer }}
+        with:
+          tagName: v${{ steps.gitversion.outputs.semVer }}
+          releaseName: 'Grabbe v${{ steps.gitversion.outputs.semVer }}'
+          releaseDraft: false
+          prerelease: false
+          projectPath: ./grabbe-app
+          args: -c src-tauri/tauri.conf.prod.json
