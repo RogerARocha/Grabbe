@@ -36,13 +36,13 @@ jobs:
           echo "Setting project version to $version"
           
           # Update grabbe-app/package.json
-          (Get-Content -Path .\grabbe-app\package.json) -replace '"version":\s*"[^"]+"', ('"version": "' + $version + '"') | Set-Content -Path .\grabbe-app\package.json
+          (Get-Content -Path .\grabbe-app\package.json) -replace '^\s*"version":\s*"[^"]+"', ('  "version": "' + $version + '"') | Set-Content -Path .\grabbe-app\package.json
           
           # Update grabbe-app/src-tauri/tauri.conf.json
-          (Get-Content -Path .\grabbe-app\src-tauri\tauri.conf.json) -replace '"version":\s*"[^"]+"', ('"version": "' + $version + '"') | Set-Content -Path .\grabbe-app\src-tauri\tauri.conf.json
+          (Get-Content -Path .\grabbe-app\src-tauri\tauri.conf.json) -replace '^\s*"version":\s*"[^"]+"', ('  "version": "' + $version + '"') | Set-Content -Path .\grabbe-app\src-tauri\tauri.conf.json
           
           # Update grabbe-app/src-tauri/Cargo.toml
-          (Get-Content -Path .\grabbe-app\src-tauri\Cargo.toml) -replace 'version\s*=\s*"[^"]+"', ('version = "' + $version + '"') | Set-Content -Path .\grabbe-app\src-tauri\Cargo.toml
+          (Get-Content -Path .\grabbe-app\src-tauri\Cargo.toml) -replace '^version\s*=\s*"[^"]+"', ('version = "' + $version + '"') | Set-Content -Path .\grabbe-app\src-tauri\Cargo.toml
 
       # 3. Setup Rust and configure caching
       - name: Install Rust stable
