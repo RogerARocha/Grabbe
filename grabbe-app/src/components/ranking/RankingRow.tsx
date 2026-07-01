@@ -13,9 +13,29 @@ const getScoreStyles = (score: number) => {
   return { bar: 'bg-error', text: 'text-error' };
 };
 
+const GENRE_COLORS = [
+  'bg-secondary/15 text-secondary',
+  'bg-primary/15 text-primary',
+  'bg-tertiary/15 text-tertiary',
+  'bg-warning/15 text-warning',
+];
+
 export const RankingRow = ({ item, onOpenModal }: RankingRowProps) => {
   const navigate = useNavigate();
   const styles = getScoreStyles(item.score);
+
+  const genresList: string[] = (() => {
+    if (!item.genres) return [];
+    try {
+      const parsed = typeof item.genres === 'string' ? JSON.parse(item.genres) : item.genres;
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      if (typeof item.genres === 'string') {
+        return item.genres.split(',').map((g: string) => g.trim()).filter(Boolean);
+      }
+      return [];
+    }
+  })();
 
   const handleNavigate = () => {
     navigate(`/media/${item.external_id}?source=${item.source_api}&type=${item.type}`, { state: { from: 'Ranking', path: '/ranking' } });
@@ -63,6 +83,29 @@ export const RankingRow = ({ item, onOpenModal }: RankingRowProps) => {
           <h3 className="text-lg font-black text-text-high truncate group-hover:underline group-hover:text-primary transition-colors cursor-pointer">
             {item.title}
           </h3>
+        </div>
+
+        {/* Genres Column */}
+        <div className="w-48 shrink-0 flex flex-wrap gap-1.5 items-center justify-start overflow-hidden py-1 select-none">
+          {genresList.length > 0 ? (
+            <>
+              {genresList.slice(0, 3).map((genre, i) => (
+                <span 
+                  key={genre} 
+                  className={`${GENRE_COLORS[i % GENRE_COLORS.length]} px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider shrink-0`}
+                >
+                  {genre}
+                </span>
+              ))}
+              {genresList.length > 3 && (
+                <span className="text-[9px] font-bold text-text-muted mt-0.5">
+                  +{genresList.length - 3}
+                </span>
+              )}
+            </>
+          ) : (
+            <span className="text-xs font-semibold text-text-muted">—</span>
+          )}
         </div>
 
         {/* Columns Container (Clickable for Modal) */}
