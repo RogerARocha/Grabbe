@@ -4,6 +4,7 @@ import { getSetting, setSetting, getLibraryItems, getConsumptionSessions } from 
 import { ProfileSelectionModal } from '../components/modals/ProfileSelectionModal';
 import { useToast } from '../contexts/ToastContext';
 import { calculateInvestedMinutes } from '../lib/timeMetrics';
+import { parseDate } from '../lib/dateUtils';
 
 // Sub-components
 import { CardIdentityForm } from '../components/profile/CardIdentityForm';
@@ -171,10 +172,8 @@ export const Profile = () => {
   // Helper to parse dates safely
   const parseSafeDate = (val: any): Date | null => {
     if (!val) return null;
-    if (val instanceof Date) return val;
-    if (typeof val === 'number') return new Date(val);
-    const str = String(val || '');
-    return new Date(str.includes(' ') ? str.replace(' ', 'T') + 'Z' : str);
+    const d = parseDate(val);
+    return isNaN(d.getTime()) ? null : d;
   };
 
 

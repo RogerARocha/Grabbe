@@ -120,7 +120,32 @@ export const isYearOnly = (dStr: any): boolean => {
 export const parseDate = (dStr: any): Date => {
   if (dStr instanceof Date) return dStr;
   if (typeof dStr === 'number') return new Date(dStr);
-  const str = String(dStr || '');
-  const normalized = str.includes(' ') ? str.replace(' ', 'T') + 'Z' : str;
-  return new Date(normalized);
+  const str = String(dStr || '').trim();
+  if (!str) return new Date(NaN);
+
+  // If it's a full ISO date-time string or has space/T, parse it as-is (e.g. 2024-05-20 12:00:00 or ISO)
+  if (str.includes(' ') || str.includes('T')) {
+    const normalized = str.includes(' ') ? str.replace(' ', 'T') + 'Z' : str;
+    return new Date(normalized);
+  }
+
+  // Otherwise, it's a date-only string like YYYY-MM-DD or YYYY-MM
+  const parts = str.split('-');
+  if (parts.length === 1 && /^\d{4}$/.test(parts[0])) {
+    // Year only
+    return new Date(parseInt(parts[0], 10), 0, 1);
+  } else if (parts.length === 2) {
+    // Year and Month
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10) - 1; // 0-based month
+    return new Date(y, m, 1);
+  } else if (parts.length === 3) {
+    // Year, Month, and Day
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10) - 1;
+    const d = parseInt(parts[2], 10);
+    return new Date(y, m, d);
+  }
+
+  return new Date(str);
 };

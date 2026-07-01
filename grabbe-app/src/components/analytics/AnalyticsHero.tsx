@@ -1,4 +1,5 @@
 import { calculateInvestedMinutes, formatTotalHours } from '../../lib/timeMetrics';
+import { parseDate } from '../../lib/dateUtils';
 
 export const AnalyticsHero = ({ items = [] }: { items: any[] }) => {
   const totalMedia = items.length;
@@ -14,10 +15,7 @@ export const AnalyticsHero = ({ items = [] }: { items: any[] }) => {
   oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
 
   const parseSafeDate = (val: any): Date => {
-    if (val instanceof Date) return val;
-    if (typeof val === 'number') return new Date(val);
-    const str = String(val || '');
-    return new Date(str.includes(' ') ? str.replace(' ', 'T') + 'Z' : str);
+    return parseDate(val);
   };
 
   const thisMonthMinutes = items
