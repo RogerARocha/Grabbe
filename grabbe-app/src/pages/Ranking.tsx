@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { MainLayout } from '../components/layout/MainLayout';
 import { TypeFilters } from '../components/shared/TypeFilters';
 import { RankingList } from '../components/ranking/RankingList';
@@ -7,19 +7,31 @@ import { EvaluationModal } from '../components/modals/EvaluationModal';
 import { useRankingStore } from '../store/rankingStore';
 
 export const Ranking = () => {
-  const { activeTab, setActiveTab } = useRankingStore();
-  const [items, setItems] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { 
+    activeTab, 
+    setActiveTab,
+    items, 
+    setItems, 
+    isLoading, 
+    setIsLoading,
+    scrollPosition,
+    setScrollPosition
+  } = useRankingStore();
   
   // Evaluation Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
+  
+  const hasRestoredScroll = useRef(false);
 
   const fetchItems = async () => {
-    setIsLoading(true);
+    // Only show loading indicator if we don't have items already loaded
+    if (items.length === 0) {
+      setIsLoading(true);
+    }
     try {
       const data = await getRankedItems(activeTab);
-      setItems(data);
+      setItems(data || []);
     } catch (error) {
       console.error("Failed to fetch ranked items:", error);
     } finally {
@@ -30,6 +42,41 @@ export const Ranking = () => {
   useEffect(() => {
     fetchItems();
   }, [activeTab]);
+
+  // Track the scroll position of the MainLayout viewport
+  useEffect(() => {
+    const mainEl = document.getElementById('main-content');
+    if (!mainEl) return;
+
+    const handleScroll = () => {
+      setScrollPosition(mainEl.scrollTop);
+    };
+
+    mainEl.addEventListener('scroll', handleScroll);
+    return () => {
+      mainEl.removeEventListener('scroll', handleScroll);
+    };
+  }, [setScrollPosition]);
+
+  // Reset scroll restoration state when activeTab changes
+  useEffect(() => {
+    hasRestoredScroll.current = false;
+  }, [activeTab]);
+
+  // Restore the scroll position once the items are loaded and rendered
+  useEffect(() => {
+    const mainEl = document.getElementById('main-content');
+    if (!mainEl || hasRestoredScroll.current || isLoading) return;
+
+    if (scrollPosition > 0 && items.length > 0) {
+      // Small delay to ensure the DOM has repainted the items
+      const timer = setTimeout(() => {
+        mainEl.scrollTo({ top: scrollPosition });
+        hasRestoredScroll.current = true;
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [items, isLoading, scrollPosition]);
 
   const handleOpenModal = async (item: any) => {
     const tracking = await getTrackingForMedia(item.id);
