@@ -180,13 +180,13 @@ export async function importMediaFromFile(
                 } else {
                     finalStatus = 'CONSUMING';
                     finalStartDate = item.startDate;
-                    finalEndDate = null;
+                    finalEndDate = item.endDate;
                 }
             } else {
                 // Unknown total progress, default to CONSUMING
                 finalStatus = 'CONSUMING';
                 finalStartDate = item.startDate;
-                finalEndDate = null;
+                finalEndDate = item.endDate;
             }
         }
 
