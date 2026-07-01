@@ -25,14 +25,14 @@ interface EvaluationModalProps {
  * Modal component for adding new media to the library or updating existing tracking progress.
  * Handles API search integration for new items and local database synchronization.
  */
-export const EvaluationModal = ({ 
-  isOpen, 
-  onClose, 
-  mode, 
-  initialMediaName, 
-  media, 
-  initialStatus, 
-  initialScore, 
+export const EvaluationModal = ({
+  isOpen,
+  onClose,
+  mode,
+  initialMediaName,
+  media,
+  initialStatus,
+  initialScore,
   initialProgress,
   initialStartDate,
   initialEndDate,
@@ -150,32 +150,32 @@ export const EvaluationModal = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div 
+      <div
         onClick={onClose}
         className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200"
       />
-      
+
       {/* Modal Card */}
-      <div 
-        onClick={(e) => e.stopPropagation()} 
+      <div
+        onClick={(e) => e.stopPropagation()}
         className="relative w-[420px] bg-surface rounded-[12px] p-6 bloom-shadow flex flex-col gap-6 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto z-10"
       >
-        
+
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-text-high tracking-tight">{title}</h2>
           <button onClick={onClose} className="text-text-muted hover:text-text-high transition-colors">
             <span className="material-symbols-outlined">close</span>
           </button>
         </div>
- 
+
         <div className="flex flex-col gap-5">
-          
+
           {showSearch ? (
             <div className="flex flex-col gap-2 relative">
               <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Search Media</label>
               <div className="relative">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">search</span>
-                <input 
+                <input
                   type="text"
                   value={searchQuery}
                   onChange={handleQueryChange}
@@ -185,12 +185,12 @@ export const EvaluationModal = ({
                 />
                 {isSearching && <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />}
               </div>
-              
+
               {showDropdown && searchResults.length > 0 && (
                 <div className="absolute top-[100%] left-0 w-full mt-2 bg-surface rounded-lg border border-outline-variant/30 overflow-hidden z-50 max-h-[240px] overflow-y-auto bloom-shadow">
                   {searchResults.map((res) => (
-                    <div 
-                      key={res.externalId} 
+                    <div
+                      key={res.externalId}
                       onClick={() => handleSelectResult(res)}
                       className="flex gap-3 p-3 cursor-pointer hover:bg-surface-container transition-colors border-b border-outline-variant/10 last:border-0"
                     >
@@ -223,23 +223,25 @@ export const EvaluationModal = ({
               </div>
             </div>
           )}
- 
+
           <div className="flex flex-col gap-2">
             <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Status</label>
             <div className="relative">
-              <select 
-                value={status} 
+              <select
+                value={status}
                 onChange={(e) => {
                   const newStatus = e.target.value;
                   setStatus(newStatus);
-                  const todayFull = (() => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`; })();
+                  const todayFull = (() => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`; })();
                   if (newStatus === 'COMPLETED') {
                     if (effectiveTotal > 0) setProgress(effectiveTotal);
+                    if (!endDate) setEndDate(todayFull);
+                  } else if (newStatus === 'DROPPED') {
                     if (!endDate) setEndDate(todayFull);
                   } else if (newStatus === 'CONSUMING') {
                     if (!startDate) setStartDate(todayFull);
                   }
-                }} 
+                }}
                 className="w-full bg-background border-none rounded-lg text-sm px-4 py-3 appearance-none focus:ring-2 focus:ring-primary transition-all cursor-pointer text-text-high outline-none">
                 <option value="CONSUMING">{formatStatusLabel('CONSUMING', selectedMedia?.type)}</option>
                 <option value="COMPLETED">Completed</option>
@@ -250,13 +252,13 @@ export const EvaluationModal = ({
               <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted">expand_more</span>
             </div>
           </div>
- 
+
           {mediaType === 'GAME' ? (
             <div className="flex flex-col gap-2">
               <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Hours Spent</label>
               <div className="flex items-center gap-3">
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={hoursSpent}
                   onChange={(e) => {
                     const val = e.target.value;
@@ -264,8 +266,8 @@ export const EvaluationModal = ({
                       setHoursSpent(val);
                     }
                   }}
-                  className="flex-1 bg-background border-none rounded-lg text-sm px-4 py-3 focus:ring-2 focus:ring-primary transition-all text-text-high outline-none" 
-                  placeholder="e.g. 15" 
+                  className="flex-1 bg-background border-none rounded-lg text-sm px-4 py-3 focus:ring-2 focus:ring-primary transition-all text-text-high outline-none"
+                  placeholder="e.g. 15"
                 />
                 <span className="text-text-muted font-medium text-sm">hours</span>
               </div>
@@ -274,8 +276,8 @@ export const EvaluationModal = ({
             <div className="flex flex-col gap-2">
               <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Progress / Episode</label>
               <div className="flex items-center gap-3">
-                <input 
-                  type="number" 
+                <input
+                  type="number"
                   value={progress}
                   min={0}
                   max={effectiveTotal > 0 ? effectiveTotal : undefined}
@@ -285,12 +287,12 @@ export const EvaluationModal = ({
                     if (effectiveTotal > 0 && val >= effectiveTotal) {
                       setStatus('COMPLETED');
                       const n = new Date();
-                      const todayFull = `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
+                      const todayFull = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
                       if (!endDate) setEndDate(todayFull);
                     }
                   }}
-                  className="flex-1 bg-background border-none rounded-lg text-sm px-4 py-3 focus:ring-2 focus:ring-primary transition-all text-text-high outline-none" 
-                  placeholder="0" 
+                  className="flex-1 bg-background border-none rounded-lg text-sm px-4 py-3 focus:ring-2 focus:ring-primary transition-all text-text-high outline-none"
+                  placeholder="0"
                 />
                 <span className="text-text-muted font-medium text-sm">/ {effectiveTotal || '?'}</span>
               </div>
@@ -333,7 +335,7 @@ export const EvaluationModal = ({
               <div className="mt-1 bg-background rounded-lg border border-outline-variant/30 overflow-hidden">
                 <div className="max-h-[200px] overflow-y-auto">
                   {scores.map((score) => (
-                    <div 
+                    <div
                       key={score.value}
                       onClick={() => {
                         setSelectedScore(score.value);
@@ -356,10 +358,10 @@ export const EvaluationModal = ({
               </div>
             )}
           </div>
-          
+
           <div className="flex flex-col gap-2">
             <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Review & Notes</label>
-            <textarea 
+            <textarea
               value={reviewText}
               onChange={(e) => setReviewText(e.target.value)}
               placeholder="What did you think about it?"
@@ -377,7 +379,7 @@ export const EvaluationModal = ({
             {confirmText}
           </button>
         </div>
-        
+
       </div>
     </div>
   );
