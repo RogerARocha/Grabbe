@@ -4,6 +4,137 @@ import packageJson from '../../../package.json';
 import { toPng } from 'html-to-image';
 import { openPath } from '@tauri-apps/plugin-opener';
 import { downloadDir } from '@tauri-apps/api/path';
+import { apiFetch, API_BASE_URL } from '../../lib/httpClient';
+import { useToast } from '../../contexts/ToastContext';
+
+const Icon: React.FC<{ name: string; className?: string; style?: React.CSSProperties }> = ({ name, className, style }) => {
+  switch (name) {
+    case 'insights':
+      return (
+        <svg viewBox="0 0 24 24" width="1em" height="1em" className={className} style={style} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+          <polyline points="16 7 22 7 22 13" />
+        </svg>
+      );
+    case 'trending_up':
+      return (
+        <svg viewBox="0 0 24 24" width="1em" height="1em" className={className} style={style} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+          <polyline points="16 7 22 7 22 13" />
+        </svg>
+      );
+    case 'auto_awesome':
+      return (
+        <svg viewBox="0 0 24 24" width="1em" height="1em" className={className} style={style} fill="currentColor">
+          <path d="M9 4L11.5 9.5L17 12L11.5 14.5L9 20L6.5 14.5L1 12L6.5 9.5Z" />
+          <path d="M19 1L20.25 3.75L23 5L20.25 6.25L19 9L17.75 6.25L15 5L17.75 3.75Z" />
+          <path d="M19 15L19.75 16.75L21.5 17.5L19.75 18.25L19 20L18.25 18.25L16.5 17.5L18.25 16.75Z" />
+        </svg>
+      );
+    case 'movie_filter':
+      return (
+        <svg viewBox="0 0 24 24" width="1em" height="1em" className={className} style={style} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="2" y="2" width="20" height="20" rx="2" ry="2" />
+          <line x1="7" y1="2" x2="7" y2="22" />
+          <line x1="17" y1="2" x2="17" y2="22" />
+          <line x1="2" y1="12" x2="22" y2="12" />
+          <line x1="2" y1="7" x2="7" y2="7" />
+          <line x1="2" y1="17" x2="7" y2="17" />
+          <line x1="17" y1="17" x2="22" y2="17" />
+          <line x1="17" y1="7" x2="22" y2="7" />
+        </svg>
+      );
+    case 'animation':
+      return (
+        <svg viewBox="0 0 24 24" width="1em" height="1em" className={className} style={style} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="3" width="12" height="12" rx="2" />
+          <path d="M7 15h8a2 2 0 0 0 2-2V5" opacity="0.7" />
+          <path d="M11 19h8a2 2 0 0 0 2-2V9" opacity="0.4" />
+        </svg>
+      );
+    case 'calendar_month':
+      return (
+        <svg viewBox="0 0 24 24" width="1em" height="1em" className={className} style={style} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>
+      );
+    case 'heart_broken':
+      return (
+        <svg viewBox="0 0 24 24" width="1em" height="1em" className={className} style={style} fill="currentColor">
+          <path d="M12 5c-1.74-2.09-3.41-2.9-5.18-2.9C3.74 2.1 1 4.7 1 7.9c0 3.5 3.1 6.5 8.1 11.1l1.9 1.7V17l-2-2 2-3-2-2 3-2V5z" />
+          <path d="M12 5v3l-3 2 2 2-2 3 2 2v2.7l1.9-1.7c5-4.6 8.1-7.6 8.1-11.1 0-3.2-2.7-5.8-5.8-5.8-1.77 0-3.44.81-4.2 2.9z" opacity="0.9"/>
+        </svg>
+      );
+    case 'sentiment_very_dissatisfied':
+      return (
+        <svg viewBox="0 0 24 24" width="1em" height="1em" className={className} style={style} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="9" y1="9" x2="9.01" y2="9" strokeWidth="3" />
+          <line x1="15" y1="9" x2="15.01" y2="9" strokeWidth="3" />
+          <path d="M16 16c0-1.5-1.79-3-4-3s-4 1.5-4 3" />
+        </svg>
+      );
+    case 'schedule':
+      return (
+        <svg viewBox="0 0 24 24" width="1em" height="1em" className={className} style={style} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </svg>
+      );
+    case 'stars':
+      return (
+        <svg viewBox="0 0 24 24" width="1em" height="1em" className={className} style={style} fill="currentColor">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm3.89 15.55L12 15.28l-3.89 2.27 1.02-4.43-3.41-2.98 4.54-.39L12 5.5l1.74 4.28 4.54.39-3.41 2.98 1.02 4.43z" />
+        </svg>
+      );
+    case 'format_quote':
+      return (
+        <svg viewBox="0 0 24 24" width="1em" height="1em" className={className} style={style} fill="currentColor">
+          <path d="M6 17h3l2-4V7H5v6h3zm8 0h3l2-4V7h-6v6h3z" />
+        </svg>
+      );
+    case 'download':
+      return (
+        <svg viewBox="0 0 24 24" width="1em" height="1em" className={className} style={style} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+};
+
+const hexEncode = (str: string): string => {
+  let hex = '';
+  for (let i = 0; i < str.length; i++) {
+    hex += str.charCodeAt(i).toString(16).padStart(2, '0');
+  }
+  return hex;
+};
+
+const isValidImageUrl = (url: string | null | undefined): boolean => {
+  if (!url) return false;
+  const lower = url.toLowerCase().trim();
+  if (lower === '' || lower === 'null' || lower === 'undefined') return false;
+  if (lower.includes('localhost:1420/profile') || lower.includes('tauri.localhost/profile') || lower.includes('tauri://localhost/profile')) {
+    return false;
+  }
+  if (lower === '/profile' || lower === 'profile') return false;
+  return true;
+};
+
+const getProxiedImageUrl = (url: string | null | undefined): string => {
+  if (!isValidImageUrl(url)) return '';
+  if (url!.startsWith('http')) {
+    return `${API_BASE_URL}/api/v1/export/proxy/${hexEncode(url!)}`;
+  }
+  return url!;
+};
 
 interface ProfileCardPreviewProps {
   // Profile
@@ -39,7 +170,32 @@ export const ProfileCardPreview: React.FC<ProfileCardPreviewProps> = ({
   monthlyRecap,
   monthsList,
 }) => {
+  const { showToast } = useToast();
   const [previewType, setPreviewType] = useState<'desktop' | 'story'>('desktop');
+
+  const parseExportError = (err: any): string => {
+    if (err instanceof Event) {
+      const target = err.target as HTMLElement | null;
+      if (target && target.tagName === 'IMG') {
+        const img = target as HTMLImageElement;
+        let src = img.src;
+        if (src.includes('/api/v1/export/proxy/')) {
+          const parts = src.split('/api/v1/export/proxy/');
+          const hexUrl = parts[parts.length - 1];
+          try {
+            let rawUrl = '';
+            for (let i = 0; i < hexUrl.length; i += 2) {
+              rawUrl += String.fromCharCode(parseInt(hexUrl.substring(i, i + 2), 16));
+            }
+            src = rawUrl;
+          } catch (e) {}
+        }
+        return `Failed to load image: ${src}`;
+      }
+      return 'Image/resource loading failed during capture';
+    }
+    return err?.message || String(err);
+  };
   const [scale, setScale] = useState(0.35);
   const [storyScale, setStoryScale] = useState(0.5);
   const [downloadedFile, setDownloadedFile] = useState<string | null>(null);
@@ -84,15 +240,29 @@ export const ProfileCardPreview: React.FC<ProfileCardPreviewProps> = ({
         },
         pixelRatio: 2,
         cacheBust: true,
+        skipFonts: true,
       });
-      const link = document.createElement('a');
-      link.download = fileName;
-      link.href = dataUrl;
-      link.click();
+
+      const response = await apiFetch('/api/v1/export/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fileName,
+          base64Data: dataUrl,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`BFF returned status ${response.status}`);
+      }
+
       setDownloadedFile(fileName);
       setShowNotification(true);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to export desktop banner:', err);
+      showToast(`Export failed: ${parseExportError(err)}`, 'error');
     }
   };
 
@@ -111,15 +281,29 @@ export const ProfileCardPreview: React.FC<ProfileCardPreviewProps> = ({
         },
         pixelRatio: 2.4, // 450 * 2.4 = 1080, 800 * 2.4 = 1920 (Standard HD Story size)
         cacheBust: true,
+        skipFonts: true,
       });
-      const link = document.createElement('a');
-      link.download = fileName;
-      link.href = dataUrl;
-      link.click();
+
+      const response = await apiFetch('/api/v1/export/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fileName,
+          base64Data: dataUrl,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`BFF returned status ${response.status}`);
+      }
+
       setDownloadedFile(fileName);
       setShowNotification(true);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to export story banner:', err);
+      showToast(`Export failed: ${parseExportError(err)}`, 'error');
     }
   };
 
@@ -205,8 +389,8 @@ export const ProfileCardPreview: React.FC<ProfileCardPreviewProps> = ({
                     className="w-16 h-16 rounded-full border-2 p-1 bg-[#002b36] overflow-hidden flex items-center justify-center text-3xl"
                     style={{ borderColor: `${primaryColor}4d` }}
                   >
-                    {userAvatar.startsWith('http') ? (
-                      <img alt="Avatar" className="w-full h-full object-cover rounded-full" src={userAvatar} crossOrigin="anonymous" />
+                    {userAvatar.startsWith('http') && isValidImageUrl(userAvatar) ? (
+                      <img alt="Avatar" className="w-full h-full object-cover rounded-full" src={getProxiedImageUrl(userAvatar)} crossOrigin="anonymous" />
                     ) : (
                       <span>{userAvatar}</span>
                     )}
@@ -221,7 +405,7 @@ export const ProfileCardPreview: React.FC<ProfileCardPreviewProps> = ({
 
                 <div className="flex flex-col items-end">
                   <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-3xl" style={{ color: primaryColor, fontVariationSettings: "'FILL' 1" }}>insights</span>
+                    <Icon name="insights" className="text-3xl" style={{ color: primaryColor }} />
                     <span className="text-3xl font-extrabold tracking-tighter" style={{ color: primaryColor }}>Grabbe</span>
                   </div>
                   <span className="text-xs font-bold text-text-muted mt-1 uppercase tracking-wider">
@@ -235,21 +419,22 @@ export const ProfileCardPreview: React.FC<ProfileCardPreviewProps> = ({
                 {/* Left: Masterpiece */}
                 <div className="col-span-7 flex flex-col gap-3">
                   <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-xl" style={{ color: secondaryColor }}>auto_awesome</span>
+                    <Icon name="auto_awesome" className="text-xl" style={{ color: secondaryColor }} />
                     <span className="text-xs font-bold uppercase tracking-widest" style={{ color: secondaryColor }}>
                       Masterpiece of the Month
                     </span>
                   </div>
                   <div className="p-6 bg-[#002b36]/60 border border-white/5 rounded-2xl flex gap-6 items-center shadow-xl">
                     <div className="relative w-36 h-52 shrink-0 rounded-xl overflow-hidden shadow-lg border border-white/10 bg-[#001b22] flex items-center justify-center">
-                      {monthlyRecap.masterpiece?.cover_image_path ? (
+                      {monthlyRecap.masterpiece?.cover_image_path && isValidImageUrl(monthlyRecap.masterpiece.cover_image_path) ? (
                         <img
                           alt="Masterpiece"
                           className="w-full h-full object-cover"
-                          src={monthlyRecap.masterpiece.cover_image_path}
+                          src={getProxiedImageUrl(monthlyRecap.masterpiece.cover_image_path)}
+                          crossOrigin="anonymous"
                         />
                       ) : (
-                        <span className="material-symbols-outlined text-4xl text-white/20">movie_filter</span>
+                        <Icon name="movie_filter" className="text-4xl text-white/20" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0 flex flex-col justify-center">
@@ -267,14 +452,14 @@ export const ProfileCardPreview: React.FC<ProfileCardPreviewProps> = ({
                       </p>
                       <div className="mt-4 flex gap-3.5">
                         <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-full flex items-center gap-1.5">
-                          <span className="material-symbols-outlined text-xs" style={{ color: secondaryColor }}>animation</span>
+                          <Icon name="animation" className="text-xs" style={{ color: secondaryColor }} />
                           <span className="text-[9px] font-bold uppercase tracking-wider text-text-high">
                             {monthlyRecap.masterpiece?.type || 'N/A'}
                           </span>
                         </div>
                         {monthlyRecap.masterpiece?.release_year && (
                           <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-full flex items-center gap-1.5">
-                            <span className="material-symbols-outlined text-xs" style={{ color: primaryColor }}>calendar_month</span>
+                            <Icon name="calendar_month" className="text-xs" style={{ color: primaryColor }} />
                             <span className="text-[9px] font-bold uppercase tracking-wider text-text-high">
                               {monthlyRecap.masterpiece.release_year}
                             </span>
@@ -290,19 +475,20 @@ export const ProfileCardPreview: React.FC<ProfileCardPreviewProps> = ({
                   {/* Bad Media */}
                   <div className="bg-[#002b36]/60 border border-white/5 p-5 rounded-2xl flex items-center gap-4 shadow-md">
                     <div className="w-16 h-24 shrink-0 bg-[#001b22] border border-white/5 rounded-lg overflow-hidden flex items-center justify-center relative">
-                      {monthlyRecap.badMedia?.cover_image_path ? (
+                      {monthlyRecap.badMedia?.cover_image_path && isValidImageUrl(monthlyRecap.badMedia.cover_image_path) ? (
                         <img
                           alt="Bad Media"
                           className="w-full h-full object-cover grayscale opacity-60"
-                          src={monthlyRecap.badMedia.cover_image_path}
+                          src={getProxiedImageUrl(monthlyRecap.badMedia.cover_image_path)}
+                          crossOrigin="anonymous"
                         />
                       ) : (
-                        <span className="material-symbols-outlined text-2xl text-white/20">heart_broken</span>
+                        <Icon name="heart_broken" className="text-2xl text-white/20" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0 flex flex-col">
                       <span className="text-[9px] font-bold text-red-400 uppercase tracking-widest mb-1 flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[10px]">sentiment_very_dissatisfied</span>
+                        <Icon name="sentiment_very_dissatisfied" className="text-[10px]" />
                         Bad Media of the Month
                       </span>
                       <h3 className="text-sm font-bold text-white truncate">
@@ -323,9 +509,7 @@ export const ProfileCardPreview: React.FC<ProfileCardPreviewProps> = ({
 
                   {/* Highlight Quote */}
                   <div className="relative py-2 pl-4">
-                    <span className="material-symbols-outlined absolute -top-4 -left-1 opacity-20 text-5xl" style={{ color: primaryColor }}>
-                      format_quote
-                    </span>
+                    <Icon name="format_quote" className="absolute -top-4 -left-1 opacity-20 text-5xl" style={{ color: primaryColor }} />
                     <p className="text-lg italic font-light text-white relative z-10 leading-snug">
                       "{monthlyRecap.highlightPhrase}"
                     </p>
@@ -337,19 +521,19 @@ export const ProfileCardPreview: React.FC<ProfileCardPreviewProps> = ({
               <div className="flex justify-between items-center border-t border-white/10 pt-6 mt-2">
                 <div className="flex gap-8">
                   <div className="flex flex-col">
-                    <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider">Total Consumido</span>
+                    <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider whitespace-nowrap">Total Consumido</span>
                     <span className="text-lg font-bold mt-0.5" style={{ color: primaryColor }}>
                       {formatTotalHours(monthlyRecap.minutes)}
                     </span>
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider">Monthly Media</span>
+                    <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider whitespace-nowrap">Monthly Media</span>
                     <span className="text-lg font-bold mt-0.5" style={{ color: secondaryColor }}>
                       {monthlyRecap.completedCount}
                     </span>
                   </div>
                   <div className="flex flex-col pl-2">
-                    <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider">Top Genres</span>
+                    <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider whitespace-nowrap">Top Genres</span>
                     <div className="flex flex-col gap-0.5 mt-0.5">
                       {monthlyRecap.topGenres && monthlyRecap.topGenres.length > 0 ? (
                         monthlyRecap.topGenres.map((g, idx) => (
@@ -363,7 +547,7 @@ export const ProfileCardPreview: React.FC<ProfileCardPreviewProps> = ({
                     </div>
                   </div>
                   <div className="flex flex-col border-l border-white/10 pl-6 gap-0.5">
-                    <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider">
+                    <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider whitespace-nowrap">
                       Top Media (Month)
                     </span>
                     <div className="flex flex-col gap-0.5 mt-0.5">
@@ -430,8 +614,8 @@ export const ProfileCardPreview: React.FC<ProfileCardPreviewProps> = ({
                     className="w-10 h-10 rounded-full border bg-[#002b36] flex items-center justify-center text-xl shrink-0"
                     style={{ borderColor: `${primaryColor}4d` }}
                   >
-                    {userAvatar.startsWith('http') ? (
-                      <img alt="Avatar" className="w-full h-full object-cover rounded-full" src={userAvatar} crossOrigin="anonymous" />
+                    {userAvatar.startsWith('http') && isValidImageUrl(userAvatar) ? (
+                      <img alt="Avatar" className="w-full h-full object-cover rounded-full" src={getProxiedImageUrl(userAvatar)} crossOrigin="anonymous" />
                     ) : (
                       <span>{userAvatar}</span>
                     )}
@@ -451,14 +635,15 @@ export const ProfileCardPreview: React.FC<ProfileCardPreviewProps> = ({
                 <div className="bg-[#002b36]/60 border border-white/5 rounded-xl p-3 shadow-md">
                   <div className="flex gap-4">
                     <div className="relative shrink-0 w-20 aspect-[2/3] rounded-lg overflow-hidden border border-white/10 bg-[#001b22] flex items-center justify-center">
-                      {monthlyRecap.masterpiece?.cover_image_path ? (
+                      {monthlyRecap.masterpiece?.cover_image_path && isValidImageUrl(monthlyRecap.masterpiece.cover_image_path) ? (
                         <img
                           alt="Masterpiece"
                           className="w-full h-full object-cover"
-                          src={monthlyRecap.masterpiece.cover_image_path}
+                          src={getProxiedImageUrl(monthlyRecap.masterpiece.cover_image_path)}
+                          crossOrigin="anonymous"
                         />
                       ) : (
-                        <span className="material-symbols-outlined text-2xl text-white/20">movie_filter</span>
+                        <Icon name="movie_filter" className="text-2xl text-white/20" />
                       )}
                       <div
                         className="absolute top-0 left-0 px-1.5 py-0.5 text-[10px] font-bold text-white rounded-br shadow"
@@ -472,7 +657,7 @@ export const ProfileCardPreview: React.FC<ProfileCardPreviewProps> = ({
                         <span className="text-[8px] uppercase tracking-[0.2em] font-bold" style={{ color: secondaryColor }}>
                           Monthly Masterpiece
                         </span>
-                        <span className="material-symbols-outlined text-xs" style={{ color: secondaryColor }}>stars</span>
+                        <Icon name="stars" className="text-xs" style={{ color: secondaryColor }} />
                       </div>
                       <h2 className="text-sm font-bold text-white truncate">
                         {monthlyRecap.masterpiece?.title || 'No completed media'}
@@ -502,14 +687,15 @@ export const ProfileCardPreview: React.FC<ProfileCardPreviewProps> = ({
                 <section>
                   <div className="bg-[#002b36]/60 border border-white/5 p-3 rounded-xl flex items-center gap-3 shadow">
                     <div className="w-10 h-10 rounded overflow-hidden bg-[#001b22] border border-white/5 shrink-0 flex items-center justify-center relative">
-                      {monthlyRecap.badMedia.cover_image_path ? (
+                      {monthlyRecap.badMedia.cover_image_path && isValidImageUrl(monthlyRecap.badMedia.cover_image_path) ? (
                         <img
                           alt="Bad Media"
                           className="w-full h-full object-cover grayscale opacity-60"
-                          src={monthlyRecap.badMedia.cover_image_path}
+                          src={getProxiedImageUrl(monthlyRecap.badMedia.cover_image_path)}
+                          crossOrigin="anonymous"
                         />
                       ) : (
-                        <span className="material-symbols-outlined text-lg text-white/20">heart_broken</span>
+                        <Icon name="heart_broken" className="text-lg text-white/20" />
                       )}
                       <div className="absolute top-0 left-0 bg-red-500 text-white px-1 text-[8px] font-bold rounded-br leading-none py-0.5">
                         {monthlyRecap.badMedia.score}
@@ -534,9 +720,9 @@ export const ProfileCardPreview: React.FC<ProfileCardPreviewProps> = ({
                   className="bg-[#002b36]/60 border border-white/5 rounded-xl flex flex-col justify-between h-20 p-2.5 shadow border-t-2"
                   style={{ borderTopColor: secondaryColor }}
                 >
-                  <span className="material-symbols-outlined text-lg" style={{ color: secondaryColor }}>trending_up</span>
+                  <Icon name="trending_up" className="text-lg" style={{ color: secondaryColor }} />
                   <div>
-                    <p className="text-[8px] uppercase tracking-wider text-text-muted font-bold">Monthly Media</p>
+                    <p className="text-[8px] uppercase tracking-wider text-text-muted font-bold whitespace-nowrap">Monthly Media</p>
                     <p className="text-sm font-bold text-white mt-0.5">{monthlyRecap.completedCount}</p>
                   </div>
                 </div>
@@ -545,9 +731,9 @@ export const ProfileCardPreview: React.FC<ProfileCardPreviewProps> = ({
                   className="bg-[#002b36]/60 border border-white/5 rounded-xl flex flex-col justify-between h-20 p-2.5 shadow border-t-2"
                   style={{ borderTopColor: primaryColor }}
                 >
-                  <span className="material-symbols-outlined text-lg" style={{ color: primaryColor }}>schedule</span>
+                  <Icon name="schedule" className="text-lg" style={{ color: primaryColor }} />
                   <div>
-                    <p className="text-[8px] uppercase tracking-wider text-text-muted font-bold">Total Consumed</p>
+                    <p className="text-[8px] uppercase tracking-wider text-text-muted font-bold whitespace-nowrap">Total Consumed</p>
                     <p className="text-sm font-bold text-white mt-0.5">{formatTotalHours(monthlyRecap.minutes)}</p>
                   </div>
                 </div>
@@ -557,13 +743,13 @@ export const ProfileCardPreview: React.FC<ProfileCardPreviewProps> = ({
                   style={{ borderTopColor: tertiaryColor }}
                 >
                   <div className="flex justify-between items-start">
-                    <span className="material-symbols-outlined text-lg" style={{ color: tertiaryColor }}>insights</span>
-                    <span className="text-[8px] uppercase tracking-wider text-text-muted font-bold">Monthly Summary</span>
+                    <Icon name="insights" className="text-lg" style={{ color: tertiaryColor }} />
+                    <span className="text-[8px] uppercase tracking-wider text-text-muted font-bold whitespace-nowrap">Monthly Summary</span>
                   </div>
                   <div className="grid grid-cols-2 gap-3 mt-1 text-left">
                     {/* Left: Top Obras */}
                     <div className="flex flex-col gap-1 min-w-0">
-                      <span className="text-[8px] font-bold text-text-muted uppercase tracking-wider">Top Media</span>
+                      <span className="text-[8px] font-bold text-text-muted uppercase tracking-wider whitespace-nowrap">Top Media</span>
                       <div className="flex flex-col gap-0.5">
                         {monthlyRecap.trinity && monthlyRecap.trinity.length > 0 ? (
                           monthlyRecap.trinity.map((item, idx) => (
@@ -578,7 +764,7 @@ export const ProfileCardPreview: React.FC<ProfileCardPreviewProps> = ({
                     </div>
                     {/* Right: Top Gêneros */}
                     <div className="flex flex-col gap-1 min-w-0">
-                      <span className="text-[8px] font-bold text-text-muted uppercase tracking-wider">Top Genres</span>
+                      <span className="text-[8px] font-bold text-text-muted uppercase tracking-wider whitespace-nowrap">Top Genres</span>
                       <div className="flex flex-col gap-0.5">
                         {monthlyRecap.topGenres && monthlyRecap.topGenres.length > 0 ? (
                           monthlyRecap.topGenres.map((g, idx) => (
