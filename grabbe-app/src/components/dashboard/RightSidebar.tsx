@@ -20,7 +20,7 @@ export const RightSidebar = ({ items = [] }: { items?: any[] }) => {
               <div 
                 key={item.id} 
                 className="flex gap-4 group cursor-pointer"
-                onClick={() => navigate(`/media/${item.external_id}?source=${item.source_api}&type=${item.type}`, { state: { from: 'Dashboard', path: '/dashboard' } })}
+                onClick={() => navigate(`/media/${item.external_id}?source=${item.source_api}&type=${item.type}`, { state: { from: 'Dashboard', path: '/' } })}
               >
                 <div className="w-12 h-16 bg-surface-container-high rounded overflow-hidden shrink-0">
                   {item.cover_image_path ? (
@@ -67,7 +67,7 @@ export const RightSidebar = ({ items = [] }: { items?: any[] }) => {
               <div 
                 key={item.id} 
                 className="flex gap-4 group cursor-pointer"
-                onClick={() => navigate(`/media/${item.external_id}?source=${item.source_api}&type=${item.type}`, { state: { from: 'Dashboard', path: '/dashboard' } })}
+                onClick={() => navigate(`/media/${item.external_id}?source=${item.source_api}&type=${item.type}`, { state: { from: 'Dashboard', path: '/' } })}
               >
                 <div className="w-12 h-16 bg-surface-container-high rounded overflow-hidden shrink-0 grayscale group-hover:grayscale-0 transition-all opacity-80 group-hover:opacity-100">
                   {item.cover_image_path ? (
