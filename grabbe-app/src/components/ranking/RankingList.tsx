@@ -1,6 +1,7 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { RankingRow } from './RankingRow';
 import { useRankingStore } from '../../store/rankingStore';
+import { GenreFilterModal } from '../modals/GenreFilterModal';
 
 interface RankingListProps {
   items: any[];
@@ -9,10 +10,56 @@ interface RankingListProps {
 }
 
 export const RankingList = ({ items, isLoading, onOpenModal }: RankingListProps) => {
-  const { nameSort, scoreSort, setNameSort, setScoreSort } = useRankingStore();
+  const { nameSort, scoreSort, setNameSort, setScoreSort, selectedGenres, setSelectedGenres } = useRankingStore();
+  const [isGenreModalOpen, setIsGenreModalOpen] = useState(false);
+
+  const uniqueGenres = useMemo(() => {
+    const genresSet = new Set<string>();
+    items.forEach(item => {
+      if (item.genres) {
+        try {
+          const parsed = typeof item.genres === 'string' ? JSON.parse(item.genres) : item.genres;
+          if (Array.isArray(parsed)) {
+            parsed.forEach(g => {
+              if (typeof g === 'string' && g.trim()) {
+                genresSet.add(g.trim());
+              }
+            });
+          }
+        } catch (e) {
+          if (typeof item.genres === 'string') {
+            item.genres.split(',').forEach((g: string) => {
+              if (g.trim()) genresSet.add(g.trim());
+            });
+          }
+        }
+      }
+    });
+    return Array.from(genresSet).sort();
+  }, [items]);
+
+  const filteredItems = useMemo(() => {
+    if (selectedGenres.length === 0) return items;
+    return items.filter(item => {
+      if (!item.genres) return false;
+      const itemGenresList: string[] = (() => {
+        try {
+          const parsed = typeof item.genres === 'string' ? JSON.parse(item.genres) : item.genres;
+          return Array.isArray(parsed) ? parsed.map((g: string) => g.trim().toLowerCase()) : [];
+        } catch (e) {
+          if (typeof item.genres === 'string') {
+            return item.genres.split(',').map((g: string) => g.trim().toLowerCase()).filter(Boolean);
+          }
+          return [];
+        }
+      })();
+      
+      return selectedGenres.some(sg => itemGenresList.includes(sg.toLowerCase()));
+    });
+  }, [items, selectedGenres]);
 
   const sortedItems = useMemo(() => {
-    return [...items].sort((a, b) => {
+    return [...filteredItems].sort((a, b) => {
       // Primary sort: Score
       if (a.score !== b.score) {
         return scoreSort === 'desc' ? b.score - a.score : a.score - b.score;
@@ -24,7 +71,7 @@ export const RankingList = ({ items, isLoading, onOpenModal }: RankingListProps)
       if (nameA > nameB) return nameSort === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [items, nameSort, scoreSort]);
+  }, [filteredItems, nameSort, scoreSort]);
 
   if (isLoading) {
     return (
@@ -76,6 +123,21 @@ export const RankingList = ({ items, isLoading, onOpenModal }: RankingListProps)
             </span>
           </div>
 
+          <div 
+            className="w-48 shrink-0 flex items-center gap-2 cursor-pointer hover:text-text-base transition-colors select-none group"
+            onClick={() => setIsGenreModalOpen(true)}
+          >
+            Genre
+            <span className={`material-symbols-outlined text-[16px] transition-all group-hover:scale-110 ${selectedGenres.length > 0 ? 'text-primary' : 'text-text-muted/60 group-hover:text-text-muted'}`}>
+              filter_alt
+            </span>
+            {selectedGenres.length > 0 && (
+              <span className="bg-primary/20 text-primary border border-primary/30 px-1.5 py-0.5 rounded-full text-[9px] font-black">
+                {selectedGenres.length}
+              </span>
+            )}
+          </div>
+
           <div className="flex items-center gap-12 shrink-0 px-4">
             <div 
               className="flex items-center justify-center gap-2 w-16 cursor-pointer hover:text-text-base transition-colors select-none"
@@ -92,9 +154,32 @@ export const RankingList = ({ items, isLoading, onOpenModal }: RankingListProps)
         </div>
       </div>
 
-      {sortedItems.map((item, index) => (
-        <RankingRow key={item.id || index} item={item} onOpenModal={onOpenModal} />
-      ))}
+      {sortedItems.length > 0 ? (
+        sortedItems.map((item, index) => (
+          <RankingRow key={item.id || index} item={item} onOpenModal={onOpenModal} />
+        ))
+      ) : (
+        <div className="flex flex-col items-center justify-center py-16 text-center bg-surface/30 rounded-2xl border border-outline-variant/10">
+          <span className="material-symbols-outlined text-4xl text-text-muted mb-2 opacity-50">
+            filter_list_off
+          </span>
+          <p className="text-text-muted text-sm font-semibold">No media matches the selected genre filters.</p>
+          <button
+            onClick={() => setSelectedGenres([])}
+            className="mt-3 text-xs font-bold text-primary hover:underline"
+          >
+            Clear Filters
+          </button>
+        </div>
+      )}
+
+      <GenreFilterModal
+        isOpen={isGenreModalOpen}
+        availableGenres={uniqueGenres}
+        initialSelectedGenres={selectedGenres}
+        onApply={setSelectedGenres}
+        onClose={() => setIsGenreModalOpen(false)}
+      />
     </div>
   );
 };
