@@ -128,7 +128,7 @@ export const MediaHeader = ({
               <span className="text-xl font-black text-text-high">
                 {externalRating !== undefined && externalRating !== null ? externalRating : '—'}
               </span>
-              <div className="w-[1px] h-4 bg-outline-variant/40" />
+              <div className="w-px h-4 bg-outline-variant/40" />
               <img src={apiInfo.logo} alt={apiInfo.name} className="h-4.5 w-auto object-contain brightness-90 group-hover:brightness-100 transition-all" />
             </a>
           ) : (
