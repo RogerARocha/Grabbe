@@ -50,6 +50,11 @@ const API_REFS: Record<string, ApiRef> = {
     url: 'https://www.themoviedb.org',
     name: 'TMDB'
   },
+  ANILIST: {
+    logo: 'https://anilist.co/img/icons/icon.svg',
+    url: 'https://anilist.co',
+    name: 'AniList'
+  },
   JIKAN: {
     logo: '/ref-logos/jikan.f848d5d6.svg',
     url: 'https://jikan.moe',
