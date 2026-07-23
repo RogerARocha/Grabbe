@@ -5,6 +5,7 @@ import { MediaType } from '../shared/types';
 export const SOURCE_COLOR: Record<string, string> = {
   TMDB: 'text-primary',
   JIKAN: 'text-warning',
+  ANILIST: 'text-warning',
   GBOOKS: 'text-secondary',
   OPENLIBRARY: 'text-secondary',
   IGDB: 'text-tertiary',

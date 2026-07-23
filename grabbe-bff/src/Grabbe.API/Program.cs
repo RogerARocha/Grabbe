@@ -1,5 +1,6 @@
 using Grabbe.API.Infrastructure.Configuration;
 using Grabbe.API.Infrastructure.ExternalClients;
+using Grabbe.API.Infrastructure.ExternalClients.AniList;
 using Grabbe.API.Infrastructure.ExternalClients.OpenLibrary;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -33,14 +34,14 @@ builder.Services.AddScoped<MalImportService>();
 builder.Services.AddScoped<LetterboxdImportService>();
 builder.Services.AddScoped<NetflixImportService>();
 builder.Services.AddHttpClient<TmdbClient>();
-builder.Services.AddHttpClient<JikanClient>();
+builder.Services.AddHttpClient<AniListClient>();
 builder.Services.AddHttpClient<OpenLibraryClient>();
 builder.Services.AddHttpClient<IgdbClient>();
 
 // Each typed HttpClient is also registered as IMediaProviderClient so the aggregation
 // and details services can resolve all providers via DI without knowing concrete types.
 builder.Services.AddTransient<IMediaProviderClient>(sp => sp.GetRequiredService<TmdbClient>());
-builder.Services.AddTransient<IMediaProviderClient>(sp => sp.GetRequiredService<JikanClient>());
+builder.Services.AddTransient<IMediaProviderClient>(sp => sp.GetRequiredService<AniListClient>());
 builder.Services.AddTransient<IMediaProviderClient>(sp => sp.GetRequiredService<OpenLibraryClient>());
 builder.Services.AddTransient<IMediaProviderClient>(sp => sp.GetRequiredService<IgdbClient>());
 

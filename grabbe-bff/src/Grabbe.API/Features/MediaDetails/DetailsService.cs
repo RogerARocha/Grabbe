@@ -27,7 +27,10 @@ public class DetailsService
     public async Task<GrabbeMediaDTO?> GetMediaDetailsAsync(string sourceApi, string type, string externalId)
     {
         var targetClient = _clients.FirstOrDefault(c =>
-            c.ProviderName.Equals(sourceApi, StringComparison.OrdinalIgnoreCase));
+            c.ProviderName.Equals(sourceApi, StringComparison.OrdinalIgnoreCase))
+            ?? (sourceApi.Equals("JIKAN", StringComparison.OrdinalIgnoreCase)
+                ? _clients.FirstOrDefault(c => c.ProviderName.Equals("ANILIST", StringComparison.OrdinalIgnoreCase))
+                : null);
 
         if (targetClient == null)
         {
