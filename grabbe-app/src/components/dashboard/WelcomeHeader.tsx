@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { calculateInvestedMinutes } from '../../lib/timeMetrics';
 import { getSetting } from '../../lib/db';
+import { getNewItemsThisWeekCount } from '../../lib/dateUtils';
 
 export const WelcomeHeader = ({ items = [] }: { items?: any[] }) => {
   const [randomMessage, setRandomMessage] = useState('');
@@ -28,10 +29,7 @@ export const WelcomeHeader = ({ items = [] }: { items?: any[] }) => {
   }, []);
 
   useEffect(() => {
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    
-    const newThisWeek = items.filter(i => i.created_at && new Date(i.created_at) >= oneWeekAgo).length;
+    const newThisWeek = getNewItemsThisWeekCount(items);
     const masterpieces = items.filter(i => i.score === 10).length;
     
     const completedCount = items.filter(i => i.status === 'COMPLETED').length;

@@ -31,7 +31,7 @@ public class SearchAggregationService
 
     /// <summary>
     /// Routes a search query only to providers that support the specified media type,
-    /// avoiding unnecessary network calls to irrelevant providers (e.g., skips Jikan for "MOVIE").
+    /// avoiding unnecessary network calls to irrelevant providers (e.g., skips AniList for "MOVIE").
     /// </summary>
     /// <param name="query">The user's search term.</param>
     /// <param name="type">The normalized media type filter (e.g., "ANIME", "BOOK").</param>

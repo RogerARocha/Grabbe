@@ -21,7 +21,7 @@ Built under the **Local-First** paradigm, Grabbe ensures the user has full owner
 
 ## **3. Detailed Technical Architecture**
 
-The architecture consists of a local-first desktop client running Tauri, which integrates a C# (.NET 9.0) background process acting as a **local BFF sidecar** (gateway and normalizer). 
+The architecture consists of a local-first desktop client running Tauri, which integrates a C# (.NET 9.0) background process acting as a **local BFF sidecar** (gateway and normalizer).
 
 * **Local-First & Sidecar Execution:** In production, the BFF is compiled as a self-contained sidecar executable and packaged with the application (configured in `tauri.conf.prod.json`). Tauri spawns and manages the lifetime of this local BFF process. Communication between Tauri and the BFF occurs over `localhost:18493`.
 * **Zero Cloud Dependency for Core Logic:** The primary SQLite database resides entirely on the user's machine, allowing the app to read, write, rank, and track media offline. The BFF is used purely as an anti-corruption layer to query external metadata APIs when online.
@@ -51,26 +51,26 @@ graph TD
     subgraph ExternalAPIs ["External APIs (Metadata Providers)"]
         TMDB["TMDB API (Movies/Series)"]
         IGDB["IGDB API (Games)"]
-        Jikan["Jikan API (Anime/Manga)"]
+        AniList["AniList API (Anime/Manga)"]
         OpenLibrary["Open Library API (Books)"]
     end
 
     BFF -->|Normalized Fetch| TMDB
     BFF -->|Normalized Fetch| IGDB
-    BFF -->|Normalized Fetch| Jikan
+    BFF -->|Normalized Fetch| AniList
     BFF -->|Normalized Fetch| OpenLibrary
 ```
 
 ## **4. BFF (Backend for Frontend) Aggregator Design**
 
-The BFF acts as a shield between Grabbe Desktop and third-party APIs. The desktop client **never** makes direct requests to TMDB or Jikan.
+The BFF acts as a shield between Grabbe Desktop and third-party APIs. The desktop client **never** makes direct requests to TMDB or AniList.
 
 ### **4.1. Overview and Responsibilities**
 
 Grabbe's Backend for Frontend (BFF) acts as an intermediary (Aggregator and Normalizer). It has three main responsibilities:
 
-1. **Contract Unification / Anti-Corruption Layer (ACL):** Whether the source is TMDB, Jikan, OpenLibrary, or IGDB, the BFF receives distinct JSON payloads from each provider and transforms them into a single universal standard (`GrabbeMediaDTO`). Each external client acts as an ACL boundary, ensuring the Tauri frontend never depends on external API-specific structures. The DTO is source-agnostic, abstracts concepts into universal terms, and normalizes details like community scores.
-2. **Rate Limit Protection and Management:** APIs like IGDB and Jikan have strict limits. The BFF manages client instantiation and throttling (e.g. via Polly retries) to handle rate-limiting.
+1. **Contract Unification / Anti-Corruption Layer (ACL):** Whether the source is TMDB, AniList, OpenLibrary, or IGDB, the BFF receives distinct JSON payloads from each provider and transforms them into a single universal standard (`GrabbeMediaDTO`). Each external client acts as an ACL boundary, ensuring the Tauri frontend never depends on external API-specific structures. The DTO is source-agnostic, abstracts concepts into universal terms, and normalizes details like community scores.
+2. **Rate Limit Protection and Management:** APIs like IGDB and AniList (90 req/min) have strict limits. The BFF manages client instantiation and throttling (e.g. via Polly retries) to handle rate-limiting.
 3. **Structured Caching (Planned):** A structured `Infrastructure/Cache/` module exists to cache provider responses locally for repeated searches, reducing duplicate API queries. (This is planned for future optimization and is empty/inactive in the initial v1.0.0 release).
 
 ### **4.2. Project Structure and Environment Setup**
@@ -80,18 +80,20 @@ The project follows a structure based on separation of concerns by features (Ver
 ```plaintext
 grabbe-bff/  
 ├── .gitignore               # Ignores local configurations (.env.local, bin/, obj/, etc.)  
-├── .env.local               # Local file for API credentials (MUST NOT be committed)  
+├── .env.local               # Local file for API credentials (optional override)  
 ├── Grabbe.BFF.sln           # C# Solution file  
 └── src/  
     └── Grabbe.API/  
         ├── Grabbe.API.csproj  # Project file  
-        ├── Program.cs         # Application entry and dependency injection setup  
+        ├── Program.cs         # Application entry, CORS, stdin lifetime watcher, and DI setup  
         ├── appsettings.json  
         ├── Domain/  
         │   └── DTOs/  
         │       └── GrabbeMediaDTO.cs  
         ├── Features/  
-        │   ├── Credentials/   # Key validation endpoints  
+        │   ├── Credentials/   # Key validation endpoints (CredentialsController.cs)
+        │   ├── Export/        # Data export endpoints (ExportController.cs)
+        │   ├── Imports/       # Third-party CSV/JSON importers (ImportController.cs, MalImportService, LetterboxdImportService, NetflixImportService)
         │   ├── MediaDetails/  
         │   │   ├── DetailsController.cs  
         │   │   └── DetailsService.cs  
@@ -104,22 +106,26 @@ grabbe-bff/
             │   └── AppSettingsService.cs  # Resolves credentials from local SQLite DB or .NET configs  
             └── ExternalClients/  
                 ├── IMediaProviderClient.cs  
+                ├── RetryHelper.cs
                 ├── TMDB/  
-                ├── Jikan/  
+                ├── AniList/  
                 ├── OpenLibrary/
                 └── IGDB/
 ```
 
-**Development Setup:**
+**Development Setup & Configuration:**
 
 * The solution can be natively opened in Rider or Visual Studio, ensuring the `.sln` and `.csproj` files are properly tracked by Git.
-* Sensitive keys (like TMDB API keys and IGDB Twitch Client credentials) must be isolated in the `.env.local` file at the project root for local development, or configured as Environment Variables.
+* Sensitive keys (like TMDB API keys and IGDB Twitch Client credentials) are resolved via the standard `.NET Configuration Hierarchy`:
+  - **Development:** Managed via `dotnet user-secrets` or `.env.local` to keep secrets out of source control.
+  - **Production:** Resolved from System Environment Variables or populated directly by the user via the app's Onboarding / Settings interface (stored in local SQLite `AppSettings`).
+
 
 ### **4.3. Concurrency and Performance Patterns**
 
 For global searches (when the user doesn't filter the media type and searches all sources simultaneously), the BFF must optimize response times by executing concurrent asynchronous calls.
 
-The `SearchAggregationService` will use `Task.WhenAll` to fire requests to TMDB, Jikan, OpenLibrary, and IGDB at the same time, await all of them, flatten the lists, and return the unified array to the frontend.
+The `SearchAggregationService` will use `Task.WhenAll` to fire requests to TMDB, AniList, OpenLibrary, and IGDB at the same time, await all of them, flatten the lists, and return the unified array to the frontend.
 
 ### **4.4. External Clients Specifications (Inputs)**
 
@@ -140,20 +146,21 @@ Each external client maps only the necessary fields from its API into the univer
   * `credits.crew` (Director) + `credits.cast` (top 5) -> `KeyPeople`
   * `alternative_titles` -> `AlternativeTitles`
 
-## B. Jikan Client (Anime and Manga)**
+## B. AniList Client (Anime and Manga)**
 
-* **Base Endpoint:** `https://api.jikan.moe/v4`
-* **Authentication:** None (Open API).
-* **Critical Restriction:** Limit of 3 requests per second. The `JikanClient` should implement a retry policy (e.g., Polly library with exponential backoff) to handle the 429 Too Many Requests status.
+* **Base Endpoint:** `https://graphql.anilist.co` (GraphQL POST)
+* **Authentication:** None (Public GraphQL API).
+* **Rate Limit:** 90 requests per minute with clear `X-RateLimit` headers.
+* **Backward Compatibility:** Native AniList IDs (`id`) with transparent `idMal` fallback query to resolve legacy MyAnimeList / Jikan IDs.
 * **Mapping:**
-  * `images.jpg.image_url` -> `CoverImageUrl`
-  * `synopsis` -> `Description`
-  * `score` -> `CommunityScore` (already 0-10 scale)
-  * `studios[0].name` (Anime) / `serializations[0].name` (Manga) -> `PublisherOrStudio`
-  * `duration` -> `FormattedConsumptionMetric` (used as-is, e.g. "24 min per ep")
-  * `episodes` (Anime) / `chapters` (Manga) -> `TotalProgressUnits`
-  * `titles` (non-Default) -> `AlternativeTitles`
-  * `KeyPeople`: left empty (would require extra `/characters` call).
+  * `coverImage.extraLarge` / `large` -> `CoverImageUrl`
+  * `description` -> `Description` (HTML tags stripped, `<br>` transformed to newlines)
+  * `averageScore` -> `CommunityScore` (divided by 10 to normalize 0-100 to 0-10 scale)
+  * `studios.nodes[0].name` (Anime) / `staff` author (Manga) -> `PublisherOrStudio`
+  * `duration` -> `FormattedConsumptionMetric` ("X min per ep")
+  * `episodes` (Anime) / `chapters` or `volumes` (Manga) -> `TotalProgressUnits`
+  * `title` variants (`english`, `romaji`, `native`) -> `AlternativeTitles`
+  * `staff.edges` -> `KeyPeople` (top 10 staff members mapped to `MediaPersonDTO`)
 
 ## C. Open Library Client (Books)**
 
@@ -197,7 +204,7 @@ CREATE TABLE AppSettings (
 CREATE TABLE Media (
     id TEXT PRIMARY KEY, -- Locally generated UUID
     external_id TEXT NOT NULL, -- Original API ID (e.g. TMDB id)
-    source_api TEXT NOT NULL, -- 'TMDB', 'JIKAN', 'OPENLIBRARY', 'IGDB'
+    source_api TEXT NOT NULL, -- 'TMDB', 'ANILIST', 'OPENLIBRARY', 'IGDB'
     type TEXT NOT NULL, -- 'MOVIE', 'SERIES', 'ANIME', 'MANGA', 'BOOK', 'GAME'
     title TEXT NOT NULL,
     description TEXT,
@@ -299,7 +306,7 @@ The user will have a global view of their reviews.
 
 ### **7.1. Unified Object Pattern (GrabbeMediaDTO) — Anti-Corruption Layer**
 
-The BFF acts as an **Anti-Corruption Layer (ACL)**: each external client translates provider-specific responses into this universal, source-agnostic contract. The frontend never sees TMDB, Jikan, or GBooks data structures — only `GrabbeMediaDTO`.
+The BFF acts as an **Anti-Corruption Layer (ACL)**: each external client translates provider-specific responses into this universal, source-agnostic contract. The frontend never sees TMDB, AniList, or GBooks data structures — only `GrabbeMediaDTO`.
 
 **A. C# Class (BFF Output):**
 
@@ -309,7 +316,7 @@ namespace Grabbe.API.Domain.DTOs;
 public class GrabbeMediaDTO
 {
     public required string ExternalId { get; set; }
-    public required string SourceApi { get; set; }  // "TMDB", "JIKAN", "OPENLIBRARY"
+    public required string SourceApi { get; set; }  // "TMDB", "ANILIST", "OPENLIBRARY"
     public required string Type { get; set; }       // "MOVIE", "SERIES", "ANIME", "MANGA", "BOOK", "GAME"
     public required string Title { get; set; }
     public string? Description { get; set; }
@@ -340,21 +347,24 @@ public class MediaPersonDTO
 
 ```json
 {
-  "externalId": "11004",
-  "sourceApi": "JIKAN",
+  "externalId": "20",
+  "sourceApi": "ANILIST",
   "type": "ANIME",
-  "title": "Hunter x Hunter (2011)",
-  "description": "Gon Freecss dreams of becoming a Hunter...",
-  "coverImageUrl": "https://cdn.myanimelist.net/...",
-  "releaseDate": "2011",
-  "genres": ["Action", "Adventure", "Fantasy"],
-  "originalLanguage": null,
-  "communityScore": 9.1,
-  "publisherOrStudio": "Madhouse",
+  "title": "NARUTO",
+  "description": "Naruto Uzumaki, a hyperactive and knuckle-headed ninja...",
+  "coverImageUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20-dE6UHbFFg1A5.jpg",
+  "releaseDate": "2002",
+  "genres": ["Action", "Adventure", "Comedy", "Drama", "Fantasy"],
+  "originalLanguage": "ja",
+  "communityScore": 8.0,
+  "publisherOrStudio": "Studio Pierrot",
   "formattedConsumptionMetric": "23 min per ep",
-  "totalProgressUnits": 148,
-  "alternativeTitles": ["ハンター×ハンター (2011)", "HxH (2011)"],
-  "keyPeople": []
+  "totalProgressUnits": 220,
+  "alternativeTitles": ["Naruto", "NARUTO -ナルト-"],
+  "keyPeople": [
+    { "name": "Masashi Kishimoto", "role": "Original Creator", "imageUrl": null },
+    { "name": "Hayato Date", "role": "Director", "imageUrl": null }
+  ]
 }
 ```
 
@@ -393,38 +403,60 @@ Responsible for searching media from the search bar. If no type is specified, it
 > **Note:** Pagination metadata (`meta.currentPage`, `meta.totalPages`) is not yet implemented. Results are returned as a flat array under `data`.
 
 **2. Deep Media Details**
-Fetches deep metadata of the work, bypassing batch search cache limits.
+Fetches deep metadata of the work, bypassing batch search cache limits. Supports both native AniList IDs and legacy MyAnimeList IDs (via `sourceApi = "JIKAN"`).
 
 * **Route:** `GET /api/v1/media/{sourceApi}/{type}/{externalId}`
-* **Example:** `/api/v1/media/JIKAN/ANIME/11004`
+* **Example:** `/api/v1/media/ANILIST/ANIME/20`
 * **Response Example:**
 
 ```json
 {
   "data": {
-    "externalId": "11004",
-    "sourceApi": "JIKAN",
+    "externalId": "20",
+    "sourceApi": "ANILIST",
     "type": "ANIME",
-    "title": "Hunter x Hunter (2011)",
-    "description": "Gon Freecss dreams of becoming a Hunter...",
-    "coverImageUrl": "https://cdn.myanimelist.net/...",
-    "releaseDate": "2011",
-    "genres": ["Action", "Adventure"],
-    "communityScore": 9.1,
-    "publisherOrStudio": "Madhouse",
+    "title": "NARUTO",
+    "description": "Naruto Uzumaki, a hyperactive and knuckle-headed ninja...",
+    "coverImageUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20-dE6UHbFFg1A5.jpg",
+    "releaseDate": "2002",
+    "genres": ["Action", "Adventure", "Comedy", "Drama", "Fantasy"],
+    "originalLanguage": "ja",
+    "communityScore": 8.0,
+    "publisherOrStudio": "Studio Pierrot",
     "formattedConsumptionMetric": "23 min per ep",
-    "totalProgressUnits": 148,
-    "alternativeTitles": ["ハンター×ハンター (2011)"],
-    "keyPeople": []
+    "totalProgressUnits": 220,
+    "alternativeTitles": ["Naruto", "NARUTO -ナルト-"],
+    "keyPeople": [
+      { "name": "Masashi Kishimoto", "role": "Original Creator", "imageUrl": null }
+    ]
   }
 }
 ```
 
-**3. Trending (Hot Items)**
-Feeds the "Discover" tab.
+**3. Credentials Validation**  
+Validates user-provided API credentials for TMDB and IGDB.
 
-* **Route:** `GET /api/v1/trending?type={mediaType}`
-* **Status:** ⚠️ Not yet implemented — endpoint does not exist in the current BFF codebase.
+* **Route:** `GET /api/v1/credentials/validate?tmdbKey={key}&igdbClientId={id}&igdbClientSecret={secret}`
+* **Response:** `{ "tmdbValid": true, "igdbValid": true }`
+
+**4. Data Import Engine**  
+Parses exported user history files from third-party services (MyAnimeList, Letterboxd, Netflix) and converts them into Grabbe tracking records.
+
+* **Routes:**  
+  * `POST /api/v1/imports/mal` (Accepts MAL XML export file)  
+  * `POST /api/v1/imports/letterboxd` (Accepts Letterboxd CSV export file)  
+  * `POST /api/v1/imports/netflix` (Accepts Netflix viewing history CSV file)  
+
+**5. Data Export Engine**  
+Generates portable snapshots of the user's local tracking database.
+
+* **Routes:**  
+  * `GET /api/v1/export/json`  
+  * `GET /api/v1/export/csv`  
+
+**6. Sidecar Lifecycle & Process Security**  
+* **Parent Lifetime Binding:** The BFF process runs an asynchronous background loop monitoring `Console.ReadLine()`. When the parent Tauri process terminates, closing standard input (stdin), the BFF sidecar immediately self-terminates (`Environment.Exit(0)`).  
+* **CORS Protection:** Configured with an `AllowTauri` CORS policy allowing requests only from trusted Tauri local origins (`http://localhost:1420`, `tauri://localhost`, `http://tauri.localhost`).
 
 ### **7.3. Standardized Error Handling**
 
@@ -434,8 +466,8 @@ If there is an external API failure or the rate limit is exceeded, the frontend 
 {
   "error": {
     "code": "EXTERNAL_API_RATE_LIMIT",
-    "message": "The source API (JIKAN) is currently limiting requests. Please try again.",
-    "sourceApi": "JIKAN"
+    "message": "The source API (ANILIST) is currently limiting requests. Please try again.",
+    "sourceApi": "ANILIST"
   }
 }
 ```
@@ -619,9 +651,9 @@ The following patterns should **never** have a comment:
 ### **Phase 1: MVP - Focus on Local Retention**
 
 * [x] Desktop Architecture Setup (Tauri) + SQLite.
-* [x] BFF Implementation for initial providers.
+* [x] BFF Implementation for initial providers (TMDB, AniList, Open Library, IGDB).
 * [x] CRUD operations on local tracking.
-* [x] Main Interface.
+* [x] Main Interface & Onboarding Wizard.
 * [x] Basic Ranking System (1 to 10).
 
 ### **Phase 2: Identity, Engagement, and Statistics**
@@ -629,12 +661,12 @@ The following patterns should **never** have a comment:
 * [x] Search history.
 * [x] Analytics Dashboard.
 * [x] Consumption Timeline.
-* [ ] Commands Palette
-* [ ] Unified Profile Card with exportable Banner.
+* [ ] Commands Palette.
+* [x] Unified Profile Card (`/profile` view & Hall of Fame).
 * [x] Grabbe Recap (Story Export).
-* [x] Manual data Export/Import.
+* [x] Manual data Export/Import (JSON/CSV + MAL, Letterboxd, Netflix importers).
 * [ ] Themes choices.
-* [x] Add new providers.
+* [x] Add new providers (AniList, Open Library, IGDB).
 
 ### **Phase 3: Cloud and Ecosystem**
 

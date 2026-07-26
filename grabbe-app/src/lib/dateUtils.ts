@@ -149,3 +149,27 @@ export const parseDate = (dStr: any): Date => {
 
   return new Date(str);
 };
+
+/**
+ * Calculates the start of the current calendar week (Sunday at 00:00:00.000).
+ */
+export function getStartOfCalendarWeek(refDate: Date = new Date()): Date {
+  const startOfWeek = new Date(refDate);
+  const day = startOfWeek.getDay();
+  startOfWeek.setDate(startOfWeek.getDate() - day);
+  startOfWeek.setHours(0, 0, 0, 0);
+  return startOfWeek;
+}
+
+/**
+ * Returns the number of items added during the current calendar week (starting Sunday).
+ */
+export function getNewItemsThisWeekCount(items: Array<{ created_at?: string | Date | null }>): number {
+  const startOfWeek = getStartOfCalendarWeek();
+  return items.filter(i => {
+    if (!i.created_at) return false;
+    const date = parseDate(i.created_at);
+    return !isNaN(date.getTime()) && date >= startOfWeek;
+  }).length;
+}
+

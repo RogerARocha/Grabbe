@@ -66,7 +66,7 @@ This work is licensed under the [MIT](./LICENSE) license.
 ⚠️ Legal Disclaimer
 Grabbe is a media aggregator developed for educational and personal purposes.
 
-Metadata & Images: All movie posters, book covers, and anime thumbnails displayed in the application are provided by third-party APIs (TMDB, Google Books, and Jikan). These assets are the intellectual property of their respective owners (studios, publishers, and creators). This project does not claim any ownership over these media assets.
+Metadata & Images: All movie posters, book covers, and anime thumbnails displayed in the application are provided by third-party APIs (TMDB, Google Books, Open Library, IGDB, and AniList). These assets are the intellectual property of their respective owners (studios, publishers, and creators). This project does not claim any ownership over these media assets.
 
 API Usage: This application uses the API services but is not endorsed or certified by any of the providers mentioned above.
 

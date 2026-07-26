@@ -11,7 +11,7 @@ The project was set up using **Vertical Slice Architecture** in **.NET 9** and h
 - [x] Environment Variables configured securely in the `.env.local` file using the `DotNetEnv` library.
 - [x] HTTP Clients registered and mapped for the 4 main APIs:
   - **TMDB Client** (Movies and Series)
-  - **Jikan Client** (Anime and Manga)
+  - **AniList Client** (Anime and Manga - GraphQL)
   - **OpenLibrary Client** (Books)
   - **IGDB Client** (Games)
 - [x] Polymorphism and abstraction completed: the 4 clients extend and register the unifying `IMediaProviderClient` interface.
@@ -37,7 +37,7 @@ src/Grabbe.API/
 │   └── ExternalClients/            # Mappings and integrations via HttpClient
 │       ├── IMediaProviderClient.cs # Media providers contract
 │       ├── TMDB/
-│       ├── Jikan/
+│       ├── AniList/
 │       ├── OpenLibrary/
 │       └── IGDB/
 ```
@@ -60,7 +60,7 @@ IGDB_CLIENT_ID=your_igdb_client_id_here
 IGDB_CLIENT_SECRET=your_igdb_client_secret_here
 ```
 
-*(Note: The Jikan API is open and does not require a key).*
+*(Note: AniList and OpenLibrary APIs are public and do not require API keys).*
 
 The repository is already configured in `.gitignore` to never commit `.env.local`.
 

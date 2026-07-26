@@ -22,7 +22,7 @@ import { MetadataLinker } from '../components/media-details/MetadataLinker';
 
 /**
  * Detailed view for a specific media item. 
- * Combines data fetched from the external API (TMDB/Jikan) with local tracking state.
+ * Combines data fetched from external APIs (TMDB/AniList/etc.) with local tracking state.
  */
 export const MediaDetails = () => {
   const { id: externalId } = useParams();
