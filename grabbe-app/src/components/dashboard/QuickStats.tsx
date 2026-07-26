@@ -1,16 +1,12 @@
 import { useNavigate } from 'react-router-dom';
 
 import { calculateInvestedMinutes, formatTotalHours } from '../../lib/timeMetrics';
+import { getNewItemsThisWeekCount } from '../../lib/dateUtils';
 
 export const QuickStats = ({ items = [] }: { items?: any[] }) => {
   const navigate = useNavigate();
   const totalMedia = items.length;
-  const startOfWeek = new Date();
-  const day = startOfWeek.getDay();
-  startOfWeek.setDate(startOfWeek.getDate() - day);
-  startOfWeek.setHours(0, 0, 0, 0);
-  
-  const newThisWeek = items.filter(i => i.created_at && new Date(i.created_at) >= startOfWeek).length;
+  const newThisWeek = getNewItemsThisWeekCount(items);
 
   const masterpieces = items.filter(i => i.score === 10).length;
 
