@@ -3,13 +3,13 @@ using System.Net;
 namespace Grabbe.API.Infrastructure.ExternalClients;
 
 /// <summary>
-/// Exception thrown when an external media provider (e.g. Jikan, TMDB, IGDB, GBooks) returns an error status code,
-/// transient upstream exception, or fails to respond.
+/// Exception thrown when an external media provider (e.g. AniList, TMDB, IGDB, GBooks) returns an error status code,
+/// encounters network failures, or returns unexpected JSON payloads.
 /// </summary>
 public class ExternalProviderException : Exception
 {
     /// <summary>
-    /// The name of the external provider (e.g. "JIKAN", "TMDB").
+    /// The name of the external provider (e.g. "ANILIST", "TMDB").
     /// </summary>
     public string ProviderName { get; }
 

@@ -12,7 +12,7 @@ interface MetadataLinkerProps {
 
 /**
  * Presentation component displayed when a media is a basic imported placeholder.
- * Renders the search-and-link UI block to link manual entries with rich TMDB/Jikan metadata.
+ * Renders the search-and-link UI block to link manual entries with rich metadata.
  */
 export const MetadataLinker = ({
   searchQuery,

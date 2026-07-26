@@ -5,11 +5,11 @@ namespace Grabbe.API.Infrastructure.ExternalClients;
 /// <summary>
 /// Defines the contract for all external media provider integrations.
 /// Each implementation encapsulates the HTTP communication and data mapping
-/// for a specific third-party API (e.g., TMDB, Jikan, Google Books).
+/// for a specific third-party API (e.g., TMDB, AniList, Open Library).
 /// </summary>
 public interface IMediaProviderClient
 {
-    /// <summary>The unique name identifying this provider (e.g., "TMDB", "JIKAN", "GBOOKS").</summary>
+    /// <summary>The unique name identifying this provider (e.g., "TMDB", "ANILIST", "GBOOKS").</summary>
     string ProviderName { get; }
 
     /// <summary>The set of media types this provider can serve (e.g., ["MOVIE", "SERIES"]).</summary>

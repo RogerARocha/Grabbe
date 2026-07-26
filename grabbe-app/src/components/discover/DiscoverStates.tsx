@@ -22,7 +22,7 @@ export const EmptyState = ({ query }: { query: string }) => (
       No results for <span className="prismatic-text">"{query}"</span>
     </h3>
     <p className="text-sm text-text-muted max-w-sm">
-      Try a different title, or change the media type filter. The BFF searches TMDB, Jikan, and Google Books simultaneously.
+      Try a different title, or change the media type filter. The BFF searches TMDB, AniList, Open Library, and IGDB simultaneously.
     </p>
   </div>
 );

@@ -52,7 +52,7 @@ public class TmdbClient : IMediaProviderClient
             if (response?.Results == null) return Array.Empty<GrabbeMediaDTO>();
 
             // Exclude Japanese-language animation (genre 16) from TMDB results.
-            // These are anime titles that would be duplicated by the dedicated Jikan client.
+            // These are anime titles that would be duplicated by the dedicated AniList client.
             // Also exclude 'person' results from multi-search.
             return response.Results
                 .Where(media => !media.Adult) // Exclude adult content
