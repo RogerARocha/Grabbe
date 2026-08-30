@@ -6,15 +6,38 @@ import { exportLibraryData, getSetting, setSetting, deleteSetting } from '../lib
 import { openPath } from '@tauri-apps/plugin-opener';
 import { downloadDir, join } from '@tauri-apps/api/path';
 import { useToast } from '../contexts/ToastContext';
+import { useAppUpdater } from '../contexts/UpdaterContext';
 import { ConfirmationModal } from '../components/modals/ConfirmationModal';
 
 export const Settings = () => {
   const { isImporting, setIsImporting, setProgress } = useImportProgress();
   const { showToast } = useToast();
+  const {
+    status: updateStatus,
+    updateInfo,
+    downloadProgress,
+    checkForUpdates,
+    restartAndInstall,
+    openUpdateModal,
+  } = useAppUpdater();
+
   const [downloadedFile, setDownloadedFile] = useState<string | null>(null);
   const [showNotification, setShowNotification] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [hasExported, setHasExported] = useState(false);
+
+  const handleManualCheck = async () => {
+    const res = await checkForUpdates(true);
+    if (res) {
+      if (res.updateAvailable) {
+        showToast(`Update available: v${res.latestVersion}`, 'info');
+      } else {
+        showToast('You are running the latest version of Grabbe!', 'success');
+      }
+    } else {
+      showToast('Could not check for updates. Please check your network.', 'error');
+    }
+  };
 
   // BYOK Credentials state
   const [tmdbKey, setTmdbKey] = useState('');
@@ -443,6 +466,84 @@ export const Settings = () => {
                     </>
                   )}
                 </button>
+              </div>
+            </div>
+          </section>
+
+          {/* Section: Application & Updates */}
+          <section className="bg-surface p-6 rounded-2xl border border-white/5 space-y-4 shadow-lg shadow-black/20">
+            <h2 className="text-xl font-bold text-text-high flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary">update</span>
+              Application & Updates
+            </h2>
+            <p className="text-text-muted text-sm leading-relaxed">
+              Check for new releases, view version details, and manage automatic background updates.
+            </p>
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-surface-container border border-white/5 mt-2">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
+                  <span className="material-symbols-outlined text-[22px]">info</span>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-text-high">Grabbe Desktop</span>
+                    <span className="bg-white/10 text-text-muted text-xs font-mono px-2 py-0.5 rounded-full">
+                      v{updateInfo?.currentVersion || '1.4.4'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-text-muted mt-0.5">
+                    {updateStatus === 'checking'
+                      ? 'Checking for updates...'
+                      : updateStatus === 'available'
+                      ? `New version v${updateInfo?.latestVersion} is available!`
+                      : updateStatus === 'ready'
+                      ? `Update v${updateInfo?.latestVersion} is downloaded and ready to install.`
+                      : updateStatus === 'downloading'
+                      ? `Downloading update (${downloadProgress.percentage.toFixed(0)}%)...`
+                      : updateStatus === 'up-to-date'
+                      ? 'You are running the latest version.'
+                      : 'Check GitHub releases for the latest version.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {updateStatus === 'ready' ? (
+                  <button
+                    onClick={restartAndInstall}
+                    className="cursor-pointer bg-[#00E054] text-[#14181C] px-4 py-2 rounded-lg font-bold hover:brightness-110 active:scale-95 transition-all flex items-center gap-1.5 shadow-md shadow-[#00E054]/20 select-none text-xs"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">restart_alt</span>
+                    Restart & Install
+                  </button>
+                ) : updateStatus === 'available' ? (
+                  <button
+                    onClick={openUpdateModal}
+                    className="cursor-pointer bg-primary text-on-primary px-4 py-2 rounded-lg font-bold hover:brightness-110 active:scale-95 transition-all flex items-center gap-1.5 primary-glow shadow-md shadow-primary/20 select-none text-xs"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">system_update</span>
+                    View Update
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleManualCheck}
+                    disabled={updateStatus === 'checking' || updateStatus === 'downloading'}
+                    className="cursor-pointer bg-surface-container border border-outline-variant/30 text-text-high hover:bg-surface-container/80 px-4 py-2 rounded-lg font-bold disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-1.5 select-none text-xs"
+                  >
+                    {updateStatus === 'checking' ? (
+                      <>
+                        <div className="w-3.5 h-3.5 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+                        Checking...
+                      </>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-[16px]">sync</span>
+                        Check for Updates
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
           </section>

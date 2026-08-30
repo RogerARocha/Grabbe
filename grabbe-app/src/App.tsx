@@ -14,6 +14,10 @@ import { Profile } from './pages/Profile';
 import { initDb, getSetting } from './lib/db';
 import { ImportProvider } from './contexts/ImportContext';
 import { ToastProvider } from './contexts/ToastContext';
+import { UpdaterProvider } from './contexts/UpdaterContext';
+import { UpdateModal } from './components/modals/UpdateModal';
+import { UpdateReadyModal } from './components/modals/UpdateReadyModal';
+import { UpdateBanner } from './components/shared/UpdateBanner';
 import { Onboarding } from './pages/Onboarding';
 
 function OnboardingInterceptor() {
@@ -115,34 +119,39 @@ function App() {
   return (
     <ImportProvider>
       <ToastProvider>
-        <BrowserRouter>
-          <NavigationTracker />
-          <Routes>
-            <Route path="/onboarding" element={<Onboarding />} />
+        <UpdaterProvider>
+          <BrowserRouter>
+            <NavigationTracker />
+            <Routes>
+              <Route path="/onboarding" element={<Onboarding />} />
 
-            {/* Protected Routes */}
-            <Route element={<OnboardingInterceptor />}>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/library" element={<Library />} />
-              <Route path="/ranking" element={<Ranking />} />
-              <Route path="/media/:id" element={<MediaDetails />} />
-              <Route path="/discover" element={<Discover />} />
+              {/* Protected Routes */}
+              <Route element={<OnboardingInterceptor />}>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/library" element={<Library />} />
+                <Route path="/ranking" element={<Ranking />} />
+                <Route path="/media/:id" element={<MediaDetails />} />
+                <Route path="/discover" element={<Discover />} />
 
-              {/* Views currently in development (Coming Soon) */}
-              <Route path="/analytics" element={<Analytics />} />
-              <Route path="/community" element={<Navigate to="/profile" replace />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/profile" element={<Profile />} />
-              
-              {/* Specific categories */}
-              <Route path="/movies" element={<ComingSoon feature="movies" />} />
-              <Route path="/series" element={<ComingSoon feature="series" />} />
-              <Route path="/anime" element={<ComingSoon feature="anime" />} />
-              <Route path="/games" element={<ComingSoon feature="games" />} />
-              <Route path="/books" element={<ComingSoon feature="books" />} />
-            </Route>
-          </Routes>
-        </BrowserRouter>
+                {/* Views currently in development (Coming Soon) */}
+                <Route path="/analytics" element={<Analytics />} />
+                <Route path="/community" element={<Navigate to="/profile" replace />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/profile" element={<Profile />} />
+                
+                {/* Specific categories */}
+                <Route path="/movies" element={<ComingSoon feature="movies" />} />
+                <Route path="/series" element={<ComingSoon feature="series" />} />
+                <Route path="/anime" element={<ComingSoon feature="anime" />} />
+                <Route path="/games" element={<ComingSoon feature="games" />} />
+                <Route path="/books" element={<ComingSoon feature="books" />} />
+              </Route>
+            </Routes>
+            <UpdateModal />
+            <UpdateReadyModal />
+            <UpdateBanner />
+          </BrowserRouter>
+        </UpdaterProvider>
       </ToastProvider>
     </ImportProvider>
   );
