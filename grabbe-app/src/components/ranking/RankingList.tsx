@@ -79,9 +79,9 @@ export const RankingList = ({ items, isLoading, onOpenModal }: RankingListProps)
         {[1, 2, 3, 4, 5].map((i) => (
           <div key={i} className="bg-surface rounded-lg h-24 flex items-stretch overflow-hidden animate-pulse">
             <div className="w-2 shrink-0 bg-surface-container-high" />
-            <div className="flex flex-1 items-center px-4 gap-6">
+            <div className="flex flex-1 min-w-0 items-center px-4 gap-6">
               <div className="h-16 w-12 bg-surface-container rounded" />
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <div className="h-4 w-1/3 bg-surface-container rounded" />
               </div>
             </div>
@@ -110,15 +110,15 @@ export const RankingList = ({ items, isLoading, onOpenModal }: RankingListProps)
       {/* Header Row for Sorting */}
       <div className="flex items-stretch h-8 mb-2 text-xs font-bold uppercase tracking-widest text-text-muted px-2">
         <div className="w-2 shrink-0" />
-        <div className="flex flex-1 items-center px-4 gap-6">
+        <div className="flex flex-1 min-w-0 items-center px-4 gap-6">
           <div className="w-12 shrink-0" />
           
           <div 
-            className="flex-1 flex items-center gap-2 cursor-pointer hover:text-text-base transition-colors select-none"
+            className="flex-1 min-w-0 flex items-center gap-2 cursor-pointer hover:text-text-base transition-colors select-none"
             onClick={() => setNameSort(nameSort === 'asc' ? 'desc' : 'asc')}
           >
-            Name
-            <span className="bg-surface-container-high text-text-base px-2 py-0.5 rounded text-[10px]">
+            <span>Name</span>
+            <span className="bg-surface-container-high text-text-base px-2 py-0.5 rounded text-[10px] shrink-0">
               {nameSort === 'asc' ? 'A-Z' : 'Z-A'}
             </span>
           </div>

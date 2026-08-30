@@ -7,12 +7,12 @@ import { EvaluationModal } from '../components/modals/EvaluationModal';
 import { useRankingStore } from '../store/rankingStore';
 
 export const Ranking = () => {
-  const { 
-    activeTab, 
+  const {
+    activeTab,
     setActiveTab,
-    items, 
-    setItems, 
-    isLoading, 
+    items,
+    setItems,
+    isLoading,
     setIsLoading,
     scrollPosition,
     setScrollPosition

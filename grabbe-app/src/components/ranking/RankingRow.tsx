@@ -55,7 +55,7 @@ export const RankingRow = ({ item, onOpenModal }: RankingRowProps) => {
       <div className={`w-2 shrink-0 ${styles.bar}`} />
 
       {/* Content Container */}
-      <div className="flex flex-1 items-center px-4 gap-6">
+      <div className="flex flex-1 min-w-0 items-center px-4 gap-6">
         
         {/* Cover Image */}
         <div 
@@ -79,8 +79,11 @@ export const RankingRow = ({ item, onOpenModal }: RankingRowProps) => {
         </div>
 
         {/* Title */}
-        <div className="flex-1 overflow-hidden" onClick={handleNavigate}>
-          <h3 className="text-lg font-black text-text-high truncate group-hover:underline group-hover:text-primary transition-colors cursor-pointer">
+        <div className="flex-1 min-w-0 overflow-hidden" onClick={handleNavigate}>
+          <h3 
+            title={item.title}
+            className="text-lg font-black text-text-high truncate group-hover:underline group-hover:text-primary transition-colors cursor-pointer"
+          >
             {item.title}
           </h3>
         </div>

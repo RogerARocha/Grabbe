@@ -7,6 +7,7 @@ This is the **BFF (Backend for Frontend)** of the Grabbe project, acting as an i
 The project was set up using **Vertical Slice Architecture** in **.NET 9** and has already completed its first architectural phase.
 
 **Features already implemented and structured:**
+
 - [x] C# Architecture setup (clean `Program.cs`, based on dependency injection).
 - [x] Environment Variables configured securely in the `.env.local` file using the `DotNetEnv` library.
 - [x] HTTP Clients registered and mapped for the 4 main APIs:

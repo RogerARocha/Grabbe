@@ -117,9 +117,8 @@ grabbe-bff/
 
 * The solution can be natively opened in Rider or Visual Studio, ensuring the `.sln` and `.csproj` files are properly tracked by Git.
 * Sensitive keys (like TMDB API keys and IGDB Twitch Client credentials) are resolved via the standard `.NET Configuration Hierarchy`:
-  - **Development:** Managed via `dotnet user-secrets` or `.env.local` to keep secrets out of source control.
-  - **Production:** Resolved from System Environment Variables or populated directly by the user via the app's Onboarding / Settings interface (stored in local SQLite `AppSettings`).
-
+  * **Development:** Managed via `dotnet user-secrets` or `.env.local` to keep secrets out of source control.
+  * **Production:** Resolved from System Environment Variables or populated directly by the user via the app's Onboarding / Settings interface (stored in local SQLite `AppSettings`).
 
 ### **4.3. Concurrency and Performance Patterns**
 
@@ -455,7 +454,9 @@ Generates portable snapshots of the user's local tracking database.
   * `GET /api/v1/export/csv`  
 
 **6. Sidecar Lifecycle & Process Security**  
-* **Parent Lifetime Binding:** The BFF process runs an asynchronous background loop monitoring `Console.ReadLine()`. When the parent Tauri process terminates, closing standard input (stdin), the BFF sidecar immediately self-terminates (`Environment.Exit(0)`).  
+
+* **Parent Lifetime Binding:** The BFF process runs an asynchronous background loop monitoring `Console.ReadLine()`. When the parent Tauri process terminates, closing standard input (stdin), the BFF sidecar immediately self-terminates (`Environment.Exit(0)`).
+
 * **CORS Protection:** Configured with an `AllowTauri` CORS policy allowing requests only from trusted Tauri local origins (`http://localhost:1420`, `tauri://localhost`, `http://tauri.localhost`).
 
 ### **7.3. Standardized Error Handling**
