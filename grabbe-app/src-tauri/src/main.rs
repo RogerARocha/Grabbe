@@ -3,14 +3,14 @@
 
 use tauri::RunEvent;
 
-#[cfg(not(debug_assertions))]
 use tauri::Manager;
+use std::sync::Mutex;
+use grabbe_app_lib::commands::PendingUpdateState;
+
 #[cfg(not(debug_assertions))]
 use tauri_plugin_shell::ShellExt;
 #[cfg(not(debug_assertions))]
 use tauri_plugin_shell::process::CommandChild;
-#[cfg(not(debug_assertions))]
-use std::sync::Mutex;
 
 #[cfg(not(debug_assertions))]
 struct SidecarState(Mutex<Option<CommandChild>>);
@@ -22,14 +22,26 @@ fn main() {
         .plugin(tauri_plugin_sql::Builder::default().build())
         .plugin(tauri_plugin_opener::init())
         .manage(SidecarState(Mutex::new(None)))
-        .invoke_handler(tauri::generate_handler![grabbe_app_lib::commands::greet]);
+        .manage(PendingUpdateState(Mutex::new(None)))
+        .invoke_handler(tauri::generate_handler![
+            grabbe_app_lib::commands::greet,
+            grabbe_app_lib::commands::check_cached_installer,
+            grabbe_app_lib::commands::download_update_file,
+            grabbe_app_lib::commands::launch_installer_and_exit,
+        ]);
 
     #[cfg(debug_assertions)]
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_sql::Builder::default().build())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![grabbe_app_lib::commands::greet]);
+        .manage(PendingUpdateState(Mutex::new(None)))
+        .invoke_handler(tauri::generate_handler![
+            grabbe_app_lib::commands::greet,
+            grabbe_app_lib::commands::check_cached_installer,
+            grabbe_app_lib::commands::download_update_file,
+            grabbe_app_lib::commands::launch_installer_and_exit,
+        ]);
 
     builder
         .setup(|app| {
@@ -71,10 +83,26 @@ fn main() {
                         }
                     }
                 }
+
+                // If an update was downloaded and pending install, launch the installer silently in the background
+                if let Some(update_state) = app_handle.try_state::<PendingUpdateState>() {
+                    if let Ok(mut pending_lock) = update_state.0.lock() {
+                        if let Some(installer_path) = pending_lock.take() {
+                            #[cfg(target_os = "windows")]
+                            {
+                                let _ = std::process::Command::new(&installer_path)
+                                    .arg("/S")
+                                    .spawn();
+                            }
+
+                            #[cfg(not(target_os = "windows"))]
+                            {
+                                let _ = std::process::Command::new("open").arg(&installer_path).spawn();
+                            }
+                        }
+                    }
+                }
             }
-            
-            // Silence unused variable warning in debug mode
-            #[cfg(debug_assertions)]
-            let _ = app_handle;
         });
 }
+

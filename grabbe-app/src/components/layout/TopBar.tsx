@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useNavigationHistory } from "../../store/navigationHistory";
+import { useAppUpdater } from "../../contexts/UpdaterContext";
 
 const handleMinimize = async () => {
   await getCurrentWindow().minimize();
@@ -22,6 +23,13 @@ const handleDragStart = async (e: React.MouseEvent) => {
 export const TopBar = ({ minimal = false }: { minimal?: boolean }) => {
   const navigate = useNavigate();
   const { historyStack, currentIndex } = useNavigationHistory();
+  const {
+    status: updateStatus,
+    updateInfo,
+    downloadProgress,
+    openUpdateModal,
+    openReadyModal,
+  } = useAppUpdater();
 
   return (
     <header className={`fixed top-0 left-0 w-full h-10 flex items-center z-50 select-none ${
@@ -69,34 +77,36 @@ export const TopBar = ({ minimal = false }: { minimal?: boolean }) => {
         onMouseDown={handleDragStart}
       />
 
-      {/* Search bar — not draggable */}
-      {/* <div className="flex items-center bg-background/70 rounded-lg px-4 py-1.5 h-6 w-80 shrink-0">
-        <span className="material-symbols-outlined text-text-muted text-[20px]">search</span>
-        <input
-          className="bg-transparent border-none focus:ring-0 text-sm text-text-high placeholder:text-text-muted w-full outline-none ml-2"
-          placeholder="Search evaluations..."
-          type="text"
-        />
-      </div> */}
+      {/* Update Indicator Badge */}
+      {!minimal && updateStatus === 'ready' && (
+        <button
+          onClick={openReadyModal}
+          className="mr-3 px-2.5 py-1 rounded-full bg-[#00E054]/15 border border-[#00E054]/30 text-[#00E054] hover:bg-[#00E054]/25 text-[11px] font-bold flex items-center gap-1.5 transition-all cursor-pointer select-none animate-pulse"
+          title="Update downloaded - click to restart"
+        >
+          Restart to Update
+        </button>
+      )}
 
-      {/* Draggable spacer right of search */}
-      <div
-        className="flex-1 h-full"
-        onMouseDown={handleDragStart}
-      />
+      {!minimal && updateStatus === 'downloading' && (
+        <div
+          className="mr-3 px-2.5 py-1 rounded-full bg-primary/15 border border-primary/30 text-primary text-[11px] font-bold flex items-center gap-1.5 select-none"
+          title="Downloading update..."
+        >
+          <div className="w-3 h-3 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+          <span>{downloadProgress.percentage.toFixed(0)}%</span>
+        </div>
+      )}
 
-      {/* User profile — not draggable */}
-      {/* <div
-        onClick={() => navigation("/profile")}
-        className="flex items-center gap-3 px-4 border-r border-outline-variant/20 cursor-pointer shrink-0"
-      >
-        <p className="text-[10px] font-bold text-text-high">User Name</p>
-        <img
-          className="w-6 h-6 rounded-full border border-primary/20"
-          alt="User avatar"
-          src="user"
-        />
-      </div> */}
+      {!minimal && updateStatus === 'available' && (
+        <button
+          onClick={openUpdateModal}
+          className="mr-3 px-2.5 py-1 rounded-full bg-primary/15 border border-primary/30 text-primary hover:bg-primary/25 text-[11px] font-bold flex items-center gap-1.5 transition-all cursor-pointer select-none"
+          title={`Update available (v${updateInfo?.latestVersion || ''}) - click to view`}
+        >
+          Update Available
+        </button>
+      )}
 
       {/* Window controls */}
       <div className="flex items-stretch self-stretch shrink-0">
