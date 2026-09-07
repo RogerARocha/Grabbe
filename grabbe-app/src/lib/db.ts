@@ -1,5 +1,15 @@
 export { getDb, initDb } from './db/connection';
-export { upsertMedia, getMediaByExternalId, linkMediaToRealId, unlinkMedia } from './db/media';
+export { 
+  upsertMedia, 
+  getMediaByExternalId, 
+  linkMediaToRealId, 
+  unlinkMedia, 
+  mergeMediaRecords,
+  reconcileProviderMigrations, 
+  deduplicateAndMigrateLegacyMedia, 
+  PROVIDER_MIGRATION_RULES, 
+  isKnownLegacyProvider 
+} from './db/media';
 export { 
   saveTracking, 
   getLibraryItems, 

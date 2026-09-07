@@ -12,6 +12,15 @@ public class DetailsService
 {
     private readonly IEnumerable<IMediaProviderClient> _clients;
 
+    /// <summary>
+    /// Extensible registry of legacy or alias provider names remapped to canonical providers.
+    /// </summary>
+    private static readonly Dictionary<string, string> ProviderAliases = new(StringComparer.OrdinalIgnoreCase)
+    {
+        { "JIKAN", "ANILIST" },
+        { "MAL", "ANILIST" }
+    };
+
     public DetailsService(IEnumerable<IMediaProviderClient> clients)
     {
         _clients = clients;
@@ -26,11 +35,10 @@ public class DetailsService
     /// <returns>The populated <see cref="GrabbeMediaDTO"/>, or <c>null</c> if the provider is unrecognized or the item is not found.</returns>
     public async Task<GrabbeMediaDTO?> GetMediaDetailsAsync(string sourceApi, string type, string externalId)
     {
+        var resolvedProvider = ProviderAliases.TryGetValue(sourceApi, out var alias) ? alias : sourceApi;
+
         var targetClient = _clients.FirstOrDefault(c =>
-            c.ProviderName.Equals(sourceApi, StringComparison.OrdinalIgnoreCase))
-            ?? (sourceApi.Equals("JIKAN", StringComparison.OrdinalIgnoreCase)
-                ? _clients.FirstOrDefault(c => c.ProviderName.Equals("ANILIST", StringComparison.OrdinalIgnoreCase))
-                : null);
+            c.ProviderName.Equals(resolvedProvider, StringComparison.OrdinalIgnoreCase));
 
         if (targetClient == null)
         {

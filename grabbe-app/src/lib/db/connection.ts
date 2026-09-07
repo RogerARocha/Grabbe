@@ -1,4 +1,5 @@
 import Database from '@tauri-apps/plugin-sql';
+import { deduplicateAndMigrateLegacyMedia } from './media';
 
 let dbInstance: Database | null = null;
 
@@ -136,6 +137,13 @@ export async function initDb() {
     } catch (e) {
       // Column already exists, ignore
     }
+  }
+
+  // Automatic deduplication & migration for legacy Jikan records
+  try {
+    await deduplicateAndMigrateLegacyMedia(db);
+  } catch (dedupErr) {
+    console.warn("Legacy media deduplication check failed:", dedupErr);
   }
 
   console.log("Database initialized and migrations ran successfully.");

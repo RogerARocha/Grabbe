@@ -1,4 +1,4 @@
- # Grabbe 🎬🎮📚
+# Grabbe 🎬🎮📚
 
 **The Collector's App** — Local-First desktop application designed to be the ultimate ecosystem for tracking and organizing all your entertainment media (Movies, Series, Anime, Manga, Games, and Books).
 
@@ -16,37 +16,52 @@
 To run the full Grabbe ecosystem locally, you will need to start both the BFF (to provide search capabilities) and the Desktop App.
 
 ### 1. Running the BFF (Backend for Frontend)
+
 The BFF requires the .NET 9.0 SDK and API credentials for TMDB and IGDB.
+
 1. Navigate to `grabbe-bff/`
 2. Create your `.env.local` file (see `grabbe-bff/README.md` for instructions).
 3. Run the service:
+
 ```bash
 cd grabbe-bff
 dotnet run --project src/Grabbe.API/Grabbe.API.csproj
 ```
+
 *The API will be available at `http://localhost:18493/swagger`.*
 
 ### 2. Running the Desktop App (Tauri + React)
+
 The desktop client requires Node.js and the Rust toolchain (for Tauri).
+
 1. Navigate to `grabbe-app/`
 2. Install dependencies:
-```bash
-cd grabbe-app
-npm install
-```
+
+    ```bash
+    cd grabbe-app
+    npm install
+
+    ```
+
 3. Run the development server:
+
 ```bash
 npm run tauri:dev
 ```
+
 *Note: This starts the frontend development server and compiles the desktop app in debug mode (named `Grabbe Dev`). It will use your separately run BFF instance on port 18493.*
 
 ### 3. Packaging the Application (Production Build)
+
 To bundle the frontend with the C# BFF compiled as a self-contained sidecar executable:
+
 1. Run the build script:
+
 ```bash
 cd grabbe-app
 npm run tauri:build
 ```
+
 *Note: This automatically compiles the C# BFF as a single-file executable, moves it to the Tauri sidecar folder, and packages the complete production installers (named `Grabbe`).*
 
 ## 📚 Documentation

@@ -1,22 +1,29 @@
+# Grabbe design
+
 ---
+
 name: GrabbeCS (Cinematic Solarized)
 description: A high-end, cinematic dark mode design system for media tracking. It balances deep, low-fatigue backgrounds with vibrant, neon-esque accents and glassmorphism.
 colors:
-  # Backgrounds & Surfaces (The Canvas)
+
+  #Backgrounds & Surfaces (The Canvas)
+
   background: '#002b36'                  # Deep solarized dark base (App background)
   surface: '#073642'                     # Elevated surface (Cards, Modals, Sidebar)
   surface-container: '#00212b'           # Depressed/Inset surfaces (Inputs, Dropdowns)
   surface-container-high: '#00151c'      # Deeper inset (Progress bars, secondary panels)
   surface-container-highest: '#000c11'   # Deepest possible surface
   
-  # Text & Content
+  ##Text & Content
+
   text-high: '#ffffff'           # Pure white for high-emphasis (Titles)
   text-base: '#eee8d5'           # Off-white for body reading comfort
   text-muted: '#93a1a1'          # Muted teal-grey for subtitles, metadata
   on-surface: '#ffffff'          # Text on opaque surface backgrounds
   on-surface-variant: '#adaaaa'  # Slightly warmer muted; alt to text-muted
   
-  # Accents (The "Neon/Prismatic" layer)
+  #Accents (The "Neon/Prismatic" layer)
+
   primary: '#00A3F5'               # Cyan/Blue - Main actions, Active states
   on-primary: '#00314e'            # Dark text on primary-colored backgrounds
   secondary: '#53EAAA'             # Emerald/Mint - Completed, Library active tab
@@ -25,9 +32,11 @@ colors:
   error: '#ff716c'                 # Coral/Red - Destructive actions, lowest ratings
   on-tertiary-container: '#2f0018' # Dark text on tertiary-tinted containers
   
-  # Borders & Dividers
+ #Borders & Dividers
+
   outline-variant: '#484847'                 # Subtle borders, dividers (use at /10-/30 opacity)
   border-focus: 'rgba(0, 163, 245, 0.3)'     # Primary glow/focus ring
+
 ---
 
 ## 1. Brand & Ethos
@@ -196,7 +205,6 @@ File: `src/components/layout/Sidebar.tsx`
 | `/onboarding` | — | Implemented (Setup Interceptor & Credential Wizard) |
 | `/movies`, `/series`, `/anime`, `/games`, `/books` | — | Implemented (`ComingSoon` category placeholder) |
 
-
 ### TopBar
 
 File: `src/components/layout/TopBar.tsx`
@@ -247,4 +255,3 @@ File: `src/pages/Settings.tsx`
   2. **API Credentials:** TMDB API key and IGDB Twitch Client ID/Secret management with real-time validation check against BFF.
   3. **Backup & Restore:** One-click full library JSON backup export and restore.
   4. **Data Imports:** File upload dropzones for MyAnimeList (XML), Letterboxd (CSV), and Netflix (CSV) history files.
-
