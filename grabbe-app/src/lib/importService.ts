@@ -1,4 +1,4 @@
-import { upsertMedia, saveTracking, importBackupItem, setSetting, getDb, getTrackingByExternalId } from './db';
+import { upsertMedia, saveTracking, importBackupItem, setSetting, getDb, getTrackingByExternalId, isKnownLegacyProvider } from './db';
 import { v4 as uuidv4 } from 'uuid';
 import { apiFetch } from './httpClient';
 
@@ -261,14 +261,22 @@ export async function importBackupData(
         let metric = media.consumption_metric || null;
         let didFetch = false;
 
-        // Backfill missing metric for older backups
-        if (!metric && media.source_api && media.external_id && !media.external_id.startsWith('imported_')) {
+        // Backfill missing metric or upgrade legacy provider records for older backups
+        let externalId = media.external_id;
+        let sourceApi = media.source_api;
+        const isLegacy = isKnownLegacyProvider(sourceApi);
+
+        if ((!metric || isLegacy) && sourceApi && externalId && !externalId.startsWith('imported_')) {
             try {
-                const detailsResponse = await apiFetch(`/api/v1/media/${media.source_api}/${media.type}/${media.external_id}`);
+                const detailsResponse = await apiFetch(`/api/v1/media/${sourceApi}/${media.type}/${externalId}`);
                 if (detailsResponse.ok) {
                     const detailsBody = await detailsResponse.json();
                     if (detailsBody.data) {
-                        metric = detailsBody.data.formattedConsumptionMetric ?? null;
+                        metric = detailsBody.data.formattedConsumptionMetric ?? metric;
+                        if (detailsBody.data.sourceApi) {
+                            sourceApi = detailsBody.data.sourceApi;
+                            externalId = detailsBody.data.externalId;
+                        }
                     }
                 }
                 didFetch = true;
@@ -282,6 +290,8 @@ export async function importBackupData(
             ...item,
             media: {
                 ...item.media,
+                external_id: externalId,
+                source_api: sourceApi,
                 consumption_metric: metric
             }
         };

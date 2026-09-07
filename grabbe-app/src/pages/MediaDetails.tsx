@@ -11,7 +11,7 @@ import { ActionBar } from '../components/media-details/ActionBar';
 import { DetailsGrid } from '../components/media-details/DetailsGrid';
 import { CastSection } from '../components/media-details/CastSection';
 import { AlternativeTitles } from '../components/media-details/AlternativeTitles';
-import { getMediaByExternalId, upsertMedia } from '../lib/db';
+import { getMediaByExternalId, upsertMedia, isKnownLegacyProvider } from '../lib/db';
 import { ConsumptionTimeline } from '../components/media-details/ConsumptionTimeline';
 import { useToast } from '../contexts/ToastContext';
 import { ConfirmationModal } from '../components/modals/ConfirmationModal';
@@ -89,15 +89,17 @@ export const MediaDetails = () => {
           setMedia(localMedia);
           setTracking((prev: any) => ({ ...prev, totalProgress: localMedia.totalProgressUnits || 0 }));
           
-          // Check if this is a real external media (not a dummy import) and is missing rich details
+          // Check if this is a legacy provider item or a real external media missing rich details
           const isPlaceholder = externalId?.startsWith('imported_') ?? false;
-          const isMissingRichDetails = !localMedia.description || 
+          const isLegacy = isKnownLegacyProvider(localMedia.sourceApi || sourceApi);
+          const isMissingRichDetails = isLegacy ||
+                                       !localMedia.description || 
                                        !localMedia.releaseYear || 
                                        !localMedia.publisherOrStudio || 
                                        (!localMedia.keyPeople || localMedia.keyPeople.length === 0);
 
           if (!isPlaceholder && isMissingRichDetails) {
-            console.log('Local media is missing rich details, fetching from BFF in background to enrich...');
+            console.log('Local media is legacy provider or missing rich details, fetching from BFF in background to enrich...');
             if (externalId !== lastExternalId) {
               setIsLoading(false);
             }
@@ -116,6 +118,15 @@ export const MediaDetails = () => {
                   setMedia(enriched);
                   setTracking((prev: any) => ({ ...prev, totalProgress: enriched.totalProgressUnits || 0 }));
                   await upsertMedia(enriched);
+
+                  // Seamlessly transition legacy or remapped provider route to canonical provider route
+                  const isProviderChanged = body.data.sourceApi && (
+                    body.data.sourceApi.toUpperCase() !== sourceApi?.toUpperCase() ||
+                    body.data.externalId !== externalId
+                  );
+                  if (isProviderChanged) {
+                    navigate(`/media/${body.data.externalId}?source=${body.data.sourceApi}&type=${body.data.type || type}`, { replace: true });
+                  }
                 }
               }
             } catch (enrichErr) {
@@ -143,6 +154,14 @@ export const MediaDetails = () => {
           setMedia(body.data);
           setTracking((prev: any) => ({ ...prev, totalProgress: body.data.totalProgressUnits || 0 }));
           setIsLoading(false);
+
+          const isProviderChanged = body.data.sourceApi && (
+            body.data.sourceApi.toUpperCase() !== sourceApi?.toUpperCase() ||
+            body.data.externalId !== externalId
+          );
+          if (isProviderChanged) {
+            navigate(`/media/${body.data.externalId}?source=${body.data.sourceApi}&type=${body.data.type || type}`, { replace: true });
+          }
         }
       } catch (bffErr) {
         console.warn('BFF request failed:', bffErr);
