@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { Toast, ToastType } from '../components/shared/Toast';
 import { useImportProgress } from './ImportContext';
 
@@ -18,11 +18,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const [toast, setToast] = useState<ToastData | null>(null);
   const { isImporting } = useImportProgress();
 
-  const showToast = (message: string, type: ToastType = 'info') => {
+  const showToast = useCallback((message: string, type: ToastType = 'info') => {
     // Generate a unique ID to force re-render/re-mount of Toast (resetting timer)
     const id = Math.random().toString(36).substring(2, 9);
     setToast({ id, message, type });
-  };
+  }, []);
 
   return (
     <ToastContext.Provider value={{ showToast }}>
