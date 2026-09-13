@@ -42,7 +42,9 @@ export const MediaDetails = () => {
     isSearching,
     showDropdown,
     setShowDropdown,
-    handleQueryChange
+    handleQueryChange,
+    searchType,
+    handleTypeChange
   } = useMediaSearch();
 
   const {
@@ -315,6 +317,8 @@ export const MediaDetails = () => {
                 setShowDropdown={setShowDropdown}
                 handleQueryChange={handleQueryChange}
                 handleSelectResult={handleSelectResult}
+                searchType={searchType}
+                onTypeChange={handleTypeChange}
               />
             )}
 

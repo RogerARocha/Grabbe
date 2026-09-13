@@ -48,6 +48,7 @@ export async function initDb() {
         alternative_titles TEXT,
         key_people TEXT,
         total_progress_units INTEGER,
+        is_custom BOOLEAN DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
   `);
@@ -127,7 +128,8 @@ export async function initDb() {
     { name: "original_language", type: "TEXT" },
     { name: "alternative_titles", type: "TEXT" },
     { name: "key_people", type: "TEXT" },
-    { name: "total_progress_units", type: "INTEGER" }
+    { name: "total_progress_units", type: "INTEGER" },
+    { name: "is_custom", type: "BOOLEAN DEFAULT 0" }
   ];
 
   for (const col of newColumns) {
