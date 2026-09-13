@@ -57,9 +57,9 @@ export const UnlinkedMediaBanner: React.FC<UnlinkedMediaBannerProps> = ({
             <button
               onClick={onDismiss}
               title="Dismiss notification for this session"
-              className="p-2 text-text-muted hover:text-text-high rounded-lg hover:bg-surface-container transition-colors cursor-pointer"
+              className="w-10 h-10 rounded-xl bg-surface-container/40 border border-outline-variant/15 flex items-center justify-center text-text-muted hover:text-text-high hover:bg-surface-container hover:border-outline-variant/30 transition-all cursor-pointer shrink-0"
             >
-              <span className="material-symbols-outlined text-[18px]">close</span>
+              <span className="material-symbols-outlined text-[20px]">close</span>
             </button>
           )}
         </div>

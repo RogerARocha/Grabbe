@@ -1,9 +1,21 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { getUnlinkedMediaItems, markMediaAsCustom, linkMediaItem, type UnlinkedMediaItem } from '../../lib/db';
+import { 
+  getDb, 
+  getUnlinkedMediaItems, 
+  markMediaAsCustom, 
+  linkMediaItem, 
+  mergeMediaRecords, 
+  deleteMediaRecord, 
+  type UnlinkedMediaItem, 
+  type LocalMatchItem,
+  type MergeOverrides
+} from '../../lib/db';
 import { apiFetch } from '../../lib/httpClient';
 import { useToast } from '../../contexts/ToastContext';
 import { getTypeLabel } from '../../lib/mediaUtils';
 import { formatStatusLabel } from '../../lib/statusUtils';
+import { ConfirmationModal } from './ConfirmationModal';
+import { MergeConflictModal, analyzeMergeDiscrepancies } from './MergeConflictModal';
 
 interface UnlinkedMediaAssistantModalProps {
   isOpen: boolean;
@@ -49,6 +61,10 @@ export const UnlinkedMediaAssistantModal = ({
   const [isSearching, setIsSearching] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [slideDirection, setSlideDirection] = useState<'left' | 'right'>('right');
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [pendingMergeMatch, setPendingMergeMatch] = useState<LocalMatchItem | null>(null);
+  const [pendingMergeAutoOverrides, setPendingMergeAutoOverrides] = useState<MergeOverrides | null>(null);
+  const [conflictMatchTarget, setConflictMatchTarget] = useState<LocalMatchItem | null>(null);
 
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -260,6 +276,137 @@ export const UnlinkedMediaAssistantModal = ({
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  // Prompt confirmation or conflict resolution before merging unlinked entry
+  const handleMergeWithLocal = (match: LocalMatchItem) => {
+    if (!currentItem || isProcessing) return;
+
+    const analysis = analyzeMergeDiscrepancies(currentItem, match);
+
+    if (analysis.hasRealDiscrepancy) {
+      setConflictMatchTarget(match);
+    } else {
+      setPendingMergeAutoOverrides(analysis.autoOverrides);
+      setPendingMergeMatch(match);
+    }
+  };
+
+  // Action: Confirmed merge with custom field overrides from MergeConflictModal
+  const confirmMergeWithOverrides = async (overrides: MergeOverrides) => {
+    if (!conflictMatchTarget || !currentItem || isProcessing) return;
+    const targetMatch = conflictMatchTarget;
+    setConflictMatchTarget(null);
+    setIsProcessing(true);
+
+    try {
+      const db = await getDb();
+      await mergeMediaRecords(db, targetMatch.id, currentItem.id, overrides);
+      showToast(`Merged "${currentItem.title}" into existing library entry.`, 'success');
+
+      setItems((prev) => {
+        const next = [...prev];
+        next[currentIndex] = {
+          ...next[currentIndex],
+          resolutionStatus: 'linked',
+          resolvedResultTitle: targetMatch.title,
+          resolvedCoverUrl: targetMatch.coverImagePath || null
+        };
+        advanceToNextPending(currentIndex, next);
+        return next;
+      });
+
+      onItemResolved?.();
+    } catch (err) {
+      console.error('Failed to merge local entries with overrides:', err);
+      showToast('Failed to merge media records.', 'error');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Action: Confirmed merge of unlinked entry into local linked entry
+  const confirmMergeWithLocal = async () => {
+    if (!pendingMergeMatch || !currentItem || isProcessing) return;
+    const matchToMerge = pendingMergeMatch;
+    const autoOverrides = pendingMergeAutoOverrides || undefined;
+    setPendingMergeMatch(null);
+    setPendingMergeAutoOverrides(null);
+    setIsProcessing(true);
+
+    try {
+      const db = await getDb();
+      await mergeMediaRecords(db, matchToMerge.id, currentItem.id, autoOverrides);
+      showToast(`Merged "${currentItem.title}" into existing library entry.`, 'success');
+
+      setItems((prev) => {
+        const next = [...prev];
+        next[currentIndex] = {
+          ...next[currentIndex],
+          resolutionStatus: 'linked',
+          resolvedResultTitle: matchToMerge.title,
+          resolvedCoverUrl: matchToMerge.coverImagePath || null
+        };
+        advanceToNextPending(currentIndex, next);
+        return next;
+      });
+
+      onItemResolved?.();
+    } catch (err) {
+      console.error('Failed to merge local entries:', err);
+      showToast('Failed to merge media records.', 'error');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Prompt confirmation before deleting unlinked entry
+  const handleDeleteUnlinkedItem = () => {
+    if (!currentItem || isProcessing) return;
+    setIsDeleteConfirmOpen(true);
+  };
+
+  // Action: Confirmed deletion of unlinked entry completely from SQLite
+  const confirmDeleteUnlinkedItem = async () => {
+    setIsDeleteConfirmOpen(false);
+    if (!currentItem || isProcessing) return;
+    setIsProcessing(true);
+
+    try {
+      await deleteMediaRecord(currentItem.id);
+      showToast(`Removed entry "${currentItem.title}".`, 'info');
+
+      setItems((prev) => {
+        const next = [...prev];
+        next[currentIndex] = {
+          ...next[currentIndex],
+          resolutionStatus: 'ignored'
+        };
+        advanceToNextPending(currentIndex, next);
+        return next;
+      });
+
+      onItemResolved?.();
+    } catch (err) {
+      console.error('Failed to delete unlinked duplicate record:', err);
+      showToast('Failed to remove duplicate entry.', 'error');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDismissLocalMatch = (matchId: string) => {
+    setItems((prev) => {
+      const next = [...prev];
+      const current = next[currentIndex];
+      if (current && current.possibleLocalMatches) {
+        next[currentIndex] = {
+          ...current,
+          possibleLocalMatches: current.possibleLocalMatches.filter((m) => m.id !== matchId)
+        };
+      }
+      return next;
+    });
   };
 
   // Keyboard navigation shortcuts
@@ -481,12 +628,93 @@ export const UnlinkedMediaAssistantModal = ({
                       <span className="material-symbols-outlined text-[16px]">bookmark_border</span>
                       <span>Keep as Custom Entry</span>
                     </button>
+
+                    <button
+                      disabled={isProcessing}
+                      onClick={handleDeleteUnlinkedItem}
+                      className="w-full py-2 px-3 rounded-lg bg-error/10 hover:bg-error/20 border border-error/25 hover:border-error/50 text-error transition-all active:scale-95 flex items-center justify-center gap-2 text-xs font-bold cursor-pointer disabled:opacity-50 shadow-sm"
+                      title="Completely remove this unlinked entry from your library"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">delete</span>
+                      <span>Delete Unlinked Entry</span>
+                    </button>
                   </div>
                 )}
               </div>
 
               {/* Right Column: Provider Search & Suggestions */}
               <div className="md:col-span-7 flex flex-col gap-3">
+
+                {/* Local Library Matches Alert & Action Box */}
+                {currentItem.possibleLocalMatches && currentItem.possibleLocalMatches.length > 0 && currentItem.resolutionStatus === 'pending' && (
+                  <div className="bg-primary/10 border border-primary/30 rounded-xl p-3.5 flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-200 mb-1">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-primary font-bold text-xs">
+                        <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
+                        <span>Existing Linked Match Detected in Your Library</span>
+                      </div>
+                      <span className="text-[10px] font-semibold text-text-muted">
+                        {currentItem.possibleLocalMatches.length} match{currentItem.possibleLocalMatches.length > 1 ? 'es' : ''} found
+                      </span>
+                    </div>
+
+                    {currentItem.possibleLocalMatches.map((match) => (
+                      <div
+                        key={match.id}
+                        className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-2.5 rounded-lg bg-surface/80 border border-primary/20 bloom-shadow"
+                      >
+                        <div className="flex items-center gap-3 overflow-hidden">
+                          <div className="w-9 h-12 shrink-0 rounded bg-background overflow-hidden border border-outline-variant/15 flex items-center justify-center">
+                            {match.coverImagePath ? (
+                              <img src={match.coverImagePath} alt={match.title} className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="material-symbols-outlined text-sm text-text-muted">image</span>
+                            )}
+                          </div>
+                          <div className="overflow-hidden">
+                            <div className="flex items-center gap-2">
+                              <h5 className="text-xs font-extrabold text-text-high truncate">{match.title}</h5>
+                              <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30">
+                                {match.sourceApi}
+                              </span>
+                            </div>
+                            <div className="text-[10px] text-text-muted mt-0.5 flex items-center gap-2">
+                              <span>Status: <strong className="text-text-base">{formatStatusLabel(match.status)}</strong></span>
+                              <span>•</span>
+                              <span>Progress: <strong className="text-text-base">{match.progress} / {match.totalProgress ?? '?'}</strong></span>
+                              {match.score && (
+                                <>
+                                  <span>•</span>
+                                  <span className="text-warning font-bold">★ {match.score}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 w-full sm:w-auto shrink-0 justify-end">
+                          <button
+                            disabled={isProcessing}
+                            onClick={() => handleMergeWithLocal(match)}
+                            className="px-3 py-1.5 bg-primary text-on-primary hover:brightness-110 text-xs font-bold rounded-lg transition-all active:scale-95 flex items-center gap-1 cursor-pointer disabled:opacity-50 bloom-shadow"
+                            title="Merge progress and consumption dates into this linked item"
+                          >
+                            <span className="material-symbols-outlined text-[15px]">call_merge</span>
+                            <span>Merge</span>
+                          </button>
+                          <button
+                            onClick={() => handleDismissLocalMatch(match.id)}
+                            className="p-1.5 text-text-muted hover:text-text-high transition-colors"
+                            title="Dismiss suggestion"
+                          >
+                            <span className="material-symbols-outlined text-[16px]">close</span>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold tracking-widest uppercase text-text-muted">
                     Find Official Metadata
@@ -671,6 +899,41 @@ export const UnlinkedMediaAssistantModal = ({
         )}
 
       </div>
+
+      {/* Confirmation Modal for Entry Deletion */}
+      <ConfirmationModal
+        isOpen={isDeleteConfirmOpen}
+        title="Delete Unlinked Entry?"
+        message={`Are you sure you want to permanently delete "${currentItem?.title || 'this item'}" from your library? All recorded sessions and progress for this entry will be removed.`}
+        confirmLabel="Delete Entry"
+        cancelLabel="Cancel"
+        type="danger"
+        onConfirm={confirmDeleteUnlinkedItem}
+        onCancel={() => setIsDeleteConfirmOpen(false)}
+      />
+
+      {/* Confirmation Modal for Entry Merge */}
+      <ConfirmationModal
+        isOpen={pendingMergeMatch !== null}
+        title="Merge Media Entries?"
+        message={`Are you sure you want to merge "${currentItem?.title || 'this unlinked entry'}" into your existing library entry "${pendingMergeMatch?.title}"? All consumption dates, sessions, and tracking history will be combined into "${pendingMergeMatch?.title}".`}
+        confirmLabel="Merge Entries"
+        cancelLabel="Cancel"
+        type="info"
+        onConfirm={confirmMergeWithLocal}
+        onCancel={() => setPendingMergeMatch(null)}
+      />
+
+      {/* Interactive Conflict Resolution Modal for Field Discrepancies */}
+      {conflictMatchTarget && currentItem && (
+        <MergeConflictModal
+          isOpen={conflictMatchTarget !== null}
+          onClose={() => setConflictMatchTarget(null)}
+          unlinkedItem={currentItem}
+          targetMatch={conflictMatchTarget}
+          onConfirmMerge={confirmMergeWithOverrides}
+        />
+      )}
     </div>
   );
 };
