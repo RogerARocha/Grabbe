@@ -395,24 +395,13 @@ export const deduplicateAndMigrateLegacyMedia = reconcileProviderMigrations;
  * to link it to a real external API item. Also updates the cache fields.
  */
 export async function linkMediaToRealId(mediaId: string, newExternalId: string, newSourceApi: string, newType: string, newTitle: string, newCoverUrl: string | null) {
-    const db = await getDb();
-
-    // Check if another Media row already has the new external_id and source_api
-    const existing = await db.select<any[]>(
-        "SELECT id FROM Media WHERE external_id = $1 AND source_api = $2 AND id != $3 LIMIT 1",
-        [newExternalId, newSourceApi, mediaId]
-    );
-
-    if (existing && existing.length > 0) {
-        const realMediaId = existing[0].id;
-        await mergeMediaRecords(db, realMediaId, mediaId);
-    } else {
-        // Safe to update the dummy media row in place
-        await db.execute(
-            "UPDATE Media SET external_id = $1, source_api = $2, type = $3, title = $4, cover_image_path = COALESCE($5, cover_image_path) WHERE id = $6",
-            [newExternalId, newSourceApi, newType, newTitle, newCoverUrl, mediaId]
-        );
-    }
+    return linkMediaItem(mediaId, {
+        externalId: newExternalId,
+        sourceApi: newSourceApi,
+        type: newType,
+        title: newTitle,
+        coverImageUrl: newCoverUrl
+    });
 }
 
 /**
@@ -427,4 +416,221 @@ export async function unlinkMedia(mediaId: string): Promise<string> {
         [newExternalId, mediaId]
     );
     return newExternalId;
+}
+
+export interface UnlinkedMediaItem {
+  id: string;
+  externalId: string;
+  sourceApi: string;
+  type: string;
+  title: string;
+  coverImagePath: string | null;
+  status: string;
+  progress: number;
+  totalProgress: number | null;
+  score: number | null;
+  sessions: Array<{
+    sessionNumber: number;
+    startDate: string | null;
+    finishDate: string | null;
+    isActive: boolean;
+  }>;
+}
+
+/**
+ * Retrieves media items from the database that do not have verified external metadata links.
+ * These are identified by placeholder external_id formats (e.g. 'imported_%', 'imported_unlinked_%')
+ * or unrecognized provider source_apis, excluding any items designated as is_custom.
+ */
+export async function getUnlinkedMediaItems(): Promise<UnlinkedMediaItem[]> {
+  const db = await getDb();
+
+  const query = `
+    SELECT 
+      m.id,
+      m.external_id,
+      m.source_api,
+      m.type,
+      m.title,
+      m.cover_image_path,
+      m.is_custom,
+      ut.id AS tracking_id,
+      ut.status,
+      ut.progress,
+      ut.total_progress,
+      r.score,
+      cs.session_number,
+      cs.start_date,
+      cs.finish_date,
+      cs.is_active
+    FROM Media m
+    INNER JOIN UserTracking ut ON ut.media_id = m.id
+    LEFT JOIN Ranking r ON r.media_id = m.id
+    LEFT JOIN ConsumptionSession cs ON cs.tracking_id = ut.id
+    WHERE (m.is_custom IS NULL OR m.is_custom = 0)
+      AND (
+        m.external_id LIKE 'imported_%'
+        OR m.external_id LIKE 'imported_unlinked_%'
+        OR m.source_api = 'UNKNOWN'
+        OR m.source_api = 'CUSTOM'
+      )
+    ORDER BY m.title ASC, cs.session_number ASC
+  `;
+
+  const rows = await db.select<any[]>(query);
+  if (!rows || rows.length === 0) return [];
+
+  const map = new Map<string, UnlinkedMediaItem>();
+
+  for (const row of rows) {
+    if (!map.has(row.id)) {
+      map.set(row.id, {
+        id: row.id,
+        externalId: row.external_id,
+        sourceApi: row.source_api,
+        type: row.type,
+        title: row.title,
+        coverImagePath: row.cover_image_path,
+        status: row.status,
+        progress: row.progress || 0,
+        totalProgress: row.total_progress || null,
+        score: row.score || null,
+        sessions: []
+      });
+    }
+
+    if (row.session_number !== null && row.session_number !== undefined) {
+      const item = map.get(row.id)!;
+      const alreadyHas = item.sessions.some((s) => s.sessionNumber === row.session_number);
+      if (!alreadyHas) {
+        item.sessions.push({
+          sessionNumber: row.session_number,
+          startDate: row.start_date,
+          finishDate: row.finish_date,
+          isActive: Boolean(row.is_active)
+        });
+      }
+    }
+  }
+
+  return Array.from(map.values());
+}
+
+/**
+ * Flags a media item as custom (is_custom = 1) so it will not prompt
+ * the user to link official metadata.
+ */
+export async function markMediaAsCustom(mediaId: string): Promise<void> {
+  const db = await getDb();
+  await db.execute(
+    "UPDATE Media SET is_custom = 1 WHERE id = $1",
+    [mediaId]
+  );
+}
+
+/**
+ * Fully links a media item to an official provider result, updating its external ID,
+ * provider source, cover art, synopsis, genres, release year, community score, and metric,
+ * and resetting is_custom to 0.
+ * If another record already exists with the target external_id + source_api, merges records cleanly.
+ */
+export async function linkMediaItem(
+  mediaId: string,
+  result: {
+    externalId: string;
+    sourceApi: string;
+    type: string;
+    title: string;
+    coverImageUrl?: string | null;
+    description?: string | null;
+    releaseDate?: string | null;
+    genres?: string[] | null;
+    communityScore?: number | null;
+    publisherOrStudio?: string | null;
+    originalLanguage?: string | null;
+    formattedConsumptionMetric?: string | null;
+    totalProgressUnits?: number | null;
+  }
+): Promise<void> {
+  const db = await getDb();
+
+  const existing = await db.select<any[]>(
+    "SELECT id FROM Media WHERE external_id = $1 AND source_api = $2 AND id != $3 LIMIT 1",
+    [result.externalId, result.sourceApi, mediaId]
+  );
+
+  const genresStr = Array.isArray(result.genres) ? JSON.stringify(result.genres) : (result.genres || null);
+  const releaseYear = result.releaseDate ? String(result.releaseDate).split('-')[0] : null;
+
+  if (existing && existing.length > 0) {
+    const realMediaId = existing[0].id;
+    await mergeMediaRecords(db, realMediaId, mediaId);
+    await db.execute(
+      `UPDATE Media SET 
+        title = COALESCE($1, title),
+        description = COALESCE($2, description),
+        cover_image_path = COALESCE($3, cover_image_path),
+        release_date = COALESCE($4, release_date),
+        genres = COALESCE($5, genres),
+        consumption_metric = COALESCE($6, consumption_metric),
+        release_year = COALESCE($7, release_year),
+        community_score = COALESCE($8, community_score),
+        publisher_or_studio = COALESCE($9, publisher_or_studio),
+        original_language = COALESCE($10, original_language),
+        total_progress_units = COALESCE($11, total_progress_units),
+        is_custom = 0
+       WHERE id = $12`,
+      [
+        result.title,
+        result.description || null,
+        result.coverImageUrl || null,
+        result.releaseDate || null,
+        genresStr,
+        result.formattedConsumptionMetric || null,
+        releaseYear,
+        result.communityScore !== undefined && result.communityScore !== null ? result.communityScore : null,
+        result.publisherOrStudio || null,
+        result.originalLanguage || null,
+        result.totalProgressUnits !== undefined && result.totalProgressUnits !== null ? result.totalProgressUnits : null,
+        realMediaId
+      ]
+    );
+  } else {
+    await db.execute(
+      `UPDATE Media SET 
+        external_id = $1,
+        source_api = $2,
+        type = $3,
+        title = $4,
+        description = COALESCE($5, description),
+        cover_image_path = COALESCE($6, cover_image_path),
+        release_date = COALESCE($7, release_date),
+        genres = COALESCE($8, genres),
+        consumption_metric = COALESCE($9, consumption_metric),
+        release_year = COALESCE($10, release_year),
+        community_score = COALESCE($11, community_score),
+        publisher_or_studio = COALESCE($12, publisher_or_studio),
+        original_language = COALESCE($13, original_language),
+        total_progress_units = COALESCE($14, total_progress_units),
+        is_custom = 0
+       WHERE id = $15`,
+      [
+        result.externalId,
+        result.sourceApi,
+        result.type,
+        result.title,
+        result.description || null,
+        result.coverImageUrl || null,
+        result.releaseDate || null,
+        genresStr,
+        result.formattedConsumptionMetric || null,
+        releaseYear,
+        result.communityScore !== undefined && result.communityScore !== null ? result.communityScore : null,
+        result.publisherOrStudio || null,
+        result.originalLanguage || null,
+        result.totalProgressUnits !== undefined && result.totalProgressUnits !== null ? result.totalProgressUnits : null,
+        mediaId
+      ]
+    );
+  }
 }

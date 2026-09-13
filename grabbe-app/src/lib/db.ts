@@ -8,7 +8,11 @@ export {
   reconcileProviderMigrations, 
   deduplicateAndMigrateLegacyMedia, 
   PROVIDER_MIGRATION_RULES, 
-  isKnownLegacyProvider 
+  isKnownLegacyProvider,
+  linkMediaItem,
+  getUnlinkedMediaItems,
+  markMediaAsCustom,
+  type UnlinkedMediaItem
 } from './db/media';
 export { 
   saveTracking, 
