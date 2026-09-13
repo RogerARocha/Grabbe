@@ -84,14 +84,43 @@ fn main() {
                     }
                 }
 
-                // If an update was downloaded and pending install, launch the installer silently in the background
+                // If an update was downloaded and pending install, launch the installer silently in the background and restart Grabbe
                 if let Some(update_state) = app_handle.try_state::<PendingUpdateState>() {
                     if let Ok(mut pending_lock) = update_state.0.lock() {
                         if let Some(installer_path) = pending_lock.take() {
                             #[cfg(target_os = "windows")]
                             {
-                                let _ = std::process::Command::new(&installer_path)
-                                    .arg("/S")
+                                use std::os::windows::process::CommandExt;
+                                const CREATE_NO_WINDOW: u32 = 0x08000000;
+                                const DETACHED_PROCESS: u32 = 0x00000008;
+
+                                let current_pid = std::process::id();
+                                let current_exe = std::env::current_exe()
+                                    .unwrap_or_default()
+                                    .to_string_lossy()
+                                    .to_string();
+
+                                // Construct a resilient background updater script that:
+                                // 1. Waits for the current Grabbe instance to fully terminate and release file locks
+                                // 2. Executes the NSIS installer silently (/S) and waits for completion
+                                // 3. Relaunches the updated Grabbe application
+                                // 4. Cleans up the temporary installer binary
+                                let script = format!(
+                                    "Start-Sleep -Milliseconds 600; \
+                                     Wait-Process -Id {pid} -ErrorAction SilentlyContinue; \
+                                     Start-Process -FilePath '{installer}' -ArgumentList '/S' -Wait; \
+                                     if (Test-Path '{exe}') {{ \
+                                         Start-Process -FilePath '{exe}'; \
+                                     }} \
+                                     Remove-Item -Path '{installer}' -Force -ErrorAction SilentlyContinue;",
+                                    pid = current_pid,
+                                    installer = installer_path.replace('\'', "''"),
+                                    exe = current_exe.replace('\'', "''")
+                                );
+
+                                let _ = std::process::Command::new("powershell")
+                                    .args(["-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", &script])
+                                    .creation_flags(CREATE_NO_WINDOW | DETACHED_PROCESS)
                                     .spawn();
                             }
 

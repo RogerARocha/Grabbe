@@ -29,7 +29,7 @@ export const UpdateReadyModal: React.FC = () => {
               Update Ready to Install
             </h3>
             <p className="text-sm text-text-muted leading-relaxed">
-              Grabbe <span className="text-text-high font-semibold">v{updateInfo.latestVersion}</span> has been downloaded successfully. Restart now to complete the installation and enjoy the latest features.
+              Grabbe <span className="text-text-high font-semibold">v{updateInfo.latestVersion}</span> has been downloaded in the background. You can restart now to install immediately, or continue working — the update will be applied and Grabbe will restart automatically when you close the app.
             </p>
           </div>
         </div>
@@ -39,7 +39,7 @@ export const UpdateReadyModal: React.FC = () => {
             onClick={closeReadyModal}
             className="px-4 py-2 text-sm font-medium text-text-muted hover:text-text-high hover:bg-white/5 rounded-lg transition-all cursor-pointer select-none"
           >
-            Restart Later
+            Update on Close
           </button>
           <button
             onClick={restartAndInstall}
