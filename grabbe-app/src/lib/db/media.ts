@@ -282,104 +282,129 @@ export async function mergeMediaRecords(
 
     // 1. Resolve UserTracking for both records
     const targetTracks = await db.select<any[]>(
-        "SELECT * FROM UserTracking WHERE media_id = $1 LIMIT 1",
+        "SELECT * FROM UserTracking WHERE media_id = $1",
         [targetMediaId]
     );
     const sourceTracks = await db.select<any[]>(
-        "SELECT * FROM UserTracking WHERE media_id = $1 LIMIT 1",
+        "SELECT * FROM UserTracking WHERE media_id = $1",
         [sourceMediaId]
     );
 
     const targetTrack = targetTracks && targetTracks.length > 0 ? targetTracks[0] : null;
     const sourceTrack = sourceTracks && sourceTracks.length > 0 ? sourceTracks[0] : null;
 
-    let winnerTrackId: string | null = null;
+    let primaryTrackId: string | null = null;
 
     if (targetTrack && sourceTrack) {
-        // Decide winner tracking record: prefer the one with progress or latest update
+        primaryTrackId = targetTrack.id;
+
+        // Check if sourceTrack values should be transferred when target has no progress or source is newer
         const targetHasProgress = (targetTrack.progress || 0) > 0 || targetTrack.status === 'COMPLETED';
         const sourceHasProgress = (sourceTrack.progress || 0) > 0 || sourceTrack.status === 'COMPLETED';
 
-        let winnerTrack = targetTrack;
-        let loserTrack = sourceTrack;
-
+        let shouldAdoptSourceValues = false;
         if (!targetHasProgress && sourceHasProgress) {
-            winnerTrack = sourceTrack;
-            loserTrack = targetTrack;
+            shouldAdoptSourceValues = true;
         } else if (sourceTrack.updated_at && targetTrack.updated_at) {
             if (new Date(sourceTrack.updated_at) > new Date(targetTrack.updated_at) && sourceHasProgress) {
-                winnerTrack = sourceTrack;
-                loserTrack = targetTrack;
+                shouldAdoptSourceValues = true;
             }
         }
 
-        winnerTrackId = winnerTrack.id;
+        if (shouldAdoptSourceValues) {
+            await db.execute(
+                "UPDATE UserTracking SET status = $1, progress = $2, total_progress = COALESCE($3, total_progress), rewatch_count = COALESCE($4, rewatch_count), review_text = COALESCE($5, review_text) WHERE id = $6",
+                [sourceTrack.status, sourceTrack.progress, sourceTrack.total_progress, sourceTrack.rewatch_count, sourceTrack.review_text, targetTrack.id]
+            );
+        }
 
         // Move or filter sessions and history based on user sessionPreference override
         if (overrides?.sessionPreference === 'target') {
+            // Keep target sessions, discard source sessions
             await db.execute("DELETE FROM ConsumptionSession WHERE tracking_id = $1", [sourceTrack.id]);
             await db.execute("DELETE FROM TrackingHistory WHERE tracking_id = $1", [sourceTrack.id]);
         } else if (overrides?.sessionPreference === 'source') {
+            // Keep source sessions, discard target sessions
             await db.execute("DELETE FROM ConsumptionSession WHERE tracking_id = $1", [targetTrack.id]);
             await db.execute("DELETE FROM TrackingHistory WHERE tracking_id = $1", [targetTrack.id]);
             await db.execute(
                 "UPDATE ConsumptionSession SET tracking_id = $1 WHERE tracking_id = $2",
-                [winnerTrack.id, sourceTrack.id]
+                [targetTrack.id, sourceTrack.id]
             );
             await db.execute(
                 "UPDATE TrackingHistory SET tracking_id = $1 WHERE tracking_id = $2",
-                [winnerTrack.id, sourceTrack.id]
+                [targetTrack.id, sourceTrack.id]
             );
         } else {
-            // Move sessions and history from loser tracking to winner tracking (combine)
+            // Combine: move sessions and history from source to target
             await db.execute(
                 "UPDATE ConsumptionSession SET tracking_id = $1 WHERE tracking_id = $2",
-                [winnerTrack.id, loserTrack.id]
+                [targetTrack.id, sourceTrack.id]
             );
             await db.execute(
                 "UPDATE TrackingHistory SET tracking_id = $1 WHERE tracking_id = $2",
-                [winnerTrack.id, loserTrack.id]
+                [targetTrack.id, sourceTrack.id]
             );
         }
 
-        // Delete loser tracking
-        await db.execute("DELETE FROM UserTracking WHERE id = $1", [loserTrack.id]);
-
-        // Ensure winner tracking points to targetMediaId
-        await db.execute(
-            "UPDATE UserTracking SET media_id = $1 WHERE id = $2",
-            [targetMediaId, winnerTrack.id]
-        );
+        // Clean up any remaining sessions/history on all source tracks to guarantee foreign key safety
+        for (const st of sourceTracks) {
+            await db.execute("DELETE FROM ConsumptionSession WHERE tracking_id = $1", [st.id]);
+            await db.execute("DELETE FROM TrackingHistory WHERE tracking_id = $1", [st.id]);
+            await db.execute("DELETE FROM UserTracking WHERE id = $1", [st.id]);
+        }
     } else if (!targetTrack && sourceTrack) {
-        winnerTrackId = sourceTrack.id;
+        primaryTrackId = sourceTrack.id;
         await db.execute(
             "UPDATE UserTracking SET media_id = $1 WHERE id = $2",
             [targetMediaId, sourceTrack.id]
         );
+        // Clean up any other duplicate tracks on source
+        for (const st of sourceTracks.slice(1)) {
+            await db.execute("DELETE FROM ConsumptionSession WHERE tracking_id = $1", [st.id]);
+            await db.execute("DELETE FROM TrackingHistory WHERE tracking_id = $1", [st.id]);
+            await db.execute("DELETE FROM UserTracking WHERE id = $1", [st.id]);
+        }
     } else if (targetTrack) {
-        winnerTrackId = targetTrack.id;
+        primaryTrackId = targetTrack.id;
     }
 
     // Apply UserTracking field overrides if specified
-    if (winnerTrackId && overrides) {
+    if (primaryTrackId && overrides) {
         if (overrides.status !== undefined) {
-            await db.execute("UPDATE UserTracking SET status = $1 WHERE id = $2", [overrides.status, winnerTrackId]);
+            await db.execute("UPDATE UserTracking SET status = $1 WHERE id = $2", [overrides.status, primaryTrackId]);
         }
         if (overrides.progress !== undefined) {
-            await db.execute("UPDATE UserTracking SET progress = $1 WHERE id = $2", [overrides.progress, winnerTrackId]);
+            await db.execute("UPDATE UserTracking SET progress = $1 WHERE id = $2", [overrides.progress, primaryTrackId]);
         }
         if (overrides.totalProgress !== undefined) {
-            await db.execute("UPDATE UserTracking SET total_progress = $1 WHERE id = $2", [overrides.totalProgress, winnerTrackId]);
+            await db.execute("UPDATE UserTracking SET total_progress = $1 WHERE id = $2", [overrides.totalProgress, primaryTrackId]);
+        }
+    }
+
+    // Renumber sessions sequentially (1..N) if any exist on the primary track
+    if (primaryTrackId) {
+        const sessions = await db.select<any[]>(
+            "SELECT id FROM ConsumptionSession WHERE tracking_id = $1 ORDER BY COALESCE(start_date, created_at) ASC, session_number ASC",
+            [primaryTrackId]
+        );
+        if (sessions && sessions.length > 0) {
+            for (let i = 0; i < sessions.length; i++) {
+                await db.execute(
+                    "UPDATE ConsumptionSession SET session_number = $1 WHERE id = $2",
+                    [i + 1, sessions[i].id]
+                );
+            }
         }
     }
 
     // 2. Resolve Ranking for both records
     const targetRanks = await db.select<any[]>(
-        "SELECT * FROM Ranking WHERE media_id = $1 LIMIT 1",
+        "SELECT * FROM Ranking WHERE media_id = $1",
         [targetMediaId]
     );
     const sourceRanks = await db.select<any[]>(
-        "SELECT * FROM Ranking WHERE media_id = $1 LIMIT 1",
+        "SELECT * FROM Ranking WHERE media_id = $1",
         [sourceMediaId]
     );
 
@@ -396,13 +421,18 @@ export async function mergeMediaRecords(
             );
         }
         activeRankId = targetRank.id;
-        await db.execute("DELETE FROM Ranking WHERE id = $1", [sourceRank.id]);
+        for (const sr of sourceRanks) {
+            await db.execute("DELETE FROM Ranking WHERE id = $1", [sr.id]);
+        }
     } else if (!targetRank && sourceRank) {
         activeRankId = sourceRank.id;
         await db.execute(
             "UPDATE Ranking SET media_id = $1 WHERE id = $2",
             [targetMediaId, sourceRank.id]
         );
+        for (const sr of sourceRanks.slice(1)) {
+            await db.execute("DELETE FROM Ranking WHERE id = $1", [sr.id]);
+        }
     } else if (targetRank) {
         activeRankId = targetRank.id;
     }
@@ -424,6 +454,10 @@ export async function mergeMediaRecords(
             );
         }
     }
+
+    // Ensure any leftover ranking or tracking rows referencing sourceMediaId are purged
+    await db.execute("DELETE FROM Ranking WHERE media_id = $1", [sourceMediaId]);
+    await db.execute("DELETE FROM UserTracking WHERE media_id = $1", [sourceMediaId]);
 
     // 3. Delete source media row since everything has been consolidated
     await db.execute("DELETE FROM Media WHERE id = $1", [sourceMediaId]);
