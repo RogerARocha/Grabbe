@@ -8,7 +8,19 @@ interface MetadataLinkerProps {
   setShowDropdown: (show: boolean) => void;
   handleQueryChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleSelectResult: (result: any) => void;
+  searchType?: string;
+  onTypeChange?: (type: string) => void;
 }
+
+const TYPE_OPTIONS = [
+  { value: 'ALL', label: 'All' },
+  { value: 'MOVIE', label: 'Film' },
+  { value: 'SERIES', label: 'Series' },
+  { value: 'ANIME', label: 'Anime' },
+  { value: 'MANGA', label: 'Manga' },
+  { value: 'BOOK', label: 'Book' },
+  { value: 'GAME', label: 'Game' },
+];
 
 /**
  * Presentation component displayed when a media is a basic imported placeholder.
@@ -21,19 +33,48 @@ export const MetadataLinker = ({
   showDropdown,
   setShowDropdown,
   handleQueryChange,
-  handleSelectResult
+  handleSelectResult,
+  searchType = 'ALL',
+  onTypeChange
 }: MetadataLinkerProps) => {
   return (
     <div className="max-w-2xl p-5 border border-sky-500/30 bg-sky-500/10 rounded-xl flex flex-col gap-4">
       <p className="text-sm text-text-base font-medium leading-relaxed">
-        We not finded the details online (poster, synopsis) for this media. You can try to search and link it manually later. If you can't find it, don't worry: your data, notes and progress are already saved securely.
+        We couldn't find the online details (poster, synopsis) for this media. You can search and link it manually below without limitations or filter by type.
       </p>
+
+      {/* Type Filter Pills */}
+      {onTypeChange && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[10px] uppercase font-bold tracking-wider text-text-muted mr-1">
+            Filter:
+          </span>
+          {TYPE_OPTIONS.map((opt) => {
+            const isActive = searchType === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => onTypeChange(opt.value)}
+                className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
+                  isActive
+                    ? 'bg-primary text-on-primary shadow-sm shadow-primary/20'
+                    : 'bg-background/80 hover:bg-background text-text-muted hover:text-text-high border border-outline-variant/20'
+                }`}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       <div className="flex flex-col gap-2 relative">
         <div className="relative">
           <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-sky-400">search</span>
           <input
             type="text"
-            placeholder="Search by title to link..."
+            placeholder={searchType === 'ALL' ? 'Search across all providers to link...' : `Search in ${searchType.toLowerCase()}s to link...`}
             className="w-full bg-background border border-sky-500/30 text-text-high text-sm pl-10 pr-10 py-3 rounded-lg focus:outline-none focus:border-sky-500 transition-colors"
             value={searchQuery}
             onChange={handleQueryChange}
