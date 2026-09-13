@@ -257,12 +257,27 @@ export async function getMediaByExternalId(externalId: string, sourceApi: string
     };
 }
 
+export interface MergeOverrides {
+  status?: string;
+  progress?: number;
+  totalProgress?: number | null;
+  score?: number | null;
+  reviewText?: string | null;
+  sessionPreference?: 'target' | 'source' | 'combine';
+}
+
 /**
  * Merges two Media records in SQLite, cleanly re-pointing UserTracking, Ranking,
  * ConsumptionSession, and TrackingHistory from sourceMediaId to targetMediaId,
  * then deleting sourceMediaId.
+ * Optionally applies field overrides specified by the user during conflict resolution.
  */
-export async function mergeMediaRecords(db: Database, targetMediaId: string, sourceMediaId: string) {
+export async function mergeMediaRecords(
+  db: Database,
+  targetMediaId: string,
+  sourceMediaId: string,
+  overrides?: MergeOverrides
+) {
     if (targetMediaId === sourceMediaId) return;
 
     // 1. Resolve UserTracking for both records
@@ -277,6 +292,8 @@ export async function mergeMediaRecords(db: Database, targetMediaId: string, sou
 
     const targetTrack = targetTracks && targetTracks.length > 0 ? targetTracks[0] : null;
     const sourceTrack = sourceTracks && sourceTracks.length > 0 ? sourceTracks[0] : null;
+
+    let winnerTrackId: string | null = null;
 
     if (targetTrack && sourceTrack) {
         // Decide winner tracking record: prefer the one with progress or latest update
@@ -296,15 +313,34 @@ export async function mergeMediaRecords(db: Database, targetMediaId: string, sou
             }
         }
 
-        // Move sessions and history from loser tracking to winner tracking
-        await db.execute(
-            "UPDATE ConsumptionSession SET tracking_id = $1 WHERE tracking_id = $2",
-            [winnerTrack.id, loserTrack.id]
-        );
-        await db.execute(
-            "UPDATE TrackingHistory SET tracking_id = $1 WHERE tracking_id = $2",
-            [winnerTrack.id, loserTrack.id]
-        );
+        winnerTrackId = winnerTrack.id;
+
+        // Move or filter sessions and history based on user sessionPreference override
+        if (overrides?.sessionPreference === 'target') {
+            await db.execute("DELETE FROM ConsumptionSession WHERE tracking_id = $1", [sourceTrack.id]);
+            await db.execute("DELETE FROM TrackingHistory WHERE tracking_id = $1", [sourceTrack.id]);
+        } else if (overrides?.sessionPreference === 'source') {
+            await db.execute("DELETE FROM ConsumptionSession WHERE tracking_id = $1", [targetTrack.id]);
+            await db.execute("DELETE FROM TrackingHistory WHERE tracking_id = $1", [targetTrack.id]);
+            await db.execute(
+                "UPDATE ConsumptionSession SET tracking_id = $1 WHERE tracking_id = $2",
+                [winnerTrack.id, sourceTrack.id]
+            );
+            await db.execute(
+                "UPDATE TrackingHistory SET tracking_id = $1 WHERE tracking_id = $2",
+                [winnerTrack.id, sourceTrack.id]
+            );
+        } else {
+            // Move sessions and history from loser tracking to winner tracking (combine)
+            await db.execute(
+                "UPDATE ConsumptionSession SET tracking_id = $1 WHERE tracking_id = $2",
+                [winnerTrack.id, loserTrack.id]
+            );
+            await db.execute(
+                "UPDATE TrackingHistory SET tracking_id = $1 WHERE tracking_id = $2",
+                [winnerTrack.id, loserTrack.id]
+            );
+        }
 
         // Delete loser tracking
         await db.execute("DELETE FROM UserTracking WHERE id = $1", [loserTrack.id]);
@@ -315,11 +351,26 @@ export async function mergeMediaRecords(db: Database, targetMediaId: string, sou
             [targetMediaId, winnerTrack.id]
         );
     } else if (!targetTrack && sourceTrack) {
-        // Re-point source tracking to target media
+        winnerTrackId = sourceTrack.id;
         await db.execute(
             "UPDATE UserTracking SET media_id = $1 WHERE id = $2",
             [targetMediaId, sourceTrack.id]
         );
+    } else if (targetTrack) {
+        winnerTrackId = targetTrack.id;
+    }
+
+    // Apply UserTracking field overrides if specified
+    if (winnerTrackId && overrides) {
+        if (overrides.status !== undefined) {
+            await db.execute("UPDATE UserTracking SET status = $1 WHERE id = $2", [overrides.status, winnerTrackId]);
+        }
+        if (overrides.progress !== undefined) {
+            await db.execute("UPDATE UserTracking SET progress = $1 WHERE id = $2", [overrides.progress, winnerTrackId]);
+        }
+        if (overrides.totalProgress !== undefined) {
+            await db.execute("UPDATE UserTracking SET total_progress = $1 WHERE id = $2", [overrides.totalProgress, winnerTrackId]);
+        }
     }
 
     // 2. Resolve Ranking for both records
@@ -335,6 +386,8 @@ export async function mergeMediaRecords(db: Database, targetMediaId: string, sou
     const targetRank = targetRanks && targetRanks.length > 0 ? targetRanks[0] : null;
     const sourceRank = sourceRanks && sourceRanks.length > 0 ? sourceRanks[0] : null;
 
+    let activeRankId: string | null = null;
+
     if (targetRank && sourceRank) {
         if (!targetRank.score && sourceRank.score) {
             await db.execute(
@@ -342,12 +395,34 @@ export async function mergeMediaRecords(db: Database, targetMediaId: string, sou
                 [sourceRank.score, sourceRank.review_text, targetRank.id]
             );
         }
+        activeRankId = targetRank.id;
         await db.execute("DELETE FROM Ranking WHERE id = $1", [sourceRank.id]);
     } else if (!targetRank && sourceRank) {
+        activeRankId = sourceRank.id;
         await db.execute(
             "UPDATE Ranking SET media_id = $1 WHERE id = $2",
             [targetMediaId, sourceRank.id]
         );
+    } else if (targetRank) {
+        activeRankId = targetRank.id;
+    }
+
+    // Apply Ranking score/review overrides if specified
+    if (overrides && (overrides.score !== undefined || overrides.reviewText !== undefined)) {
+        if (activeRankId) {
+            if (overrides.score !== undefined && overrides.score !== null) {
+                await db.execute("UPDATE Ranking SET score = $1 WHERE id = $2", [overrides.score, activeRankId]);
+            }
+            if (overrides.reviewText !== undefined) {
+                await db.execute("UPDATE Ranking SET review_text = $1 WHERE id = $2", [overrides.reviewText, activeRankId]);
+            }
+        } else if (overrides.score !== undefined && overrides.score !== null) {
+            const newRankId = uuidv4();
+            await db.execute(
+                "INSERT INTO Ranking (id, media_id, score, review_text) VALUES ($1, $2, $3, $4)",
+                [newRankId, targetMediaId, overrides.score, overrides.reviewText || null]
+            );
+        }
     }
 
     // 3. Delete source media row since everything has been consolidated
@@ -418,6 +493,25 @@ export async function unlinkMedia(mediaId: string): Promise<string> {
     return newExternalId;
 }
 
+export interface LocalMatchItem {
+  id: string;
+  externalId: string;
+  sourceApi: string;
+  type: string;
+  title: string;
+  coverImagePath: string | null;
+  status: string;
+  progress: number;
+  totalProgress: number | null;
+  score: number | null;
+  sessions: Array<{
+    sessionNumber: number;
+    startDate: string | null;
+    finishDate: string | null;
+    isActive: boolean;
+  }>;
+}
+
 export interface UnlinkedMediaItem {
   id: string;
   externalId: string;
@@ -435,6 +529,107 @@ export interface UnlinkedMediaItem {
     finishDate: string | null;
     isActive: boolean;
   }>;
+  possibleLocalMatches?: LocalMatchItem[];
+}
+
+/**
+ * Scans the local database for existing linked media items that match the given title.
+ */
+export async function findPossibleLocalMatches(
+  db: Database,
+  title: string,
+  _mediaType: string,
+  currentMediaId: string
+): Promise<LocalMatchItem[]> {
+  if (!title || title.trim().length < 2) return [];
+
+  const cleanTitle = title.trim();
+
+  const matches = await db.select<any[]>(
+    `SELECT 
+      m.id,
+      m.external_id,
+      m.source_api,
+      m.type,
+      m.title,
+      m.cover_image_path,
+      ut.status,
+      ut.progress,
+      ut.total_progress,
+      r.score,
+      cs.session_number,
+      cs.start_date,
+      cs.finish_date,
+      cs.is_active
+    FROM Media m
+    INNER JOIN UserTracking ut ON ut.media_id = m.id
+    LEFT JOIN Ranking r ON r.media_id = m.id
+    LEFT JOIN ConsumptionSession cs ON cs.tracking_id = ut.id
+    WHERE m.id != $1
+      AND m.external_id NOT LIKE 'imported_%'
+      AND m.external_id NOT LIKE 'imported_unlinked_%'
+      AND (
+        LOWER(TRIM(m.title)) = LOWER(TRIM($2))
+        OR LOWER(m.title) LIKE LOWER($3)
+        OR (m.alternative_titles IS NOT NULL AND LOWER(m.alternative_titles) LIKE LOWER($3))
+      )
+    ORDER BY m.title ASC, cs.session_number ASC`,
+    [currentMediaId, cleanTitle, `%${cleanTitle}%`]
+  );
+
+  if (!matches || matches.length === 0) return [];
+
+  const map = new Map<string, LocalMatchItem>();
+  for (const row of matches) {
+    if (!map.has(row.id)) {
+      map.set(row.id, {
+        id: row.id,
+        externalId: row.external_id,
+        sourceApi: row.source_api,
+        type: row.type,
+        title: row.title,
+        coverImagePath: row.cover_image_path,
+        status: row.status,
+        progress: row.progress || 0,
+        totalProgress: row.total_progress || null,
+        score: row.score || null,
+        sessions: []
+      });
+    }
+
+    if (row.session_number !== null && row.session_number !== undefined) {
+      const item = map.get(row.id)!;
+      const alreadyHas = item.sessions.some((s) => s.sessionNumber === row.session_number);
+      if (!alreadyHas) {
+        item.sessions.push({
+          sessionNumber: row.session_number,
+          startDate: row.start_date || null,
+          finishDate: row.finish_date || null,
+          isActive: row.is_active === 1 || row.is_active === true
+        });
+      }
+    }
+  }
+
+  return Array.from(map.values()).slice(0, 3);
+}
+
+/**
+ * Completely removes a media record and all associated tracking, sessions, history, and ranking rows.
+ */
+export async function deleteMediaRecord(mediaId: string): Promise<void> {
+  const db = await getDb();
+
+  const tracking = await db.select<any[]>("SELECT id FROM UserTracking WHERE media_id = $1", [mediaId]);
+  if (tracking && tracking.length > 0) {
+    for (const track of tracking) {
+      await db.execute("DELETE FROM ConsumptionSession WHERE tracking_id = $1", [track.id]);
+      await db.execute("DELETE FROM TrackingHistory WHERE tracking_id = $1", [track.id]);
+    }
+    await db.execute("DELETE FROM UserTracking WHERE media_id = $1", [mediaId]);
+  }
+  await db.execute("DELETE FROM Ranking WHERE media_id = $1", [mediaId]);
+  await db.execute("DELETE FROM Media WHERE id = $1", [mediaId]);
 }
 
 /**
@@ -513,7 +708,13 @@ export async function getUnlinkedMediaItems(): Promise<UnlinkedMediaItem[]> {
     }
   }
 
-  return Array.from(map.values());
+  const items = Array.from(map.values());
+
+  for (const item of items) {
+    item.possibleLocalMatches = await findPossibleLocalMatches(db, item.title, item.type, item.id);
+  }
+
+  return items;
 }
 
 /**
