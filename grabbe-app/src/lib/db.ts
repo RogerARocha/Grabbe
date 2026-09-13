@@ -12,7 +12,11 @@ export {
   linkMediaItem,
   getUnlinkedMediaItems,
   markMediaAsCustom,
-  type UnlinkedMediaItem
+  deleteMediaRecord,
+  findPossibleLocalMatches,
+  type UnlinkedMediaItem,
+  type LocalMatchItem,
+  type MergeOverrides
 } from './db/media';
 export { 
   saveTracking, 
