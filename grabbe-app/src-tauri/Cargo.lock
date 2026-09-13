@@ -1611,7 +1611,7 @@ dependencies = [
 
 [[package]]
 name = "grabbe-app"
-version = "1.4.4"
+version = "1.4.3"
 dependencies = [
  "futures-util",
  "reqwest 0.12.28",
