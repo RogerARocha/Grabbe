@@ -26,6 +26,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             grabbe_app_lib::commands::greet,
             grabbe_app_lib::commands::check_cached_installer,
+            grabbe_app_lib::commands::cleanup_cached_installers,
             grabbe_app_lib::commands::download_update_file,
             grabbe_app_lib::commands::launch_installer_and_exit,
         ]);
@@ -39,6 +40,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             grabbe_app_lib::commands::greet,
             grabbe_app_lib::commands::check_cached_installer,
+            grabbe_app_lib::commands::cleanup_cached_installers,
             grabbe_app_lib::commands::download_update_file,
             grabbe_app_lib::commands::launch_installer_and_exit,
         ]);
@@ -92,35 +94,20 @@ fn main() {
                             {
                                 use std::os::windows::process::CommandExt;
                                 const CREATE_NO_WINDOW: u32 = 0x08000000;
-                                const DETACHED_PROCESS: u32 = 0x00000008;
 
-                                let current_pid = std::process::id();
-                                let current_exe = std::env::current_exe()
-                                    .unwrap_or_default()
-                                    .to_string_lossy()
-                                    .to_string();
+                                // 1. Terminate any lingering sidecar processes so they release file locks
+                                let _ = std::process::Command::new("taskkill")
+                                    .args(["/F", "/IM", "grabbe-bff.exe", "/T"])
+                                    .creation_flags(CREATE_NO_WINDOW)
+                                    .status();
 
-                                // Construct a resilient background updater script that:
-                                // 1. Waits for the current Grabbe instance to fully terminate and release file locks
-                                // 2. Executes the NSIS installer silently (/S) and waits for completion
-                                // 3. Relaunches the updated Grabbe application
-                                // 4. Cleans up the temporary installer binary
-                                let script = format!(
-                                    "Start-Sleep -Milliseconds 600; \
-                                     Wait-Process -Id {pid} -ErrorAction SilentlyContinue; \
-                                     Start-Process -FilePath '{installer}' -ArgumentList '/S' -Wait; \
-                                     if (Test-Path '{exe}') {{ \
-                                         Start-Process -FilePath '{exe}'; \
-                                     }} \
-                                     Remove-Item -Path '{installer}' -Force -ErrorAction SilentlyContinue;",
-                                    pid = current_pid,
-                                    installer = installer_path.replace('\'', "''"),
-                                    exe = current_exe.replace('\'', "''")
-                                );
-
-                                let _ = std::process::Command::new("powershell")
-                                    .args(["-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", &script])
-                                    .creation_flags(CREATE_NO_WINDOW | DETACHED_PROCESS)
+                                // 2. Launch the NSIS installer:
+                                //    /S      -> Silent installation
+                                //    /UPDATE -> Preserves existing configs/shortcuts
+                                //    /R      -> Tells Tauri NSIS installer to restart the app upon successful install
+                                //    /ARGS   -> Empty arguments for the restarted application
+                                let _ = std::process::Command::new(&installer_path)
+                                    .args(["/S", "/UPDATE", "/R", "/ARGS"])
                                     .spawn();
                             }
 

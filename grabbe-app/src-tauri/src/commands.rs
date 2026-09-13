@@ -42,12 +42,40 @@ fn validate_update_source(url: &str, filename: &str) -> Result<(), String> {
     Ok(())
 }
 
+fn cleanup_stale_installers(keep_filename: Option<&str>) {
+    let target_dir = std::env::temp_dir();
+    if let Ok(entries) = std::fs::read_dir(target_dir) {
+        for entry in entries.flatten() {
+            let file_name = entry.file_name().to_string_lossy().to_string();
+            let is_grabbe_file = (file_name.starts_with("Grabbe_") || file_name.starts_with("Grabbe-"))
+                && (file_name.ends_with(".exe") || file_name.ends_with(".download"));
+
+            if is_grabbe_file {
+                if let Some(keep) = keep_filename {
+                    if file_name == keep {
+                        continue;
+                    }
+                }
+                let _ = std::fs::remove_file(entry.path());
+            }
+        }
+    }
+}
+
+#[tauri::command]
+pub fn cleanup_cached_installers() {
+    cleanup_stale_installers(None);
+}
+
 #[tauri::command]
 pub fn check_cached_installer(app: AppHandle, filename: String) -> Option<String> {
     if let Err(err) = validate_update_source("https://github.com/RogerARocha/Grabbe/releases/download/", &filename) {
         eprintln!("check_cached_installer validation failed: {}", err);
         return None;
     }
+
+    // Clean up any stale installers and incomplete downloads from previous versions
+    cleanup_stale_installers(Some(&filename));
 
     let target_dir = std::env::temp_dir();
     let part_path = target_dir.join(format!("{}.download", filename));

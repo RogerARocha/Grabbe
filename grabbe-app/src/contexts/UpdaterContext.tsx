@@ -123,6 +123,10 @@ export const UpdaterProvider: React.FC<{ children: ReactNode }> = ({ children })
         setIsBannerDismissed(false);
       } else {
         setStatus(manual ? 'up-to-date' : 'idle');
+        // If up to date, clean up any remaining installer binaries in temp
+        if (isTauri()) {
+          invoke('cleanup_cached_installers').catch(() => {});
+        }
       }
 
       return result;
