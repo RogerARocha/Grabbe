@@ -92,7 +92,7 @@ export const MediaCard = ({
       : null;
 
     return (
-      <div onClick={onClick} className="group relative bg-surface rounded-lg p-2 transition-transform duration-200 hover:scale-[1.05] primary-glow cursor-pointer">
+      <div data-component="MediaCard" onClick={onClick} className="group relative bg-surface rounded-lg p-2 transition-transform duration-200 hover:scale-[1.05] primary-glow cursor-pointer">
         <div className="relative w-full aspect-[2/3] max-h-[240px] rounded-lg overflow-hidden border-2 border-primary mb-3">
           {image ? <img className="w-full h-full object-cover" alt={title} src={image} /> : <ImageFallback />}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
@@ -139,7 +139,7 @@ export const MediaCard = ({
     const badgeColor = typeBadge ? getTypeColor(typeBadge) : 'neutral';
 
     return (
-      <div onClick={onClick} className="flex flex-col gap-3 group cursor-pointer">
+      <div data-component="MediaCard" onClick={onClick} className="flex flex-col gap-3 group cursor-pointer">
         <div className={`relative w-full aspect-[2/3] rounded-lg overflow-hidden bg-surface-container bloom-shadow transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] hover:scale-[1.05] border-2 hover:border-outline-variant/60 ${THEME_STYLES[badgeColor].split(' ')[2]}`}>
           {image ? <img className="w-full h-full object-cover" alt={title} src={image} /> : <ImageFallback />}
 
@@ -174,7 +174,7 @@ export const MediaCard = ({
   const statusColor = getStatusColor(status);
 
   return (
-    <div onClick={onClick} className="flex flex-col gap-3 group cursor-pointer">
+    <div data-component="MediaCard" onClick={onClick} className="flex flex-col gap-3 group cursor-pointer">
       <div className={`relative w-full aspect-[2/3] rounded-lg overflow-hidden bg-surface-container bloom-shadow transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] hover:scale-[1.05] border-2 hover:border-outline-variant/60 ${THEME_STYLES[statusColor].split(' ')[2]}`}>
         {image ? <img className="w-full h-full object-cover" alt={title} src={image} /> : <ImageFallback />}
         <div className="absolute top-3 left-3">

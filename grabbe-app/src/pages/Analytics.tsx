@@ -41,7 +41,7 @@ export const Analytics = () => {
   }, []);
 
   return (
-    <MainLayout>
+    <MainLayout pageName="Analytics">
       <div className="space-y-8 max-w-7xl mx-auto px-4 pb-12">
         {/* Header */}
         <div>

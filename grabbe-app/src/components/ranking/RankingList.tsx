@@ -75,7 +75,7 @@ export const RankingList = ({ items, isLoading, onOpenModal }: RankingListProps)
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-4">
+      <div data-component="RankingList" className="flex flex-col gap-4">
         {[1, 2, 3, 4, 5].map((i) => (
           <div key={i} className="bg-surface rounded-lg h-24 flex items-stretch overflow-hidden animate-pulse">
             <div className="w-2 shrink-0 bg-surface-container-high" />
@@ -93,7 +93,7 @@ export const RankingList = ({ items, isLoading, onOpenModal }: RankingListProps)
 
   if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-32 text-center">
+      <div data-component="RankingList" className="flex flex-col items-center justify-center py-32 text-center">
         <span className="material-symbols-outlined text-[64px] text-outline-variant mb-4 opacity-50">
           format_list_numbered
         </span>
@@ -106,7 +106,7 @@ export const RankingList = ({ items, isLoading, onOpenModal }: RankingListProps)
   }
 
   return (
-    <div className="flex flex-col">
+    <div data-component="RankingList" className="flex flex-col">
       {/* Header Row for Sorting */}
       <div className="flex items-stretch h-8 mb-2 text-xs font-bold uppercase tracking-widest text-text-muted px-2">
         <div className="w-2 shrink-0" />

@@ -430,7 +430,7 @@ export const UnlinkedMediaAssistantModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-200">
+    <div data-component="UnlinkedMediaAssistantModal" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-200">
       <div className="relative w-full max-w-4xl bg-surface border border-outline-variant/30 rounded-2xl bloom-shadow flex flex-col max-h-[90vh] overflow-hidden">
         
         {/* Header with Progress Bar */}

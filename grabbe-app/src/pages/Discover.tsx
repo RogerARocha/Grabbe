@@ -81,7 +81,7 @@ export const Discover = () => {
   const displayedResults = results.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   return (
-    <MainLayout>
+    <MainLayout pageName="Discover">
       <div className="mb-6">
         <h1 className="text-5xl font-black tracking-tighter text-text-high">
           Discover <span className="prismatic-text">Everything</span>

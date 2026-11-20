@@ -50,7 +50,7 @@ export const GenreFilterModal: React.FC<GenreFilterModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div data-component="GenreFilterModal" className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div 
         onClick={onClose}

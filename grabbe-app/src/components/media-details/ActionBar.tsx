@@ -48,7 +48,7 @@ export const ActionBar = ({
     const canRestart = status === 'COMPLETED' || status === 'DROPPED' || status === 'ON HOLD';
 
     return (
-      <div className="flex flex-wrap items-center gap-4 pt-4">
+      <div data-component="ActionBar" className="flex flex-wrap items-center gap-4 pt-4">
         <button
           onClick={onUpdate}
           className="flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-lg cursor-pointer hover:bg-primary/20 transition-all group"
@@ -99,7 +99,7 @@ export const ActionBar = ({
   }
 
   return (
-    <div className="flex items-center gap-4 pt-4">
+    <div data-component="ActionBar" className="flex items-center gap-4 pt-4">
       <button
         onClick={onAdd}
         className="bg-primary hover:brightness-110 text-on-primary font-bold px-12 py-4 rounded-lg transition-all flex items-center gap-3 primary-glow group min-w-[200px] justify-center active:scale-95"

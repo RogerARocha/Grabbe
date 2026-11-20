@@ -11,7 +11,7 @@ export const CurrentlyConsuming = ({ items = [] }: { items?: any[] }) => {
   const consumingItems = items.filter(i => i.status === 'CONSUMING').slice(0, 4);
 
   return (
-    <section>
+    <section data-component="CurrentlyConsuming">
       <div className="flex justify-between items-end mb-6">
         <h2 className="text-2xl font-bold tracking-tight text-text-high">Currently Consuming</h2>
         <button 

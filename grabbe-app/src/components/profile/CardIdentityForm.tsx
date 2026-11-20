@@ -43,7 +43,7 @@ export const CardIdentityForm: React.FC<CardIdentityFormProps> = ({
   autoHighlightPhrase,
 }) => {
   return (
-    <section className="bg-surface p-6 rounded-2xl border border-white/5 space-y-6 shadow-lg shadow-black/20 animate-in fade-in duration-300">
+    <section data-component="CardIdentityForm" className="bg-surface p-6 rounded-2xl border border-white/5 space-y-6 shadow-lg shadow-black/20 animate-in fade-in duration-300">
       <h2 className="text-xl font-bold text-text-high flex items-center gap-2">
         <span className="material-symbols-outlined text-primary">edit</span>
         Card Identity

@@ -1,5 +1,5 @@
 export const SkeletonCard = () => (
-  <div className="flex flex-col gap-3 animate-pulse">
+  <div data-component="SkeletonCard" className="flex flex-col gap-3 animate-pulse">
     <div className="aspect-2/3 rounded-lg bg-surface-container" />
     <div className="px-1 space-y-2">
       <div className="h-3 w-3/4 bg-surface-container rounded" />
@@ -9,7 +9,7 @@ export const SkeletonCard = () => (
 );
 
 export const EmptyState = ({ query }: { query: string }) => (
-  <div className="flex flex-col items-center justify-center py-32 text-center">
+  <div data-component="EmptyState" className="flex flex-col items-center justify-center py-32 text-center">
     <div className="relative mb-8">
       <div className="w-24 h-24 rounded-full bg-surface-container flex items-center justify-center bloom-shadow">
         <span className="material-symbols-outlined text-4xl text-text-muted">search_off</span>
@@ -28,7 +28,7 @@ export const EmptyState = ({ query }: { query: string }) => (
 );
 
 export const IdleState = () => (
-  <div className="flex flex-col items-center justify-center py-32 text-center">
+  <div data-component="IdleState" className="flex flex-col items-center justify-center py-32 text-center">
     <div className="w-24 h-24 rounded-full bg-surface-container flex items-center justify-center bloom-shadow mb-8">
       <span className="material-symbols-outlined text-4xl text-primary">
         travel_explore

@@ -90,7 +90,7 @@ export const MediaHeader = ({
   const apiInfo = ratingSource ? API_REFS[ratingSource.toUpperCase()] : null;
 
   return (
-    <div className="space-y-4">
+    <div data-component="MediaHeader" className="space-y-4">
       <div className="flex items-start justify-between gap-6">
         <div className="flex flex-col gap-2">
           <h1 className="selectable-text text-5xl font-extrabold tracking-tighter text-text-high leading-none">{title}</h1>

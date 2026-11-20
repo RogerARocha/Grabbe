@@ -4,7 +4,7 @@ interface LibraryHeaderProps {
 
 export const LibraryHeader = ({ count }: LibraryHeaderProps) => {
   return (
-    <div className="mb-10">
+    <div data-component="LibraryHeader" className="mb-10">
       <h1 className="text-5xl font-extrabold tracking-tighter text-text-high mb-2">Library</h1>
       <p className="text-text-muted font-medium text-sm tracking-wide">{count} MEDIA ENTRIES RECORDED</p>
     </div>

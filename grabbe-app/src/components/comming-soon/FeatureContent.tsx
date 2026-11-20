@@ -8,7 +8,7 @@ export function FeatureContent({ config }: FeatureContentProps) {
   return (
     <>
       {/* Phase badge */}
-      <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full ${config.accentBg} border ${config.accentBorder} mb-8`}>
+      <div data-component="FeatureContent" className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full ${config.accentBg} border ${config.accentBorder} mb-8`}>
         <div className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
         <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${config.phaseColor}`}>
           {config.phase} · In Development
@@ -16,26 +16,26 @@ export function FeatureContent({ config }: FeatureContentProps) {
       </div>
 
       {/* Icon */}
-      <div className={`w-28 h-28 rounded-2xl ${config.accentBg} border ${config.accentBorder} flex items-center justify-center bloom-shadow mb-8`}>
+      <div data-component="FeatureContent" className={`w-28 h-28 rounded-2xl ${config.accentBg} border ${config.accentBorder} flex items-center justify-center bloom-shadow mb-8`}>
         <span className={`material-symbols-outlined text-5xl ${config.accentColor}`}>
           {config.icon}
         </span>
       </div>
 
       {/* Title & Description */}
-      <h1 className="text-5xl font-black tracking-tighter mb-4">
+      <h1 data-component="FeatureContent" className="text-5xl font-black tracking-tighter mb-4">
         <span className="text-text-high">{config.label}</span>
         <br />
         <span className="prismatic-text">is coming.</span>
       </h1>
-      <p className="text-base text-text-muted leading-relaxed mb-10">
+      <p data-component="FeatureContent" className="text-base text-text-muted leading-relaxed mb-10">
         {config.description}
       </p>
 
-      <div className="w-full h-px bg-linear-to-r from-transparent via-outline-variant/40 to-transparent mb-10" />
+      <div data-component="FeatureContent" className="w-full h-px bg-linear-to-r from-transparent via-outline-variant/40 to-transparent mb-10" />
 
       {/* Planned features */}
-      <div className="w-full text-left">
+      <div data-component="FeatureContent" className="w-full text-left">
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-5">
           What's planned
         </p>

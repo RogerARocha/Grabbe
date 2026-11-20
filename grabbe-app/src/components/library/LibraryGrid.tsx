@@ -45,7 +45,7 @@ export const LibraryGrid = ({ activeTab, activeStatus, searchQuery, sortBy }: Li
   if (processedData.length === 0) {
     const isSearching = searchQuery.trim().length > 0;
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
+      <div data-component="LibraryGrid" className="flex flex-col items-center justify-center py-20 text-center">
         <div className="w-20 h-20 rounded-full bg-surface-container flex items-center justify-center mb-6 border border-outline-variant/20">
           <span className="material-symbols-outlined text-3xl text-text-muted">
             {isSearching ? 'search_off' : 'folder_off'}
@@ -65,7 +65,7 @@ export const LibraryGrid = ({ activeTab, activeStatus, searchQuery, sortBy }: Li
 
   return (
     <>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+      <div data-component="LibraryGrid" className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
         {displayedItems.map(item => {
           const typeCapitalized = item.type.charAt(0) + item.type.slice(1).toLowerCase();
           const releaseYear = item.release_date ? String(item.release_date).substring(0, 4) : null;

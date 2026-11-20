@@ -32,7 +32,7 @@ export const TopBar = ({ minimal = false }: { minimal?: boolean }) => {
   } = useAppUpdater();
 
   return (
-    <header className={`fixed top-0 left-0 w-full h-10 flex items-center z-50 select-none ${
+    <header data-component="TopBar" className={`fixed top-0 left-0 w-full h-10 flex items-center z-50 select-none ${
       minimal ? 'bg-transparent border-b-0' : 'bg-surface/80 backdrop-blur-md border-b border-outline-variant/10'
     }`}>
 

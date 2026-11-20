@@ -49,7 +49,7 @@ export const GeneralStatus = ({ items = [] }: { items: any[] }) => {
   const conicGradient = stops.length > 0 ? `conic-gradient(${stops.join(', ')})` : 'none';
 
   return (
-    <section className="bg-surface rounded-xl p-6 flex flex-col w-full bloom-shadow border border-surface-container-high">
+    <section data-component="GeneralStatus" className="bg-surface rounded-xl p-6 flex flex-col w-full bloom-shadow border border-surface-container-high">
       <div className="mb-6">
         <h3 className="text-xl font-bold text-text-high flex items-center gap-2">
           <span className="material-symbols-outlined text-primary">donut_large</span>

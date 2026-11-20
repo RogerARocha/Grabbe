@@ -12,7 +12,7 @@ export const CastSection = ({ cast }: CastSectionProps) => {
   if (cast.length === 0) return null;
 
   return (
-    <div className="pt-8 space-y-4">
+    <div data-component="CastSection" className="pt-8 space-y-4">
       <h3 className="text-xs font-black uppercase tracking-[0.2em] text-text-muted">Main Cast</h3>
       <div className="flex flex-wrap gap-4">
         {cast.map((actor, index) => (

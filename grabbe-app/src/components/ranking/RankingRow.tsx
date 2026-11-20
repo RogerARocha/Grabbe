@@ -47,7 +47,7 @@ export const RankingRow = ({ item, onOpenModal }: RankingRowProps) => {
   };
 
   return (
-    <div 
+    <div data-component="RankingRow" 
       className="bg-surface rounded-lg flex items-stretch h-24 mb-4 bloom-shadow group overflow-hidden cursor-pointer hover:bg-surface-container transition-colors duration-200"
       onClick={handleNavigate}
     >

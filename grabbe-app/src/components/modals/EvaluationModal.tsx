@@ -148,7 +148,7 @@ export const EvaluationModal = ({
   const mediaType = (selectedMedia?.type || media?.type || '').toUpperCase();
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div data-component="EvaluationModal" className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
         onClick={onClose}

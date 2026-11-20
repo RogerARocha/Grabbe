@@ -24,7 +24,7 @@ export const CategoryGrid = ({ items = [] }: { items: any[] }) => {
     }, 0);
 
   return (
-    <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+    <section data-component="CategoryGrid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
       {/* Movies */}
       <div className="bg-surface rounded-xl p-6 flex flex-col justify-between hover:-translate-y-1 transition-transform duration-300 bloom-shadow border border-surface-container-high">
         <div className="flex items-center justify-between mb-4">

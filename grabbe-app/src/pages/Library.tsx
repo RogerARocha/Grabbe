@@ -56,7 +56,7 @@ export const Library = () => {
   }, [statusParam, setActiveStatus]);
 
   return (
-    <MainLayout>
+    <MainLayout pageName="Library">
       <LibraryHeader count={count} />
 
       {!isBannerDismissed && unlinkedCount > 0 && (

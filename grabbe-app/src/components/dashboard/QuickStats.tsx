@@ -22,7 +22,7 @@ export const QuickStats = ({ items = [] }: { items?: any[] }) => {
   const estimatedHoursString = formatTotalHours(totalMinutes);
 
   return (
-    <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+    <section data-component="QuickStats" className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
       <div 
         onClick={() => navigate('/library')}
         className="bg-surface p-6 rounded-xl border-l-4 border-primary bloom-shadow cursor-pointer hover:bg-surface-container transition-colors group"

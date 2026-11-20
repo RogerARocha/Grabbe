@@ -20,7 +20,7 @@ export const UnlinkedMediaBanner: React.FC<UnlinkedMediaBannerProps> = ({
   if (unlinkedCount <= 0) return null;
 
   return (
-    <div
+    <div data-component="UnlinkedMediaBanner"
       className={`relative overflow-hidden rounded-xl border border-primary/30 bg-surface/90 backdrop-blur-md p-4 bloom-shadow transition-all duration-300 border-l-4 border-l-primary ${className}`}
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

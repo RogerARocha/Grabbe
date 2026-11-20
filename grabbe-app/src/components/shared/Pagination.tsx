@@ -41,7 +41,7 @@ export const Pagination = ({ currentPage, totalPages, onPageChange }: Pagination
   if (totalPages <= 1) return null;
 
   return (
-    <div className="mt-16 flex items-center justify-center gap-1.5 flex-wrap">
+    <div data-component="Pagination" className="mt-16 flex items-center justify-center gap-1.5 flex-wrap">
       {/* Previous Page Chevron */}
       <button
         onClick={() => {

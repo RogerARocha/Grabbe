@@ -38,7 +38,7 @@ export const MetadataLinker = ({
   onTypeChange
 }: MetadataLinkerProps) => {
   return (
-    <div className="max-w-2xl p-5 border border-sky-500/30 bg-sky-500/10 rounded-xl flex flex-col gap-4">
+    <div data-component="MetadataLinker" className="max-w-2xl p-5 border border-sky-500/30 bg-sky-500/10 rounded-xl flex flex-col gap-4">
       <p className="text-sm text-text-base font-medium leading-relaxed">
         We couldn't find the online details (poster, synopsis) for this media. You can search and link it manually below without limitations or filter by type.
       </p>

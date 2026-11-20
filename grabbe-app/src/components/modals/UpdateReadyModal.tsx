@@ -12,7 +12,7 @@ export const UpdateReadyModal: React.FC = () => {
   if (!isReadyModalOpen || !updateInfo) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
+    <div data-component="UpdateReadyModal" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
       <div
         className="bg-surface border border-outline-variant/20 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl shadow-black/80 flex flex-col animate-in zoom-in-95 duration-200"
         role="dialog"

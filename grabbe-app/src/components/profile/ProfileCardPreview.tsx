@@ -335,7 +335,7 @@ export const ProfileCardPreview: React.FC<ProfileCardPreviewProps> = ({
   const tertiaryColor = '#cb4b16'; // default solarized orange
 
   return (
-    <section className="space-y-4 animate-in fade-in duration-300">
+    <section data-component="ProfileCardPreview" className="space-y-4 animate-in fade-in duration-300">
       <div className="flex items-center justify-between">
         {/* Toggle between preview formats */}
         <div className="flex bg-[#001b22] border border-white/5 p-1 rounded-xl gap-1 select-none">

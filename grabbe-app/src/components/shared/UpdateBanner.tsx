@@ -25,7 +25,7 @@ export const UpdateBanner: React.FC = () => {
     const percentage = Number(downloadProgress.percentage) || (totalBytes > 0 ? (downloadedBytes / totalBytes) * 100 : 0);
 
     return (
-      <div className="fixed bottom-6 right-6 z-40 bg-surface/95 backdrop-blur-md border border-primary/30 rounded-xl p-4 shadow-2xl shadow-black/80 max-w-sm w-full animate-in slide-in-from-bottom-4 duration-300">
+      <div data-component="UpdateBanner" className="fixed bottom-6 right-6 z-40 bg-surface/95 backdrop-blur-md border border-primary/30 rounded-xl p-4 shadow-2xl shadow-black/80 max-w-sm w-full animate-in slide-in-from-bottom-4 duration-300">
         <div className="flex items-center justify-between gap-3 mb-2">
           <div className="flex items-center gap-2">
             <div className="w-2.5 h-2.5 rounded-full bg-primary animate-ping" />
@@ -63,7 +63,7 @@ export const UpdateBanner: React.FC = () => {
 
   if (status === 'ready') {
     return (
-      <div className="fixed bottom-6 right-6 z-40 bg-surface/95 backdrop-blur-md border border-[#00E054]/30 rounded-xl p-4 shadow-2xl shadow-black/80 max-w-sm w-full animate-in slide-in-from-bottom-4 duration-300 flex items-center justify-between gap-4">
+      <div data-component="UpdateBanner" className="fixed bottom-6 right-6 z-40 bg-surface/95 backdrop-blur-md border border-[#00E054]/30 rounded-xl p-4 shadow-2xl shadow-black/80 max-w-sm w-full animate-in slide-in-from-bottom-4 duration-300 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-8 h-8 rounded-lg bg-[#00E054]/10 border border-[#00E054]/30 flex items-center justify-center text-[#00E054] shrink-0">
             <span className="material-symbols-outlined text-[18px]">check_circle</span>

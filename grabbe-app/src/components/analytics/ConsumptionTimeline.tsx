@@ -87,7 +87,7 @@ export const ConsumptionTimeline = ({ sessions = [] }: { sessions: MediaSession[
   }, [normalizedSessions, selectedYear]);
 
   return (
-    <section className="bg-surface rounded-xl p-6 bloom-shadow border border-surface-container-high relative flex flex-col gap-6">
+    <section data-component="ConsumptionTimeline" className="bg-surface rounded-xl p-6 bloom-shadow border border-surface-container-high relative flex flex-col gap-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h3 className="text-xl font-bold text-text-high">Consumption Timeline</h3>

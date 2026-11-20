@@ -30,7 +30,7 @@ export const RecentEvaluations = ({ items = [] }: { items?: any[] }) => {
   };
 
   return (
-    <section>
+    <section data-component="RecentEvaluations">
       <div className="flex justify-between items-end mb-6">
         <h2 className="text-2xl font-bold tracking-tight text-text-high">Recent Evaluations</h2>
       </div>

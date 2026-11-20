@@ -228,7 +228,7 @@ export const MergeConflictModal: React.FC<MergeConflictModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
+    <div data-component="MergeConflictModal" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
       <div className="relative w-full max-w-2xl bg-surface border border-outline-variant/30 rounded-2xl bloom-shadow flex flex-col max-h-[90vh] overflow-hidden">
         
         {/* Header */}

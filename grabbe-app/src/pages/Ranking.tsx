@@ -95,7 +95,7 @@ export const Ranking = () => {
   };
 
   return (
-    <MainLayout>
+    <MainLayout pageName="Ranking">
       <div className="mb-10">
         <h1 className="text-5xl font-black tracking-tighter text-text-high mb-2">Ranking</h1>
         <p className="text-sm font-medium text-text-muted max-w-2xl">

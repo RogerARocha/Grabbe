@@ -5,16 +5,17 @@ import { useImportProgress } from '../../contexts/ImportContext';
 
 interface MainLayoutProps {
   children: ReactNode;
+  pageName?: string;
 }
 
-export const MainLayout = ({ children }: MainLayoutProps) => {
+export const MainLayout = ({ children, pageName }: MainLayoutProps) => {
   const { isImporting, progress } = useImportProgress();
 
   return (
-    <div className="overflow-hidden bg-background text-text-base font-sans">
+    <div data-component="MainLayout" className="overflow-hidden bg-background text-text-base font-sans">
       <Sidebar />
       <TopBar />
-      <main id="main-content" className="ml-65 mt-10.5 h-[calc(100vh-42px)] px-12 pb-12 pt-6 overflow-y-auto overflow-x-hidden custom-scrollbar">
+      <main id="main-content" data-component={pageName} className="ml-65 mt-10.5 h-[calc(100vh-42px)] px-12 pb-12 pt-6 overflow-y-auto overflow-x-hidden custom-scrollbar">
         {children}
       </main>
 

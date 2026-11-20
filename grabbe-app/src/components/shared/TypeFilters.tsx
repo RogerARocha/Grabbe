@@ -7,7 +7,7 @@ interface TypeFiltersProps {
 
 export const TypeFilters = ({ activeTab, setActiveTab }: TypeFiltersProps) => {
   return (
-    <div className="flex items-center gap-2 border-b border-outline-variant/10">
+    <div data-component="TypeFilters" className="flex items-center gap-2 border-b border-outline-variant/10">
       {TYPE_FILTERS.map((filter) => {
         const isActive = activeTab === filter.value;
         

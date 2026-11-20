@@ -33,7 +33,7 @@ export const Dashboard = () => {
   }, [loadData]);
 
   return (
-    <MainLayout>
+    <MainLayout pageName="Dashboard">
       <WelcomeHeader items={items} />
 
       {!isBannerDismissed && unlinkedCount > 0 && (

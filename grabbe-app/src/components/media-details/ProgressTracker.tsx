@@ -25,7 +25,7 @@ export const ProgressTracker = ({
   const isGame = mediaType?.toUpperCase() === 'GAME';
 
   return (
-    <div className="mt-6 bg-surface rounded-lg p-5 border border-outline-variant/10">
+    <div data-component="ProgressTracker" className="mt-6 bg-surface rounded-lg p-5 border border-outline-variant/10">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>

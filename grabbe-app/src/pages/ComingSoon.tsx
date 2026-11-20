@@ -13,7 +13,7 @@ export function ComingSoon({ feature = 'analytics' }: ComingSoonProps) {
   const config = FEATURE_MAP[feature] ?? FEATURE_MAP['analytics'];
 
   return (
-    <MainLayout>
+    <MainLayout pageName="ComingSoon">
       <FloatingBackground />
 
       <div className="relative z-10 min-h-[80vh] flex flex-col items-center justify-center text-center max-w-2xl mx-auto py-20">

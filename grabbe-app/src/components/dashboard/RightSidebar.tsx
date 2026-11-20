@@ -6,7 +6,7 @@ export const RightSidebar = ({ items = [] }: { items?: any[] }) => {
   const droppedItems = items.filter(i => i.status === 'DROPPED').slice(0, 3);
 
   return (
-    <aside className="col-span-12 lg:col-span-3 space-y-8">
+    <aside data-component="RightSidebar" className="col-span-12 lg:col-span-3 space-y-8">
       {/* Planned Next */}
       <section className="bg-surface rounded-xl p-6 bloom-shadow border border-outline-variant/20">
         <h2 className="text-lg font-bold mb-6 flex items-center gap-2 text-text-high">

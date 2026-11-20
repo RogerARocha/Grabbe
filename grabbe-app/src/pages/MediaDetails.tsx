@@ -183,11 +183,11 @@ export const MediaDetails = () => {
   const fromLabel = location.state?.from || 'Library';
   const fromPath = location.state?.path || '/library';
 
-  if (isLoading) return <MainLayout><div className="flex items-center justify-center min-h-[50vh]"><div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" /></div></MainLayout>;
+  if (isLoading) return <MainLayout pageName="MediaDetails"><div className="flex items-center justify-center min-h-[50vh]"><div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" /></div></MainLayout>;
   
   if (!media) {
     return (
-      <MainLayout>
+      <MainLayout pageName="MediaDetails">
         <div className="flex flex-col items-center justify-center min-h-[60vh] max-w-md mx-auto text-center px-4 animate-in fade-in duration-300">
           <div className="w-20 h-20 rounded-full bg-error/10 flex items-center justify-center mb-6 border border-error/20 relative group">
             <div className="absolute inset-0 rounded-full bg-error/20 blur-md opacity-50 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -251,7 +251,7 @@ export const MediaDetails = () => {
   const isBasicImport = !media.coverImageUrl || externalId?.startsWith('imported_');
 
   return (
-    <MainLayout>
+    <MainLayout pageName="MediaDetails">
       <div className="max-w-6xl mx-auto">
         <Breadcrumbs items={[
           { label: fromLabel, path: fromPath },

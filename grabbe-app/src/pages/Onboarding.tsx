@@ -161,7 +161,7 @@ export const Onboarding = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background text-text-high flex flex-col items-center justify-center p-6 relative overflow-hidden">
+    <div data-component="Onboarding" className="min-h-screen bg-background text-text-high flex flex-col items-center justify-center p-6 relative overflow-hidden">
       <TopBar minimal={true} />
       
       {/* Dynamic ambient backgrounds */}

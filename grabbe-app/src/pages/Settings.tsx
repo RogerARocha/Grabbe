@@ -272,7 +272,7 @@ export const Settings = () => {
   };
 
   return (
-    <MainLayout>
+    <MainLayout pageName="Settings">
       <div className="flex flex-col h-full overflow-y-auto">
         <header className="px-8 py-8">
           <h1 className="text-3xl font-bold font-heading text-text-high tracking-tight">Settings</h1>

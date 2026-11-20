@@ -96,7 +96,7 @@ export const ConsumptionTimeline = ({
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div data-component="ConsumptionTimeline" className="flex flex-col gap-4">
       <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted flex items-center gap-2">
         <span className="material-symbols-outlined text-[14px]">history</span>
         Consumption Timeline

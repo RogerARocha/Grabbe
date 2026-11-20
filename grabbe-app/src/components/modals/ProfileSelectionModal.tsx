@@ -45,7 +45,7 @@ export const ProfileSelectionModal: React.FC<ProfileSelectionModalProps> = ({
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div data-component="ProfileSelectionModal" className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
         onClick={onClose}

@@ -30,7 +30,7 @@ export const LibraryFilters = ({
 }: LibraryFiltersProps) => {
 
   return (
-    <div className="space-y-6 mb-12">
+    <div data-component="LibraryFilters" className="space-y-6 mb-12">
       <TypeFilters activeTab={activeTab} setActiveTab={setActiveTab} />
 
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">

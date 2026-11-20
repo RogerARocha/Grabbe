@@ -59,7 +59,7 @@ export const Toast: React.FC<ToastProps> = ({ message, type, onClose, duration =
   const theme = getThemeDetails();
 
   return (
-    <div className={`fixed ${bottomOffsetClass || 'bottom-6'} right-6 z-50 bg-linear-to-r ${theme.bgGradient} backdrop-blur-md border ${theme.borderColor} rounded-xl p-4 flex items-start gap-3.5 animate-in slide-in-from-bottom-5 w-95 max-w-[calc(100vw-2rem)] shadow-2xl ${theme.glowColor} transition-all duration-300`}>
+    <div data-component="Toast" className={`fixed ${bottomOffsetClass || 'bottom-6'} right-6 z-50 bg-linear-to-r ${theme.bgGradient} backdrop-blur-md border ${theme.borderColor} rounded-xl p-4 flex items-start gap-3.5 animate-in slide-in-from-bottom-5 w-95 max-w-[calc(100vw-2rem)] shadow-2xl ${theme.glowColor} transition-all duration-300`}>
       <div className={`relative flex items-center justify-center w-8 h-8 rounded-full bg-white/5 border border-white/10 ${theme.iconColor} shrink-0`}>
         <span className="material-symbols-outlined text-[20px]">{theme.icon}</span>
       </div>

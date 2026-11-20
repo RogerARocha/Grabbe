@@ -329,7 +329,7 @@ export const Profile = () => {
   ];
 
   return (
-    <MainLayout>
+    <MainLayout pageName="Profile">
       <div className="space-y-8 max-w-7xl mx-auto px-4 pb-12">
         {/* Header */}
         <div>

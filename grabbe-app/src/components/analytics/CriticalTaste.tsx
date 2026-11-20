@@ -23,7 +23,7 @@ export const CriticalTaste = ({ items = [] }: { items: any[] }) => {
   ]);
 
   return (
-    <section className="bg-surface rounded-xl p-6 flex flex-col w-full bloom-shadow border border-surface-container-high">
+    <section data-component="CriticalTaste" className="bg-surface rounded-xl p-6 flex flex-col w-full bloom-shadow border border-surface-container-high">
       <div className="mb-6">
         <h3 className="text-xl font-bold text-text-high flex items-center gap-2">
           <span className="material-symbols-outlined text-primary">star</span>

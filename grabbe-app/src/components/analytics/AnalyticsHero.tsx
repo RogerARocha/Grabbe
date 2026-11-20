@@ -33,7 +33,7 @@ export const AnalyticsHero = ({ items = [] }: { items: any[] }) => {
     }, 0);
 
   return (
-    <section className="bg-surface rounded-xl p-8 relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between group bloom-shadow border border-surface-container-high">
+    <section data-component="AnalyticsHero" className="bg-surface rounded-xl p-8 relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between group bloom-shadow border border-surface-container-high">
       <div className="absolute inset-0 bg-linear-to-br from-secondary/5 to-transparent pointer-events-none"></div>
       <div className="relative z-10">
         <p className="text-sm font-bold text-text-muted uppercase tracking-widest mb-2">Total Lifetime</p>

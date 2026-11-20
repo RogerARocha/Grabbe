@@ -90,7 +90,7 @@ export const WelcomeHeader = ({ items = [] }: { items?: any[] }) => {
   const { prefix, suffix } = getGreetingText();
 
   return (
-    <section className="mb-12">
+    <section data-component="WelcomeHeader" className="mb-12">
       <h1 className="text-5xl font-extrabold tracking-tighter mb-2">
         {prefix}<span className="prismatic-text">{userName}</span>{suffix}
       </h1>
