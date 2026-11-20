@@ -26,7 +26,10 @@ export {
   getTrackingByExternalId, 
   removeTrackingByExternalId, 
   startRewatch, 
-  getConsumptionSessions 
+  getConsumptionSessions,
+  updatePastSession,
+  deletePastSession,
+  type PastSessionUpdate
 } from './db/tracking';
 export { getRankedItems } from './db/ranking';
 export { exportLibraryData, importBackupItem } from './db/backup';

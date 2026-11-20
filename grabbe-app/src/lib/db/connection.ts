@@ -148,5 +148,50 @@ export async function initDb() {
     console.warn("Legacy media deduplication check failed:", dedupErr);
   }
 
+  // Re-sequence any duplicate/non-sequential session_number values and ensure only the
+  // latest (top-of-stack) ConsumptionSession per tracking_id is marked active.
+  try {
+    const outOfOrderTrackings = await db.select<{ tracking_id: string }[]>(`
+      SELECT tracking_id
+      FROM ConsumptionSession
+      GROUP BY tracking_id
+      HAVING COUNT(*) != COUNT(DISTINCT session_number)
+          OR COALESCE(MAX(session_number), 0) != COUNT(*)
+    `);
+
+    for (const row of outOfOrderTrackings) {
+      const sessions = await db.select<{ id: string; session_number: number }[]>(
+        "SELECT id, session_number FROM ConsumptionSession WHERE tracking_id = $1 ORDER BY session_number ASC, created_at ASC, rowid ASC",
+        [row.tracking_id]
+      );
+      for (let i = 0; i < sessions.length; i++) {
+        const expected = i + 1;
+        if (sessions[i].session_number !== expected) {
+          await db.execute(
+            "UPDATE ConsumptionSession SET session_number = $1 WHERE id = $2",
+            [expected, sessions[i].id]
+          );
+        }
+      }
+    }
+
+    await db.execute(`
+      UPDATE ConsumptionSession
+      SET is_active = FALSE
+      WHERE is_active = TRUE
+        AND EXISTS (
+          SELECT 1
+          FROM ConsumptionSession newer
+          WHERE newer.tracking_id = ConsumptionSession.tracking_id
+            AND (
+              newer.session_number > ConsumptionSession.session_number
+              OR (newer.session_number = ConsumptionSession.session_number AND newer.rowid > ConsumptionSession.rowid)
+            )
+        );
+    `);
+  } catch (sessionErr) {
+    console.warn("Session normalization failed:", sessionErr);
+  }
+
   console.log("Database initialized and migrations ran successfully.");
 }

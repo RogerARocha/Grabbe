@@ -46,7 +46,10 @@ export async function saveTracking(
 
   // Update/Insert ConsumptionSession
   if (startDate !== undefined || endDate !== undefined) {
-    const sessionResult = await db.select<any[]>("SELECT id FROM ConsumptionSession WHERE tracking_id = $1 AND is_active = TRUE LIMIT 1", [trackingId]);
+    const sessionResult = await db.select<any[]>(
+      "SELECT id FROM ConsumptionSession WHERE tracking_id = $1 AND is_active = TRUE ORDER BY session_number DESC, rowid DESC LIMIT 1",
+      [trackingId]
+    );
     if (sessionResult && sessionResult.length > 0) {
       await db.execute(
         "UPDATE ConsumptionSession SET start_date = $1, finish_date = $2 WHERE id = $3",
@@ -54,8 +57,17 @@ export async function saveTracking(
       );
     } else if (startDate || endDate) {
       await db.execute(
-        "INSERT INTO ConsumptionSession (id, tracking_id, start_date, finish_date, is_active) VALUES ($1, $2, $3, $4, TRUE)",
-        [uuidv4(), trackingId, startDate || null, endDate || null]
+        "UPDATE ConsumptionSession SET is_active = FALSE WHERE tracking_id = $1 AND is_active = TRUE",
+        [trackingId]
+      );
+      const maxSessionResult = await db.select<any[]>(
+        "SELECT COALESCE(MAX(session_number), 0) AS max_session FROM ConsumptionSession WHERE tracking_id = $1",
+        [trackingId]
+      );
+      const nextSessionNumber: number = (maxSessionResult[0]?.max_session ?? 0) + 1;
+      await db.execute(
+        "INSERT INTO ConsumptionSession (id, tracking_id, session_number, start_date, finish_date, is_active) VALUES ($1, $2, $3, $4, $5, TRUE)",
+        [uuidv4(), trackingId, nextSessionNumber, startDate || null, endDate || null]
       );
     }
   }
@@ -131,19 +143,19 @@ export async function getTrackingForMedia(mediaId: string) {
         const trackingId = tracking[0].id;
 
         const activeSession = await db.select<any[]>(
-            "SELECT start_date, finish_date FROM ConsumptionSession WHERE tracking_id = $1 AND is_active = TRUE LIMIT 1",
+            "SELECT start_date, finish_date FROM ConsumptionSession WHERE tracking_id = $1 AND is_active = TRUE ORDER BY session_number DESC, rowid DESC LIMIT 1",
             [trackingId]
         );
 
         // All sessions ordered chronologically for the timeline view.
         const sessions = await db.select<any[]>(
-            "SELECT session_number, start_date, finish_date, is_active FROM ConsumptionSession WHERE tracking_id = $1 ORDER BY session_number ASC",
+            "SELECT id, session_number, start_date, finish_date, is_active FROM ConsumptionSession WHERE tracking_id = $1 ORDER BY session_number ASC, created_at ASC, rowid ASC",
             [trackingId]
         );
 
         // SESSION_COMPLETED events carry the archived score/review for past sessions.
         const historyEvents = await db.select<any[]>(
-            "SELECT event_type, previous_value, new_value, event_date FROM TrackingHistory WHERE tracking_id = $1 AND event_type = 'SESSION_COMPLETED' ORDER BY event_date ASC",
+            "SELECT id, event_type, previous_value, new_value, event_date FROM TrackingHistory WHERE tracking_id = $1 AND event_type = 'SESSION_COMPLETED' ORDER BY event_date ASC",
             [trackingId]
         );
         
@@ -297,6 +309,120 @@ export async function startRewatch(trackingId: string, mediaId: string): Promise
     );
 
     return newRewatchCount;
+}
+
+export interface PastSessionUpdate {
+  startDate: string | null;
+  finishDate: string | null;
+  score: number | null;
+  reviewText: string | null;
+  finalStatus: string;
+}
+
+/**
+ * Updates a past (inactive) consumption session's dates and archived evaluation in TrackingHistory.
+ */
+export async function updatePastSession(
+  trackingId: string,
+  sessionId: string,
+  sessionNumber: number,
+  payload: PastSessionUpdate
+): Promise<void> {
+  const db = await getDb();
+
+  await db.execute(
+    "UPDATE ConsumptionSession SET start_date = $1, finish_date = $2, is_active = FALSE WHERE id = $3 AND tracking_id = $4",
+    [payload.startDate, payload.finishDate, sessionId, trackingId]
+  );
+
+  const serializedEval = JSON.stringify({
+    score: payload.score,
+    reviewText: payload.reviewText,
+    finalStatus: payload.finalStatus,
+  });
+
+  const existingHistory = await db.select<any[]>(
+    "SELECT id FROM TrackingHistory WHERE tracking_id = $1 AND event_type = 'SESSION_COMPLETED' AND new_value = $2 LIMIT 1",
+    [trackingId, String(sessionNumber)]
+  );
+
+  if (existingHistory && existingHistory.length > 0) {
+    await db.execute(
+      "UPDATE TrackingHistory SET previous_value = $1 WHERE id = $2",
+      [serializedEval, existingHistory[0].id]
+    );
+  } else {
+    await db.execute(
+      "INSERT INTO TrackingHistory (id, tracking_id, event_type, previous_value, new_value) VALUES ($1, $2, 'SESSION_COMPLETED', $3, $4)",
+      [uuidv4(), trackingId, serializedEval, String(sessionNumber)]
+    );
+  }
+}
+
+/**
+ * Deletes a past (inactive) consumption session, removes its archived SESSION_COMPLETED event,
+ * re-sequences remaining session_number values (and their TrackingHistory ordinals), and
+ * decrements UserTracking.rewatch_count.
+ */
+export async function deletePastSession(
+  trackingId: string,
+  sessionId: string,
+  sessionNumber: number
+): Promise<void> {
+  const db = await getDb();
+
+  const allSessions = await db.select<any[]>(
+    "SELECT id, session_number, is_active FROM ConsumptionSession WHERE tracking_id = $1 ORDER BY session_number ASC, rowid ASC",
+    [trackingId]
+  );
+
+  const targetIndex = allSessions.findIndex((s) => s.id === sessionId);
+  if (targetIndex === -1) {
+    return;
+  }
+
+  const target = allSessions[targetIndex];
+  const isTopActive = Boolean(target.is_active) && targetIndex === allSessions.length - 1;
+  if (isTopActive) {
+    return;
+  }
+
+  const deletedNumber: number = target.session_number ?? sessionNumber;
+
+  await db.execute(
+    "DELETE FROM ConsumptionSession WHERE id = $1 AND tracking_id = $2",
+    [sessionId, trackingId]
+  );
+
+  await db.execute(
+    "DELETE FROM TrackingHistory WHERE tracking_id = $1 AND event_type = 'SESSION_COMPLETED' AND new_value = $2",
+    [trackingId, String(deletedNumber)]
+  );
+
+  const remainingSessions = await db.select<any[]>(
+    "SELECT id, session_number FROM ConsumptionSession WHERE tracking_id = $1 ORDER BY session_number ASC",
+    [trackingId]
+  );
+
+  for (let i = 0; i < remainingSessions.length; i++) {
+    const oldNum = remainingSessions[i].session_number;
+    const newNum = i + 1;
+    if (oldNum !== newNum) {
+      await db.execute(
+        "UPDATE ConsumptionSession SET session_number = $1 WHERE id = $2",
+        [newNum, remainingSessions[i].id]
+      );
+      await db.execute(
+        "UPDATE TrackingHistory SET new_value = $1 WHERE tracking_id = $2 AND event_type = 'SESSION_COMPLETED' AND new_value = $3",
+        [String(newNum), trackingId, String(oldNum)]
+      );
+    }
+  }
+
+  await db.execute(
+    "UPDATE UserTracking SET rewatch_count = MAX(0, COALESCE(rewatch_count, 0) - 1), updated_at = CURRENT_TIMESTAMP WHERE id = $1",
+    [trackingId]
+  );
 }
 
 /**
