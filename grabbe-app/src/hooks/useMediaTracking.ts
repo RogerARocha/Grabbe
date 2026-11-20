@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getTrackingByExternalId, removeTrackingByExternalId, saveTracking, startRewatch, linkMediaToRealId, unlinkMedia } from '../lib/db';
+import { getTrackingByExternalId, removeTrackingByExternalId, saveTracking, startRewatch, linkMediaToRealId, unlinkMedia, updatePastSession, deletePastSession, type PastSessionUpdate } from '../lib/db';
 
 interface UseMediaTrackingParams {
   externalId: string | undefined;
@@ -114,6 +114,30 @@ export function useMediaTracking({
     refreshTracking();
   };
 
+  const handleUpdatePastSession = async (sessionId: string, sessionNumber: number, payload: PastSessionUpdate) => {
+    if (!tracking.trackingId) return;
+    try {
+      await updatePastSession(tracking.trackingId, sessionId, sessionNumber, payload);
+      await refreshTracking();
+      showToast('Session updated!', 'success');
+    } catch (err) {
+      console.error('Failed to update session', err);
+      showToast('Failed to update session.', 'error');
+    }
+  };
+
+  const handleDeletePastSession = async (sessionId: string, sessionNumber: number) => {
+    if (!tracking.trackingId) return;
+    try {
+      await deletePastSession(tracking.trackingId, sessionId, sessionNumber);
+      await refreshTracking();
+      showToast('Session deleted.', 'success');
+    } catch (err) {
+      console.error('Failed to delete session', err);
+      showToast('Failed to delete session.', 'error');
+    }
+  };
+
   const handleQuickProgress = async () => {
     if (!isInLibrary || !tracking || !externalId || !sourceApi) return;
 
@@ -194,6 +218,8 @@ export function useMediaTracking({
     handleUpdateClick,
     handleRemoveClick,
     handleRewatchClick,
+    handleUpdatePastSession,
+    handleDeletePastSession,
     handleQuickProgress,
     handleSelectResult,
     handleUnlink

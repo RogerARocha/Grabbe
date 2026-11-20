@@ -60,6 +60,8 @@ export const MediaDetails = () => {
     handleUpdateClick,
     handleRemoveClick,
     handleRewatchClick,
+    handleUpdatePastSession,
+    handleDeletePastSession,
     handleQuickProgress,
     handleSelectResult,
     handleUnlink
@@ -285,6 +287,9 @@ export const MediaDetails = () => {
                   activeReviewText={tracking.reviewText}
                   activeScore={tracking.userScore}
                   mediaType={media.type}
+                  releaseYear={year && !isNaN(Number(year)) ? Number(year) : undefined}
+                  onUpdateSession={handleUpdatePastSession}
+                  onDeleteSession={handleDeletePastSession}
                 />
               </div>
             )}

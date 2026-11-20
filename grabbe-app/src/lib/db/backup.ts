@@ -204,9 +204,11 @@ export async function importBackupItem(item: any) {
       }
   }
 
-  // 4. Overwrite historical Consumption Sessions safely
+  // 4. Overwrite historical Consumption Sessions safely (only the top-of-stack session can be active)
   await db.execute("DELETE FROM ConsumptionSession WHERE tracking_id = $1", [trackingId]);
+  const maxSessionNumber = sessions.reduce((max: number, s: any) => Math.max(max, s.session_number ?? 0), 0);
   for (const session of sessions) {
+      const isTopSession = (session.session_number ?? 0) === maxSessionNumber;
       await db.execute(
           "INSERT INTO ConsumptionSession (id, tracking_id, session_number, start_date, finish_date, is_active) VALUES ($1, $2, $3, $4, $5, $6)",
           [
@@ -215,7 +217,7 @@ export async function importBackupItem(item: any) {
               session.session_number,
               session.start_date,
               session.finish_date,
-              session.is_active
+              isTopSession ? Boolean(session.is_active) : false
           ]
       );
   }
